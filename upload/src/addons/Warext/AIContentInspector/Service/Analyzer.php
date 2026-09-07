@@ -37,7 +37,6 @@ class Analyzer
         $behaviorScore = $this->behaviorScore($behavior, $chars);
         $writingAdjustment = $this->writingAdjustment($writing, $chars);
 
-        // Davranış ve Writing Checker verileri istemci gözlemidir; tek başına karar vermez.
         $risk = ($textRisk * 0.82) + ($behaviorScore * 0.18) - $writingAdjustment;
         $risk = (int) round(max(0, min(100, $risk)));
 
@@ -165,7 +164,10 @@ class Analyzer
     protected function writingAdjustment(array $writing, int $chars): float
     {
         if (empty($writing['available']) || $chars <= 0) return 0.0;
-        $changed = max(0, (int)($writing['changedChars'] ?? 0));
+        $messageField = is_array($writing['fields']['message'] ?? null) ? $writing['fields']['message'] : [];
+        $changed = array_key_exists('changedChars', $messageField)
+            ? max(0, (int)$messageField['changedChars'])
+            : max(0, (int)($writing['changedChars'] ?? 0));
         $ratio = min(1.0, $changed / max(1, $chars));
         return min(8.0, $ratio * 8.0);
     }
