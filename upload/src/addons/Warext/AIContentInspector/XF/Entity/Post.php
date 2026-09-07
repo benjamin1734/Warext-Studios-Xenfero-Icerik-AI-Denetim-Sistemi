@@ -27,7 +27,8 @@ class Post extends XFCP_Post
 
             $message = (string)$this->message;
             $minChars = max(100, (int)($options->warextAiMinChars ?? 350));
-            if (mb_strlen(strip_tags($message), 'UTF-8') < $minChars) return;
+            $analyzer = new Analyzer();
+            if ($analyzer->authoredTextLength($message) < $minChars) return;
 
             $thread = $this->Thread;
             if (!$thread) return;
@@ -46,7 +47,7 @@ class Post extends XFCP_Post
             if ($forumIds && !in_array($forumId, $forumIds, true)) return;
 
             [$behavior, $writing] = $this->warextReadClientContext();
-            $result = (new Analyzer())->analyze($message, $behavior, $writing);
+            $result = $analyzer->analyze($message, $behavior, $writing);
             $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
             $this->warextPersistAnalysis($forumId, $result, $message);
         }
