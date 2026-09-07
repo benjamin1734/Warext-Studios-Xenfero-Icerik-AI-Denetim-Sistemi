@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<permissions>
+  <permission permission_group_id="general" permission_id="warextAiViewSimple" permission_type="flag" interface_group_id="warextAi" display_order="10" />
+  <permission permission_group_id="general" permission_id="warextAiViewDetailed" permission_type="flag" interface_group_id="warextAi" display_order="20" />
+  <permission permission_group_id="general" permission_id="warextAiReview" permission_type="flag" interface_group_id="warextAi" display_order="30" />
+  <permission permission_group_id="general" permission_id="warextAiManage" permission_type="flag" interface_group_id="warextAi" display_order="40" />
+</permissions>

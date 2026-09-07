@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<template_modifications>
+  <modification type="public" template="PAGE_CONTAINER" modification_key="warext_ai_global_loader" description="Warext AI denetimi davranış ve rapor arayüzünü yükler" execution_order="910" enabled="1" action="str_replace">
+    <find><![CDATA[</body>]]></find>
+    <replace><![CDATA[<div id="warext-ai-config" hidden
+ data-batch-endpoint="{{ link('warext-ai/batch') }}"
+ data-detail-endpoint="{{ link('warext-ai/detail') }}"
+ data-review-endpoint="{{ link('warext-ai/review') }}"></div>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=100a1"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=100a1"></script>
+$0]]></replace>
+  </modification>
+</template_modifications>

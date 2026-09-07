@@ -1,0 +1,16 @@
+{
+  "legacy_addon_id": "",
+  "title": "Warext Studios | İçerik AI Denetim Sistemi",
+  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı ve editör davranışı sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel olarak entegrasyon verisini kullanır, zorunlu bağımlılık oluşturmaz.",
+  "version_id": 1000070,
+  "version_string": "1.0.0 Alpha 1",
+  "dev": "Warext Studios",
+  "dev_url": "",
+  "faq_url": "",
+  "support_url": "",
+  "extra_urls": {},
+  "require": {
+    "XF": [2030070, "XenForo 2.3.0+"]
+  },
+  "icon": "fa-robot"
+}
