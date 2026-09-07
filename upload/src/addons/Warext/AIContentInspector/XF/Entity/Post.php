@@ -3,6 +3,7 @@
 namespace Warext\AIContentInspector\XF\Entity;
 
 use Warext\AIContentInspector\Service\Analyzer;
+use Warext\AIContentInspector\Service\UserProfile;
 
 class Post extends XFCP_Post
 {
@@ -41,6 +42,7 @@ class Post extends XFCP_Post
 
             [$behavior, $writing] = $this->warextReadClientContext();
             $result = (new Analyzer())->analyze($message, $behavior, $writing);
+            $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
             $this->warextPersistAnalysis($forumId, $result, $message);
         }
         catch (\Throwable $e)
@@ -98,7 +100,11 @@ class Post extends XFCP_Post
         $db = \XF::db();
         $now = time();
         $postId = (int)$this->post_id;
-        $existingId = (int)$db->fetchOne('SELECT analysis_id FROM xf_warext_ai_analysis WHERE post_id = ? ORDER BY analysis_id DESC LIMIT 1', $postId);
+        $contentHash = hash('sha256', $message);
+        $existing = $db->fetchRow(
+            'SELECT analysis_id, content_hash, review_state FROM xf_warext_ai_analysis WHERE post_id = ? ORDER BY analysis_id DESC LIMIT 1',
+            $postId
+        );
 
         $data = [
             'post_id' => $postId,
@@ -111,14 +117,21 @@ class Post extends XFCP_Post
             'text_metrics' => json_encode($result['text_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'behavior_metrics' => json_encode($result['behavior_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'writing_metrics' => json_encode($result['writing_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'profile_metrics' => json_encode($result['profile_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'signal_summary' => json_encode($result['signals'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'content_hash' => hash('sha256', $message),
+            'content_hash' => $contentHash,
             'updated_date' => $now
         ];
 
-        if ($existingId)
+        if ($existing)
         {
-            $db->update('xf_warext_ai_analysis', $data, 'analysis_id = ?', $existingId);
+            if (!hash_equals((string)($existing['content_hash'] ?? ''), $contentHash))
+            {
+                $data['review_state'] = 'pending';
+                $data['reviewer_user_id'] = 0;
+                $data['reviewed_date'] = 0;
+            }
+            $db->update('xf_warext_ai_analysis', $data, 'analysis_id = ?', (int)$existing['analysis_id']);
         }
         else
         {
