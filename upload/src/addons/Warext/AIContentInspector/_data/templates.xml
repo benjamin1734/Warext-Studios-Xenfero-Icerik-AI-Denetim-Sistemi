@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+  <template type="public" title="warext_ai_center" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[<xf:title>AI İçerik Denetim Merkezi</xf:title>
+<xf:css src="warext_ai_center.less" />
+
+<div class="blockMessage blockMessage--important">
+    Bu merkez otomatik ceza vermez. Risk ve güven puanları moderasyon incelemesine yardımcı olan sinyallerdir; özellikle kısa metinlerde kesin AI tespiti olarak değerlendirilmemelidir.
+</div>
+
+<div class="warextAiCenter-stats">
+    <a class="warextAiCenter-stat" href="{{ link('warext-ai', null, {'state':'pending'}) }}"><b>{$counts.pending}</b><span>Bekleyen</span></a>
+    <a class="warextAiCenter-stat warextAiCenter-stat--warn" href="{{ link('warext-ai', null, {'state':'suspicious'}) }}"><b>{$counts.suspicious}</b><span>Şüpheli</span></a>
+    <a class="warextAiCenter-stat warextAiCenter-stat--danger" href="{{ link('warext-ai', null, {'state':'confirmed'}) }}"><b>{$counts.confirmed}</b><span>Onaylanan</span></a>
+    <a class="warextAiCenter-stat warextAiCenter-stat--ok" href="{{ link('warext-ai', null, {'state':'cleared'}) }}"><b>{$counts.cleared}</b><span>Temizlenen</span></a>
+</div>
+
+<div class="block">
+    <div class="block-container">
+        <h2 class="block-header">Filtreler</h2>
+        <div class="block-body warextAiCenter-filterBody">
+            <form action="{{ link('warext-ai') }}" method="get" class="warextAiCenter-filter">
+                <label><span>İnceleme durumu</span><select class="input" name="state">
+                    <option value="">Tümü</option>
+                    <option value="pending" {{ $filters.state == 'pending' ? 'selected' : '' }}>Bekleyen</option>
+                    <option value="suspicious" {{ $filters.state == 'suspicious' ? 'selected' : '' }}>Şüpheli</option>
+                    <option value="confirmed" {{ $filters.state == 'confirmed' ? 'selected' : '' }}>Onaylanan</option>
+                    <option value="cleared" {{ $filters.state == 'cleared' ? 'selected' : '' }}>Temizlenen</option>
+                </select></label>
+                <label><span>Minimum risk</span><input class="input" type="number" min="0" max="100" name="risk_min" value="{$filters.risk_min}" /></label>
+                <label><span>Forum ID</span><input class="input" type="number" min="0" name="forum_id" value="{$filters.forum_id}" /></label>
+                <label><span>Kullanıcı ID</span><input class="input" type="number" min="0" name="user_id" value="{$filters.user_id}" /></label>
+                <div class="warextAiCenter-filterActions"><button class="button button--primary" type="submit">Filtrele</button><a class="button" href="{{ link('warext-ai') }}">Temizle</a></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="block">
+    <div class="block-container">
+        <h2 class="block-header">Analizler <span class="block-desc">{$total} sonuç</span></h2>
+        <div class="block-body">
+            <xf:if is="$rows">
+                <div class="warextAiCenter-list">
+                    <xf:foreach loop="$rows" value="$row">
+                        <div class="warextAiCenter-row">
+                            <div class="warextAiCenter-main">
+                                <div class="warextAiCenter-title">
+                                    <strong>#{$row.post_id}</strong>
+                                    <span>{$row.thread_title ?: 'Silinmiş veya erişilemeyen konu'}</span>
+                                </div>
+                                <div class="warextAiCenter-meta">
+                                    <span>Kullanıcı: {$row.username ?: ('#' . $row.user_id)}</span>
+                                    <span>Forum: #{$row.forum_id}</span>
+                                    <span>Güven: {$row.confidence}/100</span>
+                                    <xf:if is="$row.profile_samples >= 3"><span>Profil sapması: {$row.profile_deviation}/100 ({$row.profile_samples} örnek)</span></xf:if>
+                                    <span><xf:date time="$row.updated_date" /></span>
+                                </div>
+                            </div>
+                            <div class="warextAiCenter-side">
+                                <span class="warextAiCenter-risk warextAiCenter-risk--{{ $row.risk_score >= 85 ? 'critical' : ($row.risk_score >= 70 ? 'high' : ($row.risk_score >= 50 ? 'medium' : 'low')) }}">{$row.risk_score}/100</span>
+                                <span class="warextAiCenter-state">{$row.review_state}</span>
+                                <xf:if is="$row.thread_id"><a class="button button--link" href="{{ link('threads', {'thread_id':$row.thread_id, 'title':$row.thread_title}) }}#post-{$row.post_id}">Mesaja git</a></xf:if>
+                            </div>
+                        </div>
+                    </xf:foreach>
+                </div>
+            <xf:else />
+                <div class="blockMessage">Bu filtrelere uyan AI denetim kaydı bulunamadı.</div>
+            </xf:if>
+        </div>
+    </div>
+</div>
+
+<xf:pagenav page="$page" perpage="$perPage" total="$total" link="warext-ai" params="$linkParams" />]]></template>
+
+  <template type="public" title="warext_ai_center.less" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[.warextAiCenter-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}.warextAiCenter-stat{display:flex;flex-direction:column;gap:3px;padding:14px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;background:@xf-contentBg;color:inherit;text-decoration:none}.warextAiCenter-stat b{font-size:22px}.warextAiCenter-stat span{font-size:12px;color:@xf-textColorMuted}.warextAiCenter-stat--warn{border-left:4px solid #c8922d}.warextAiCenter-stat--danger{border-left:4px solid #c94b4b}.warextAiCenter-stat--ok{border-left:4px solid #4c9b63}.warextAiCenter-filterBody{padding:12px}.warextAiCenter-filter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.warextAiCenter-filter label{display:flex;flex-direction:column;gap:5px;font-size:12px}.warextAiCenter-filterActions{display:flex;gap:8px;grid-column:1/-1}.warextAiCenter-list{display:flex;flex-direction:column}.warextAiCenter-row{display:flex;justify-content:space-between;gap:16px;padding:13px 14px;border-bottom:1px solid @xf-borderColor}.warextAiCenter-row:last-child{border-bottom:0}.warextAiCenter-main{min-width:0}.warextAiCenter-title{display:flex;gap:8px;align-items:center;min-width:0}.warextAiCenter-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.warextAiCenter-meta{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;font-size:12px;color:@xf-textColorMuted}.warextAiCenter-side{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.warextAiCenter-risk,.warextAiCenter-state{padding:4px 8px;border-radius:999px;background:mix(@xf-contentBg,@xf-textColor,92%);font-size:12px;font-weight:600}.warextAiCenter-risk--medium{background:#c8922d22}.warextAiCenter-risk--high{background:#d06f2d25}.warextAiCenter-risk--critical{background:#c94b4b25}@media(max-width:800px){.warextAiCenter-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.warextAiCenter-filter{grid-template-columns:repeat(2,minmax(0,1fr))}.warextAiCenter-row{flex-direction:column}.warextAiCenter-side{justify-content:flex-start}}@media(max-width:480px){.warextAiCenter-filter{grid-template-columns:1fr}}]]></template>
+</templates>
