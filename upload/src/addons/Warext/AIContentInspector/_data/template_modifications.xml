@@ -6,8 +6,8 @@
  data-batch-endpoint="{{ link('warext-ai/batch') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=100a1"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=100a1"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=100a2"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=100a2"></script>
 $0]]></replace>
   </modification>
 </template_modifications>
