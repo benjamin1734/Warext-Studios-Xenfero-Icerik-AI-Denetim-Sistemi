@@ -32,6 +32,7 @@ class Setup extends AbstractSetup
             $table->addColumn('profile_metrics', 'mediumblob')->nullable();
             $table->addColumn('signal_summary', 'mediumblob')->nullable();
             $table->addColumn('content_hash', 'varchar', 64)->setDefault('');
+            $table->addColumn('content_fingerprint', 'varchar', 16)->setDefault('');
             $table->addColumn('review_state', 'varchar', 24)->setDefault('pending');
             $table->addColumn('reviewer_user_id', 'int')->unsigned()->setDefault(0);
             $table->addColumn('reviewed_date', 'int')->unsigned()->setDefault(0);
@@ -42,6 +43,7 @@ class Setup extends AbstractSetup
             $table->addKey(['forum_id', 'risk_score'], 'forum_risk');
             $table->addKey(['user_id', 'analyzed_date'], 'user_date');
             $table->addKey(['review_state', 'risk_score'], 'review_risk');
+            $table->addKey(['forum_id', 'content_fingerprint'], 'forum_fingerprint');
         });
 
         $this->createReviewLogTable();
@@ -56,6 +58,15 @@ class Setup extends AbstractSetup
         });
 
         $this->createReviewLogTable();
+    }
+
+    public function upgrade1000090Step1(): void
+    {
+        $this->schemaManager()->alterTable('xf_warext_ai_analysis', function (\XF\Db\Schema\Alter $table)
+        {
+            $table->addColumn('content_fingerprint', 'varchar', 16)->setDefault('')->after('content_hash');
+            $table->addKey(['forum_id', 'content_fingerprint'], 'forum_fingerprint');
+        });
     }
 
     protected function createReviewLogTable(): void
