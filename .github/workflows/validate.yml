@@ -63,6 +63,17 @@ jobs:
           if missing:
               raise SystemExit('Phrase eksik: ' + ', '.join(missing))
 
+          options = ET.parse(data / 'options.xml').getroot()
+          forum_option = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiForums'), None)
+          if forum_option is None:
+              raise SystemExit('Forum seçimi seçeneği bulunamadı')
+          if forum_option.attrib.get('edit_format') != 'callback' or forum_option.attrib.get('data_type') != 'array':
+              raise SystemExit('Forum seçimi XenForo çoklu seçici biçiminde değil')
+          if (forum_option.findtext('edit_format_params') or '').strip() != r'\XF\Option\Forum::renderSelectMultiple':
+              raise SystemExit('XenForo forum seçici callback eksik')
+          if (forum_option.findtext('sub_options') or '').strip() != '*':
+              raise SystemExit('Forum seçimi array alt seçenek ayarı eksik')
+
           template = (data / 'template_modifications.xml').read_text(encoding='utf-8')
           for marker in ["link('warext-ai/batch')", "link('warext-ai/detail')", "link('warext-ai/review')", 'tracker.js', 'report-ui.js', '100a2']:
               if marker not in template:
@@ -80,9 +91,9 @@ jobs:
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
           if 'Warext\\TurkishSpellCheck' in post:
               raise SystemExit('Post analizi Writing Checker sınıfına doğrudan bağlanmamalı')
-          for marker in ['UserProfile', 'profile_metrics', 'warextReadClientContext']:
+          for marker in ['UserProfile', 'profile_metrics', 'warextReadClientContext', 'is_array($configured)', 'legacy']:
               if marker not in post:
-                  raise SystemExit('Post profil entegrasyonu eksik: ' + marker)
+                  raise SystemExit('Post profil/forum entegrasyonu eksik: ' + marker)
 
           profile = (root / 'Service/UserProfile.php').read_text(encoding='utf-8')
           for marker in ['sample_count', 'deviation_score', 'risk_adjustment', 'user_profile_deviation']:
@@ -99,5 +110,5 @@ jobs:
               if marker not in controller:
                   raise SystemExit('Moderasyon merkezi/inceleme akışı eksik: ' + marker)
 
-          print(json.dumps({'status':'ok','version':'1.0.0 Alpha 2','permissions':sorted(required),'hardDependency':False,'profileBaseline':True,'reviewAuditLog':True}, ensure_ascii=False))
+          print(json.dumps({'status':'ok','version':'1.0.0 Alpha 2','permissions':sorted(required),'hardDependency':False,'profileBaseline':True,'reviewAuditLog':True,'nativeForumSelector':True}, ensure_ascii=False))
           PY
