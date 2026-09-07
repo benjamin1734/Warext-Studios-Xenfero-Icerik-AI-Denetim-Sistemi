@@ -1,0 +1,42 @@
+name: Warext AI Content Inspector Package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Paket öncesi PHP doğrulaması
+        run: |
+          find upload/src/addons/Warext/AIContentInspector -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+
+      - name: Paket öncesi JavaScript doğrulaması
+        run: |
+          find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
+
+      - name: XenForo kurulum ZIP paketini üret
+        id: build
+        run: |
+          set -euo pipefail
+          python3 tools/build_release.py
+          PACKAGE="$(cat .release-package)"
+          test -f "$PACKAGE"
+          unzip -tq "$PACKAGE"
+          echo "package=$PACKAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Kurulum paketini artifact olarak yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Warext-XenForo-Icerik-AI-Denetim-Sistemi-Alpha2
+          path: ${{ steps.build.outputs.package }}
+          if-no-files-found: error
+          retention-days: 30
