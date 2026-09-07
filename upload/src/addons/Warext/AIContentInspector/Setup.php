@@ -29,6 +29,7 @@ class Setup extends AbstractSetup
             $table->addColumn('text_metrics', 'mediumblob')->nullable();
             $table->addColumn('behavior_metrics', 'mediumblob')->nullable();
             $table->addColumn('writing_metrics', 'mediumblob')->nullable();
+            $table->addColumn('profile_metrics', 'mediumblob')->nullable();
             $table->addColumn('signal_summary', 'mediumblob')->nullable();
             $table->addColumn('content_hash', 'varchar', 64)->setDefault('');
             $table->addColumn('review_state', 'varchar', 24)->setDefault('pending');
@@ -40,11 +41,45 @@ class Setup extends AbstractSetup
             $table->addKey(['thread_id', 'risk_score'], 'thread_risk');
             $table->addKey(['forum_id', 'risk_score'], 'forum_risk');
             $table->addKey(['user_id', 'analyzed_date'], 'user_date');
+            $table->addKey(['review_state', 'risk_score'], 'review_risk');
+        });
+
+        $this->createReviewLogTable();
+    }
+
+    public function upgrade1000080Step1(): void
+    {
+        $this->schemaManager()->alterTable('xf_warext_ai_analysis', function (\XF\Db\Schema\Alter $table)
+        {
+            $table->addColumn('profile_metrics', 'mediumblob')->nullable()->after('writing_metrics');
+            $table->addKey(['review_state', 'risk_score'], 'review_risk');
+        });
+
+        $this->createReviewLogTable();
+    }
+
+    protected function createReviewLogTable(): void
+    {
+        $this->schemaManager()->createTable('xf_warext_ai_review_log', function (Create $table)
+        {
+            $table->checkExists(true);
+            $table->addColumn('review_id', 'int')->unsigned()->autoIncrement();
+            $table->addColumn('analysis_id', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('post_id', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('reviewer_user_id', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('from_state', 'varchar', 24)->setDefault('pending');
+            $table->addColumn('to_state', 'varchar', 24)->setDefault('pending');
+            $table->addColumn('note', 'varchar', 500)->setDefault('');
+            $table->addColumn('created_date', 'int')->unsigned()->setDefault(0);
+            $table->addPrimaryKey('review_id');
+            $table->addKey(['post_id', 'created_date'], 'post_date');
+            $table->addKey(['reviewer_user_id', 'created_date'], 'reviewer_date');
         });
     }
 
     public function uninstallStep1(): void
     {
+        $this->schemaManager()->dropTable('xf_warext_ai_review_log');
         $this->schemaManager()->dropTable('xf_warext_ai_analysis');
     }
 }
