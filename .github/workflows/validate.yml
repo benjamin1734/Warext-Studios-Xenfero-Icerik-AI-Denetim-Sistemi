@@ -15,6 +15,9 @@ jobs:
         run: |
           find upload/src/addons/Warext/AIContentInspector -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
 
+      - name: Analyzer false-positive regresyonları
+        run: php tests/analyzer_regression.php
+
       - name: JavaScript syntax
         run: |
           find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
@@ -91,9 +94,14 @@ jobs:
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
           if 'Warext\\TurkishSpellCheck' in post:
               raise SystemExit('Post analizi Writing Checker sınıfına doğrudan bağlanmamalı')
-          for marker in ['UserProfile', 'profile_metrics', 'warextReadClientContext', 'is_array($configured)', 'legacy']:
+          for marker in ['UserProfile', 'profile_metrics', 'warextReadClientContext', 'is_array($configured)', 'legacy', 'authoredTextLength']:
               if marker not in post:
-                  raise SystemExit('Post profil/forum entegrasyonu eksik: ' + marker)
+                  raise SystemExit('Post profil/forum/metin entegrasyonu eksik: ' + marker)
+
+          analyzer = (root / 'Service/Analyzer.php').read_text(encoding='utf-8')
+          for marker in ['authoredTextLength', 'excluded_blocks', 'excluded_non_authored_blocks', 'QUOTE|CODE|PHP|HTML|ICODE|PLAIN']:
+              if marker not in analyzer:
+                  raise SystemExit('Analyzer false-positive koruması eksik: ' + marker)
 
           profile = (root / 'Service/UserProfile.php').read_text(encoding='utf-8')
           for marker in ['sample_count', 'deviation_score', 'risk_adjustment', 'user_profile_deviation']:
@@ -110,5 +118,5 @@ jobs:
               if marker not in controller:
                   raise SystemExit('Moderasyon merkezi/inceleme akışı eksik: ' + marker)
 
-          print(json.dumps({'status':'ok','version':'1.0.0 Alpha 2','permissions':sorted(required),'hardDependency':False,'profileBaseline':True,'reviewAuditLog':True,'nativeForumSelector':True}, ensure_ascii=False))
+          print(json.dumps({'status':'ok','version':'1.0.0 Alpha 2','permissions':sorted(required),'hardDependency':False,'profileBaseline':True,'reviewAuditLog':True,'nativeForumSelector':True,'nonAuthoredBlocksExcluded':True}, ensure_ascii=False))
           PY
