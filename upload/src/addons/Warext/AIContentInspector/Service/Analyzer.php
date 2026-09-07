@@ -4,9 +4,15 @@ namespace Warext\AIContentInspector\Service;
 
 class Analyzer
 {
+    public function authoredTextLength(string $message): int
+    {
+        [$text] = $this->prepareText($message);
+        return mb_strlen($text, 'UTF-8');
+    }
+
     public function analyze(string $message, array $behavior = [], array $writing = []): array
     {
-        $text = $this->plainText($message);
+        [$text, $excludedBlocks] = $this->prepareText($message);
         $chars = mb_strlen($text, 'UTF-8');
         $sentences = $this->sentences($text);
         $paragraphs = array_values(array_filter(array_map('trim', preg_split('/\R{2,}/u', $text) ?: [])));
@@ -51,6 +57,10 @@ class Analyzer
 
         $classification = $this->classification($risk);
         $signals = $this->signals($sentenceUniformity, $paragraphUniformity, $connectorDensity, $templateDensity, $structureDensity, $repetition, $behaviorScore, $writingAdjustment);
+        if ($excludedBlocks > 0)
+        {
+            $signals[] = ['key' => 'excluded_non_authored_blocks', 'level' => 'context', 'value' => $excludedBlocks];
+        }
 
         return [
             'risk_score' => $risk,
@@ -61,6 +71,7 @@ class Analyzer
                 'words' => $wordCount,
                 'sentences' => count($sentences),
                 'paragraphs' => count($paragraphs),
+                'excluded_blocks' => $excludedBlocks,
                 'sentence_uniformity' => round($sentenceUniformity, 4),
                 'paragraph_uniformity' => round($paragraphUniformity, 4),
                 'lexical_diversity' => round($lexicalDiversity, 4),
@@ -76,14 +87,28 @@ class Analyzer
         ];
     }
 
-    protected function plainText(string $message): string
+    protected function prepareText(string $message): array
     {
-        $text = preg_replace('/\[(?:CODE|PHP|HTML|ICODE|PLAIN)[^\]]*\][\s\S]*?\[\/(?:CODE|PHP|HTML|ICODE|PLAIN)\]/iu', ' ', $message) ?? $message;
+        $text = $message;
+        $excludedBlocks = 0;
+        $pattern = '/\[(QUOTE|CODE|PHP|HTML|ICODE|PLAIN)(?:=[^\]]*)?\][\s\S]*?\[\/\1\]/iu';
+
+        for ($pass = 0; $pass < 5; $pass++)
+        {
+            $count = 0;
+            $next = preg_replace($pattern, ' ', $text, -1, $count);
+            if ($next === null || $count === 0) break;
+            $text = $next;
+            $excludedBlocks += $count;
+        }
+
         $text = preg_replace('/\[[^\]]{1,200}\]/u', ' ', $text) ?? $text;
         $text = strip_tags($text);
         $text = preg_replace('/https?:\/\/\S+/iu', ' ', $text) ?? $text;
         $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
-        return trim($text);
+        $text = preg_replace('/\R{3,}/u', "\n\n", $text) ?? $text;
+
+        return [trim($text), $excludedBlocks];
     }
 
     protected function sentences(string $text): array
