@@ -33,12 +33,17 @@ class Post extends XFCP_Post
             if (!$thread) return;
             $forumId = (int)$thread->node_id;
 
-            $configuredForums = trim((string)($options->warextAiForums ?? ''));
-            if ($configuredForums !== '')
+            $configured = $options->warextAiForums ?? [];
+            if (is_array($configured))
             {
-                $forumIds = array_values(array_filter(array_map('intval', preg_split('/[\s,;]+/', $configuredForums) ?: [])));
-                if ($forumIds && !in_array($forumId, $forumIds, true)) return;
+                $forumIds = array_values(array_filter(array_map('intval', $configured)));
             }
+            else
+            {
+                $legacy = trim((string)$configured);
+                $forumIds = $legacy === '' ? [] : array_values(array_filter(array_map('intval', preg_split('/[\s,;]+/', $legacy) ?: [])));
+            }
+            if ($forumIds && !in_array($forumId, $forumIds, true)) return;
 
             [$behavior, $writing] = $this->warextReadClientContext();
             $result = (new Analyzer())->analyze($message, $behavior, $writing);
