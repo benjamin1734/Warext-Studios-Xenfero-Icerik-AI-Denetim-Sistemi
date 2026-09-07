@@ -28,7 +28,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 1':
+          if addon.get('version_string') != '1.0.0 Alpha 2' or int(addon.get('version_id', 0)) != 1000080:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -56,20 +56,48 @@ jobs:
               'option_group_warextAi',
               'option_warextAiEnabled', 'option_warextAiEnabled_explain',
               'option_warextAiMinChars', 'option_warextAiMinChars_explain',
-              'option_warextAiForums', 'option_warextAiForums_explain'
+              'option_warextAiForums', 'option_warextAiForums_explain',
+              'nav.warextAi'
           }
           missing = sorted(required_phrases - phrase_titles)
           if missing:
               raise SystemExit('Phrase eksik: ' + ', '.join(missing))
 
           template = (data / 'template_modifications.xml').read_text(encoding='utf-8')
-          for marker in ["link('warext-ai/batch')", "link('warext-ai/detail')", 'tracker.js', 'report-ui.js']:
+          for marker in ["link('warext-ai/batch')", "link('warext-ai/detail')", "link('warext-ai/review')", 'tracker.js', 'report-ui.js', '100a2']:
               if marker not in template:
                   raise SystemExit('Rapor/izleme template bağlantısı eksik: ' + marker)
+
+          templates = (data / 'templates.xml').read_text(encoding='utf-8')
+          for marker in ['warext_ai_center', 'warext_ai_center.less', 'Profil sapması', "link('warext-ai')"]:
+              if marker not in templates:
+                  raise SystemExit('Moderasyon merkezi template öğesi eksik: ' + marker)
+
+          navigation = (data / 'navigation.xml').read_text(encoding='utf-8')
+          if 'warextAiViewSimple' not in navigation or "link('warext-ai')" not in navigation:
+              raise SystemExit('AI denetim merkezi navigasyonu eksik')
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
           if 'Warext\\TurkishSpellCheck' in post:
               raise SystemExit('Post analizi Writing Checker sınıfına doğrudan bağlanmamalı')
+          for marker in ['UserProfile', 'profile_metrics', 'warextReadClientContext']:
+              if marker not in post:
+                  raise SystemExit('Post profil entegrasyonu eksik: ' + marker)
 
-          print(json.dumps({'status':'ok','permissions':sorted(required),'hardDependency':False}, ensure_ascii=False))
+          profile = (root / 'Service/UserProfile.php').read_text(encoding='utf-8')
+          for marker in ['sample_count', 'deviation_score', 'risk_adjustment', 'user_profile_deviation']:
+              if marker not in profile:
+                  raise SystemExit('Kullanıcı profil motoru eksik: ' + marker)
+
+          setup = (root / 'Setup.php').read_text(encoding='utf-8')
+          for marker in ['upgrade1000080Step1', 'xf_warext_ai_review_log', 'profile_metrics']:
+              if marker not in setup:
+                  raise SystemExit('Alpha 2 upgrade şeması eksik: ' + marker)
+
+          controller = (root / 'Pub/Controller/Report.php').read_text(encoding='utf-8')
+          for marker in ['actionIndex', 'actionReview', 'reviewHistory', 'profileMetrics', 'xf_warext_ai_review_log']:
+              if marker not in controller:
+                  raise SystemExit('Moderasyon merkezi/inceleme akışı eksik: ' + marker)
+
+          print(json.dumps({'status':'ok','version':'1.0.0 Alpha 2','permissions':sorted(required),'hardDependency':False,'profileBaseline':True,'reviewAuditLog':True}, ensure_ascii=False))
           PY
