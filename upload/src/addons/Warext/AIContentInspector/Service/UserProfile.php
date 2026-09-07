@@ -161,7 +161,11 @@ class UserProfile
     protected function correctionRatio(array $writing, int $chars): float
     {
         if (empty($writing['available']) || $chars <= 0) return 0.0;
-        return min(1.0, max(0, (int)($writing['changedChars'] ?? 0)) / max(1, $chars));
+        $messageField = is_array($writing['fields']['message'] ?? null) ? $writing['fields']['message'] : [];
+        $changed = array_key_exists('changedChars', $messageField)
+            ? max(0, (int)$messageField['changedChars'])
+            : max(0, (int)($writing['changedChars'] ?? 0));
+        return min(1.0, $changed / max(1, $chars));
     }
 
     protected function mean(array $values): float
