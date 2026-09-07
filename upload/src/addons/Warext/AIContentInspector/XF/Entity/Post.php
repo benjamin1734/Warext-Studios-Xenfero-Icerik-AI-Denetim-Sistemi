@@ -171,7 +171,7 @@ class Post extends XFCP_Post
             'behavior_metrics' => json_encode($result['behavior_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'writing_metrics' => json_encode($result['writing_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'profile_metrics' => json_encode($result['profile_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'signal_summary' => json_encode(['signals' => $result['signals'], 'similarity' => $result['similarity_metrics'] ?? []], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'signal_summary' => json_encode($result['signals'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'content_hash' => $contentHash,
             'content_fingerprint' => (string)($result['similarity_metrics']['fingerprint'] ?? ''),
             'updated_date' => $now
