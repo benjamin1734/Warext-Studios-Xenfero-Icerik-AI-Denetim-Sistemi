@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <phrases>
-  <phrase title="permission_interface.warextAi" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
-  <phrase title="permission.general_warextAiViewSimple" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetimi düz raporlarını görüntüleyebilir]]></phrase>
-  <phrase title="permission.general_warextAiViewDetailed" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetimi detaylı raporlarını görüntüleyebilir]]></phrase>
-  <phrase title="permission.general_warextAiReview" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetim sonuçlarını inceleyebilir ve durumlandırabilir]]></phrase>
-  <phrase title="permission.general_warextAiManage" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetim sistemini yönetebilir]]></phrase>
-  <phrase title="option_group.warextAi" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
-  <phrase title="option.warextAiEnabled" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
-  <phrase title="option.warextAiMinChars" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Minimum analiz karakteri]]></phrase>
-  <phrase title="option.warextAiForums" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Analiz edilecek forum ID'leri]]></phrase>
+  <phrase title="permission_interface_warextAi" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
+  <phrase title="permission_general_warextAiViewSimple" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetimi düz raporlarını görüntüleyebilir]]></phrase>
+  <phrase title="permission_general_warextAiViewDetailed" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetimi detaylı raporlarını görüntüleyebilir]]></phrase>
+  <phrase title="permission_general_warextAiReview" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetim sonuçlarını inceleyebilir ve durumlandırabilir]]></phrase>
+  <phrase title="permission_general_warextAiManage" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI denetim sistemini yönetebilir]]></phrase>
+  <phrase title="option_group_warextAi" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
+  <phrase title="option_group_warextAi_description" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Seçilen forumlarda içerik üretim biçimini çoklu yerel sinyallerle analiz eder ve yetkili kullanıcılara risk raporu sunar.]]></phrase>
+  <phrase title="option_warextAiEnabled" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
+  <phrase title="option_warextAiEnabled_explain" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir.]]></phrase>
+  <phrase title="option_warextAiMinChars" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Minimum analiz karakteri]]></phrase>
+  <phrase title="option_warextAiMinChars_explain" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Bu karakter sayısının altındaki içerikler yetersiz veri nedeniyle analiz edilmez.]]></phrase>
+  <phrase title="option_warextAiForums" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Analiz edilecek forum ID'leri]]></phrase>
+  <phrase title="option_warextAiForums_explain" version_id="1000070" version_string="1.0.0 Alpha 1"><![CDATA[Virgül, boşluk veya noktalı virgülle ayrılmış forum ID'leri. Boş bırakılırsa tüm forumlar analiz edilir. Nihai sürümde bu alan forum seçicisine dönüştürülecektir.]]></phrase>
 </phrases>
