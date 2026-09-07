@@ -1,0 +1,75 @@
+name: Warext AI Content Inspector Validate
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP syntax
+        run: |
+          find upload/src/addons/Warext/AIContentInspector -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+
+      - name: JavaScript syntax
+        run: |
+          find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
+
+      - name: XenForo data validation
+        run: |
+          python3 - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path('upload/src/addons/Warext/AIContentInspector')
+          addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
+          if addon.get('version_string') != '1.0.0 Alpha 1':
+              raise SystemExit('Beklenmeyen addon sürümü')
+          if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
+              raise SystemExit('XenForo 2.3+ gereksinimi eksik')
+          if 'Warext/TurkishSpellCheck' in json.dumps(addon, ensure_ascii=False):
+              raise SystemExit('Writing Checker zorunlu bağımlılık olarak tanımlanmamalı')
+
+          data = root / '_data'
+          for path in sorted(data.glob('*.xml')):
+              ET.parse(path)
+
+          permissions = ET.parse(data / 'permissions.xml').getroot()
+          actual = {p.attrib.get('permission_id') for p in permissions.findall('permission')}
+          required = {'warextAiViewSimple', 'warextAiViewDetailed', 'warextAiReview', 'warextAiManage'}
+          if not required.issubset(actual):
+              raise SystemExit('Yetki tanımları eksik')
+
+          phrases = ET.parse(data / 'phrases.xml').getroot()
+          phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
+          required_phrases = {
+              'permission_interface_warextAi',
+              'permission_general_warextAiViewSimple',
+              'permission_general_warextAiViewDetailed',
+              'permission_general_warextAiReview',
+              'permission_general_warextAiManage',
+              'option_group_warextAi',
+              'option_warextAiEnabled', 'option_warextAiEnabled_explain',
+              'option_warextAiMinChars', 'option_warextAiMinChars_explain',
+              'option_warextAiForums', 'option_warextAiForums_explain'
+          }
+          missing = sorted(required_phrases - phrase_titles)
+          if missing:
+              raise SystemExit('Phrase eksik: ' + ', '.join(missing))
+
+          template = (data / 'template_modifications.xml').read_text(encoding='utf-8')
+          for marker in ["link('warext-ai/batch')", "link('warext-ai/detail')", 'tracker.js', 'report-ui.js']:
+              if marker not in template:
+                  raise SystemExit('Rapor/izleme template bağlantısı eksik: ' + marker)
+
+          post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
+          if 'Warext\\TurkishSpellCheck' in post:
+              raise SystemExit('Post analizi Writing Checker sınıfına doğrudan bağlanmamalı')
+
+          print(json.dumps({'status':'ok','permissions':sorted(required),'hardDependency':False}, ensure_ascii=False))
+          PY
