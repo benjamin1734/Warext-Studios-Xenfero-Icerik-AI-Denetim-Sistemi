@@ -81,6 +81,7 @@ class Post extends XFCP_Post
             'source' => 'client_observed'
         ];
 
+        $rawFields = is_array($writing['fields'] ?? null) ? $writing['fields'] : [];
         $writing = [
             'available' => !empty($writing['available']),
             'bridgeVersion' => substr((string)($writing['bridgeVersion'] ?? ''), 0, 24),
@@ -89,10 +90,25 @@ class Post extends XFCP_Post
             'changedChars' => max(0, min(200000, (int)($writing['changedChars'] ?? 0))),
             'insertedChars' => max(0, min(200000, (int)($writing['insertedChars'] ?? 0))),
             'removedChars' => max(0, min(200000, (int)($writing['removedChars'] ?? 0))),
+            'fields' => [
+                'title' => $this->warextSanitizeWritingField($rawFields['title'] ?? []),
+                'message' => $this->warextSanitizeWritingField($rawFields['message'] ?? [])
+            ],
             'source' => 'client_observed'
         ];
 
         return [$behavior, $writing];
+    }
+
+    protected function warextSanitizeWritingField($field): array
+    {
+        $field = is_array($field) ? $field : [];
+        return [
+            'correctionCount' => max(0, min(10000, (int)($field['correctionCount'] ?? 0))),
+            'changedChars' => max(0, min(200000, (int)($field['changedChars'] ?? 0))),
+            'insertedChars' => max(0, min(200000, (int)($field['insertedChars'] ?? 0))),
+            'removedChars' => max(0, min(200000, (int)($field['removedChars'] ?? 0)))
+        ];
     }
 
     protected function warextPersistAnalysis(int $forumId, array $result, string $message): void
