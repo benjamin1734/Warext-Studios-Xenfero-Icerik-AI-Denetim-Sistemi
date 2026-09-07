@@ -4,6 +4,7 @@ namespace Warext\AIContentInspector\XF\Entity;
 
 use Warext\AIContentInspector\Service\Analyzer;
 use Warext\AIContentInspector\Service\UserProfile;
+use Warext\AIContentInspector\Service\Similarity;
 
 class Post extends XFCP_Post
 {
@@ -49,12 +50,42 @@ class Post extends XFCP_Post
             [$behavior, $writing] = $this->warextReadClientContext();
             $result = $analyzer->analyze($message, $behavior, $writing);
             $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
+            $result = $this->warextEnrichSimilarity($forumId, $result, $message);
             $this->warextPersistAnalysis($forumId, $result, $message);
         }
         catch (\Throwable $e)
         {
             \XF::logException($e, false, 'Warext AI Content Inspector: ');
         }
+    }
+
+    protected function warextEnrichSimilarity(int $forumId, array $result, string $message): array
+    {
+        $similarity = new Similarity();
+        $fingerprint = $similarity->fingerprint($message);
+        if ($fingerprint === '')
+        {
+            $result['similarity_metrics'] = ['available' => false, 'fingerprint' => '', 'similarity' => 0, 'matches' => []];
+            return $result;
+        }
+
+        $rows = \XF::db()->fetchAll(
+            'SELECT post_id, content_fingerprint FROM xf_warext_ai_analysis WHERE forum_id = ? AND content_fingerprint <> ? ORDER BY analyzed_date DESC LIMIT 250',
+            [$forumId, '']
+        );
+        $comparison = $similarity->compare($fingerprint, $rows, (int)$this->post_id);
+        $result['similarity_metrics'] = ['available' => true, 'fingerprint' => $fingerprint] + $comparison;
+
+        if (($comparison['similarity'] ?? 0) >= 88)
+        {
+            $result['signals'][] = ['key' => 'high_content_similarity', 'level' => 'context', 'value' => (int)$comparison['similarity']];
+        }
+        elseif (($comparison['similarity'] ?? 0) >= 78)
+        {
+            $result['signals'][] = ['key' => 'content_similarity', 'level' => 'context', 'value' => (int)$comparison['similarity']];
+        }
+
+        return $result;
     }
 
     protected function warextReadClientContext(): array
@@ -140,8 +171,9 @@ class Post extends XFCP_Post
             'behavior_metrics' => json_encode($result['behavior_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'writing_metrics' => json_encode($result['writing_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'profile_metrics' => json_encode($result['profile_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'signal_summary' => json_encode($result['signals'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'signal_summary' => json_encode(['signals' => $result['signals'], 'similarity' => $result['similarity_metrics'] ?? []], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'content_hash' => $contentHash,
+            'content_fingerprint' => (string)($result['similarity_metrics']['fingerprint'] ?? ''),
             'updated_date' => $now
         ];
 
