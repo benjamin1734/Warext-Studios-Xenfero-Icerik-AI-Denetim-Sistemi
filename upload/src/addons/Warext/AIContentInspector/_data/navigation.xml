@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation>
+  <navigation_entry navigation_id="warextAi" display_order="960" navigation_type_id="basic" enabled="1"><![CDATA[{"link":"{{ link('warext-ai') }}","display_condition":"$xf.visitor->hasPermission('general', 'warextAiViewSimple')","extra_attributes":[]}]]></navigation_entry>
+</navigation>
