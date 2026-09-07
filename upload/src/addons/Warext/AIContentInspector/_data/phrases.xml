@@ -11,7 +11,7 @@
   <phrase title="option_warextAiEnabled_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir.]]></phrase>
   <phrase title="option_warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Minimum analiz karakteri]]></phrase>
   <phrase title="option_warextAiMinChars_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Bu karakter sayısının altındaki içerikler yetersiz veri nedeniyle analiz edilmez.]]></phrase>
-  <phrase title="option_warextAiForums" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Analiz edilecek forum ID'leri]]></phrase>
-  <phrase title="option_warextAiForums_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Virgül, boşluk veya noktalı virgülle ayrılmış forum ID'leri. Boş bırakılırsa tüm forumlar analiz edilir.]]></phrase>
+  <phrase title="option_warextAiForums" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Analiz edilecek forumlar]]></phrase>
+  <phrase title="option_warextAiForums_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetiminin çalışacağı forumları seçin. Hiçbir forum seçilmezse tüm forumlar analiz edilir.]]></phrase>
   <phrase title="nav.warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI Denetimi]]></phrase>
 </phrases>
