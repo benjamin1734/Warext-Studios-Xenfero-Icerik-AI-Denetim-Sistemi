@@ -23,6 +23,9 @@ jobs:
       - name: Doğrudan provider regresyonları
         run: php tests/direct_provider_regression.php
 
+      - name: OpenAI-compatible provider regresyonları
+        run: php tests/openai_compatible_provider_regression.php
+
       - name: JavaScript syntax
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
@@ -35,7 +38,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 9' or int(addon.get('version_id', 0)) != 1000150:
+          if addon.get('version_string') != '1.0.0 Alpha 10' or int(addon.get('version_id', 0)) != 1000160:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -66,11 +69,16 @@ jobs:
               'warextAiGeminiKey', 'warextAiGeminiModel',
               'warextAiDeepSeekKey', 'warextAiDeepSeekModel',
               'warextAiAnthropicKey', 'warextAiAnthropicModel',
+              'warextAiXaiKey', 'warextAiXaiModel',
+              'warextAiMistralKey', 'warextAiMistralModel',
+              'warextAiQwenKey', 'warextAiQwenModel', 'warextAiQwenBaseUrl',
+              'warextAiOllamaBaseUrl', 'warextAiOllamaModel',
+              'warextAiCustomBaseUrl', 'warextAiCustomKey', 'warextAiCustomModel',
               'warextAiDirectMinRisk', 'warextAiDirectWeight',
               'warextAiDirectMaxChars', 'warextAiDirectTimeout'
           }
           if not required_options.issubset(option_ids):
-              raise SystemExit('Provider ACP seçenekleri eksik')
+              raise SystemExit('Provider ACP seçenekleri eksik: ' + ', '.join(sorted(required_options - option_ids)))
 
           phrases = ET.parse(data / 'phrases.xml').getroot()
           phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
@@ -78,6 +86,10 @@ jobs:
               'option_warextAiExternalProvider', 'option_warextAiExternalProvider_explain',
               'option_warextAiOpenAIKey', 'option_warextAiGeminiKey',
               'option_warextAiDeepSeekKey', 'option_warextAiAnthropicKey',
+              'option_warextAiXaiKey', 'option_warextAiMistralKey',
+              'option_warextAiQwenKey', 'option_warextAiQwenBaseUrl',
+              'option_warextAiOllamaBaseUrl', 'option_warextAiOllamaModel',
+              'option_warextAiCustomBaseUrl', 'option_warextAiCustomModel',
               'option_warextAiDirectMinRisk', 'option_warextAiDirectWeight'
           }
           missing_phrases = required_phrases - phrase_titles
@@ -104,25 +116,25 @@ jobs:
           provider = root / 'Provider'
           provider_files = [
               'ProviderInterface.php', 'LocalProvider.php', 'Registry.php', 'OpenRouterProvider.php',
-              'AbstractJsonProvider.php', 'OpenAIProvider.php', 'GeminiProvider.php',
-              'DeepSeekProvider.php', 'AnthropicProvider.php'
+              'AbstractJsonProvider.php', 'OpenAICompatibleProvider.php',
+              'OpenAIProvider.php', 'GeminiProvider.php', 'DeepSeekProvider.php', 'AnthropicProvider.php'
           ]
           for name in provider_files:
               if not (provider / name).exists():
                   raise SystemExit('Provider mimarisi eksik: ' + name)
 
           registry = (provider / 'Registry.php').read_text(encoding='utf-8')
-          for marker in ['selectedExternalId', 'external()', 'isExternalEnabled', 'externalConfig', 'openAI()', 'gemini()', 'deepSeek()', 'anthropic()', 'xai', 'mistral', 'qwen', 'openrouter', 'ollama', 'custom_openai']:
+          for marker in ['selectedExternalId', 'external()', 'isExternalEnabled', 'externalConfig', 'openAI()', 'gemini()', 'deepSeek()', 'anthropic()', 'xAI()', 'mistral()', 'qwen()', 'ollama()', 'customOpenAI()']:
               if marker not in registry:
                   raise SystemExit('Provider Registry kaydı eksik: ' + marker)
-          for marker in ['warextAiExternalProvider', 'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache', 'warextAiOpenAIKey', 'warextAiGeminiKey', 'warextAiDeepSeekKey', 'warextAiAnthropicKey', 'warextAiDirectTimeout']:
+          for marker in ['warextAiExternalProvider', 'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache', 'warextAiOpenAIKey', 'warextAiGeminiKey', 'warextAiDeepSeekKey', 'warextAiAnthropicKey', 'warextAiXaiKey', 'warextAiMistralKey', 'warextAiQwenBaseUrl', 'warextAiOllamaBaseUrl', 'warextAiCustomBaseUrl', 'warextAiDirectTimeout']:
               if marker not in registry:
                   raise SystemExit('Provider ACP ayarı Registryye bağlı değil: ' + marker)
-          for provider_id in ['openai', 'gemini', 'deepseek', 'anthropic']:
+          for provider_id in ['openai', 'gemini', 'deepseek', 'anthropic', 'xai', 'mistral', 'qwen', 'ollama', 'custom_openai']:
               marker = "'" + provider_id + "' => ['label'"
               pos = registry.find(marker)
-              if pos == -1 or "'implemented' => true" not in registry[pos:pos + 220]:
-                  raise SystemExit('Doğrudan provider implemented=true değil: ' + provider_id)
+              if pos == -1 or "'implemented' => true" not in registry[pos:pos + 260]:
+                  raise SystemExit('Provider implemented=true değil: ' + provider_id)
 
           openrouter = (provider / 'OpenRouterProvider.php').read_text(encoding='utf-8')
           for marker in ['https://openrouter.ai/api/v1/chat/completions', 'Authorization', 'openrouter/auto', 'sanitizeAuthoredText', 'request_failed', "'sort'", "'data_collection'", "'usage' => ['include' => true]", 'X-OpenRouter-Cache']:
@@ -133,6 +145,11 @@ jobs:
           for marker in ['sanitizeAuthoredText', 'parseJson', 'normalizeResponse', 'systemPrompt', 'request_failed', 'max_chars']:
               if marker not in abstract:
                   raise SystemExit('Ortak doğrudan provider çekirdeği eksik: ' + marker)
+
+          compatible = (provider / 'OpenAICompatibleProvider.php').read_text(encoding='utf-8')
+          for marker in ['chatCompletionsUrl', 'isValidBaseUrl', "['http', 'https']", "isset($parts['user'])", "'Authorization'", "'messages'", "'temperature' => 0"]:
+              if marker not in compatible:
+                  raise SystemExit('OpenAI-compatible provider güvenlik/istek özelliği eksik: ' + marker)
 
           direct_checks = {
               'OpenAIProvider.php': ['https://api.openai.com/v1/responses', 'max_output_tokens', 'output_text'],
@@ -145,6 +162,10 @@ jobs:
               for marker in markers:
                   if marker not in text:
                       raise SystemExit(name + ' adapter özelliği eksik: ' + marker)
+
+          for marker in ['https://api.x.ai/v1', 'grok-4.6', 'https://api.mistral.ai/v1', 'mistral-small-latest', 'dashscope-intl.aliyuncs.com/compatible-mode/v1', 'qwen3.8-flash', '127.0.0.1:11434/v1', 'llama3.2']:
+              if marker not in registry:
+                  raise SystemExit('OpenAI-compatible Registry varsayılanı eksik: ' + marker)
 
           verifier = (root / 'Service/ExternalVerifier.php').read_text(encoding='utf-8')
           for marker in ['externalConfig', 'selectedExternalId', 'provider_not_implemented', 'external_provider_verification', 'below_local_risk_threshold']:
@@ -164,12 +185,15 @@ jobs:
                   raise SystemExit('Rapor akışı eksik: ' + marker)
 
           print(json.dumps({
-              'status':'ok', 'version':'1.0.0 Alpha 9', 'permissions':sorted(required),
+              'status':'ok', 'version':'1.0.0 Alpha 10', 'permissions':sorted(required),
               'hardDependency':False, 'providerArchitecture':True,
               'providerNeutralExternalVerifier':True, 'externalProviderSelector':True,
               'openRouterImplemented':True, 'openRouterRecommended':True,
               'openAIImplemented':True, 'geminiImplemented':True,
               'deepSeekImplemented':True, 'anthropicImplemented':True,
+              'xAIImplemented':True, 'mistralImplemented':True,
+              'qwenImplemented':True, 'ollamaImplemented':True,
+              'customOpenAIImplemented':True,
               'openRouterCostGate':True, 'openRouterRoutingControls':True,
               'openRouterUsageMetrics':True, 'openRouterPrivacyControls':True,
               'externalAsyncJob':True, 'staleContentHashGuard':True,
