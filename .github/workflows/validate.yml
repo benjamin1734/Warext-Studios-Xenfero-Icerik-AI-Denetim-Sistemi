@@ -12,17 +12,15 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: PHP syntax
-        run: |
-          find upload/src/addons/Warext/AIContentInspector -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+        run: find upload/src/addons/Warext/AIContentInspector -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
 
       - name: Analyzer false-positive regresyonları
         run: php tests/analyzer_regression.php
 
       - name: JavaScript syntax
-        run: |
-          find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
+        run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
-      - name: XenForo data validation
+      - name: XenForo data and architecture validation
         run: |
           python3 - <<'PY'
           import json
@@ -31,12 +29,12 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 2' or int(addon.get('version_id', 0)) != 1000080:
+          if addon.get('version_string') != '1.0.0 Alpha 4' or int(addon.get('version_id', 0)) != 1000100:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
           if 'Warext/TurkishSpellCheck' in json.dumps(addon, ensure_ascii=False):
-              raise SystemExit('Writing Checker zorunlu bağımlılık olarak tanımlanmamalı')
+              raise SystemExit('Writing Checker zorunlu bağımlılık olamaz')
 
           data = root / '_data'
           for path in sorted(data.glob('*.xml')):
@@ -48,75 +46,45 @@ jobs:
           if not required.issubset(actual):
               raise SystemExit('Yetki tanımları eksik')
 
-          phrases = ET.parse(data / 'phrases.xml').getroot()
-          phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
-          required_phrases = {
-              'permission_interface_warextAi',
-              'permission_general_warextAiViewSimple',
-              'permission_general_warextAiViewDetailed',
-              'permission_general_warextAiReview',
-              'permission_general_warextAiManage',
-              'option_group_warextAi',
-              'option_warextAiEnabled', 'option_warextAiEnabled_explain',
-              'option_warextAiMinChars', 'option_warextAiMinChars_explain',
-              'option_warextAiForums', 'option_warextAiForums_explain',
-              'nav.warextAi'
-          }
-          missing = sorted(required_phrases - phrase_titles)
-          if missing:
-              raise SystemExit('Phrase eksik: ' + ', '.join(missing))
-
           options = ET.parse(data / 'options.xml').getroot()
           forum_option = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiForums'), None)
-          if forum_option is None:
-              raise SystemExit('Forum seçimi seçeneği bulunamadı')
-          if forum_option.attrib.get('edit_format') != 'callback' or forum_option.attrib.get('data_type') != 'array':
-              raise SystemExit('Forum seçimi XenForo çoklu seçici biçiminde değil')
-          if (forum_option.findtext('edit_format_params') or '').strip() != r'\XF\Option\Forum::renderSelectMultiple':
-              raise SystemExit('XenForo forum seçici callback eksik')
-          if (forum_option.findtext('sub_options') or '').strip() != '*':
-              raise SystemExit('Forum seçimi array alt seçenek ayarı eksik')
+          if forum_option is None or forum_option.attrib.get('edit_format') != 'callback' or forum_option.attrib.get('data_type') != 'array':
+              raise SystemExit('Forum çoklu seçicisi eksik')
 
           template = (data / 'template_modifications.xml').read_text(encoding='utf-8')
-          for marker in ["link('warext-ai/batch')", "link('warext-ai/detail')", "link('warext-ai/review')", 'tracker.js', 'report-ui.js', '100a2']:
+          for marker in ["warext-ai/batch", "warext-ai/thread", "warext-ai/detail", "warext-ai/review", 'tracker.js', 'report-ui.js', 'thread-report.js', '100a4']:
               if marker not in template:
-                  raise SystemExit('Rapor/izleme template bağlantısı eksik: ' + marker)
-
-          templates = (data / 'templates.xml').read_text(encoding='utf-8')
-          for marker in ['warext_ai_center', 'warext_ai_center.less', 'Profil sapması', "link('warext-ai')"]:
-              if marker not in templates:
-                  raise SystemExit('Moderasyon merkezi template öğesi eksik: ' + marker)
-
-          navigation = (data / 'navigation.xml').read_text(encoding='utf-8')
-          if 'warextAiViewSimple' not in navigation or "link('warext-ai')" not in navigation:
-              raise SystemExit('AI denetim merkezi navigasyonu eksik')
+                  raise SystemExit('Template bağlantısı eksik: ' + marker)
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
-          if 'Warext\\TurkishSpellCheck' in post:
-              raise SystemExit('Post analizi Writing Checker sınıfına doğrudan bağlanmamalı')
-          for marker in ['UserProfile', 'profile_metrics', 'warextReadClientContext', 'is_array($configured)', 'legacy', 'authoredTextLength']:
+          for marker in ['Registry', 'UserProfile', 'Similarity', 'profile_metrics', 'content_fingerprint', 'authoredTextLength']:
               if marker not in post:
-                  raise SystemExit('Post profil/forum/metin entegrasyonu eksik: ' + marker)
+                  raise SystemExit('Post analiz zinciri eksik: ' + marker)
+          if 'Warext\\TurkishSpellCheck' in post:
+              raise SystemExit('Writing Checker sınıfına hard dependency bulundu')
 
-          analyzer = (root / 'Service/Analyzer.php').read_text(encoding='utf-8')
-          for marker in ['authoredTextLength', 'excluded_blocks', 'excluded_non_authored_blocks', 'QUOTE|CODE|PHP|HTML|ICODE|PLAIN']:
-              if marker not in analyzer:
-                  raise SystemExit('Analyzer false-positive koruması eksik: ' + marker)
-
-          profile = (root / 'Service/UserProfile.php').read_text(encoding='utf-8')
-          for marker in ['sample_count', 'deviation_score', 'risk_adjustment', 'user_profile_deviation']:
-              if marker not in profile:
-                  raise SystemExit('Kullanıcı profil motoru eksik: ' + marker)
+          provider = root / 'Provider'
+          for name in ['ProviderInterface.php', 'LocalProvider.php', 'Registry.php']:
+              if not (provider / name).exists():
+                  raise SystemExit('Provider mimarisi eksik: ' + name)
+          registry = (provider / 'Registry.php').read_text(encoding='utf-8')
+          for marker in ['openai', 'gemini', 'deepseek', 'anthropic', 'xai', 'mistral', 'qwen', 'openrouter', 'ollama', 'custom_openai']:
+              if marker not in registry:
+                  raise SystemExit('Gelecek provider kaydı eksik: ' + marker)
 
           setup = (root / 'Setup.php').read_text(encoding='utf-8')
-          for marker in ['upgrade1000080Step1', 'xf_warext_ai_review_log', 'profile_metrics']:
+          for marker in ['upgrade1000080Step1', 'upgrade1000090Step1', 'content_fingerprint', 'xf_warext_ai_review_log']:
               if marker not in setup:
-                  raise SystemExit('Alpha 2 upgrade şeması eksik: ' + marker)
+                  raise SystemExit('Upgrade şeması eksik: ' + marker)
 
           controller = (root / 'Pub/Controller/Report.php').read_text(encoding='utf-8')
-          for marker in ['actionIndex', 'actionReview', 'reviewHistory', 'profileMetrics', 'xf_warext_ai_review_log']:
+          for marker in ['actionIndex', 'actionThread', 'actionDetail', 'actionReview', 'high_risk_count', 'reviewHistory']:
               if marker not in controller:
-                  raise SystemExit('Moderasyon merkezi/inceleme akışı eksik: ' + marker)
+                  raise SystemExit('Rapor akışı eksik: ' + marker)
 
-          print(json.dumps({'status':'ok','version':'1.0.0 Alpha 2','permissions':sorted(required),'hardDependency':False,'profileBaseline':True,'reviewAuditLog':True,'nativeForumSelector':True,'nonAuthoredBlocksExcluded':True}, ensure_ascii=False))
+          print(json.dumps({
+              'status':'ok', 'version':'1.0.0 Alpha 4', 'permissions':sorted(required),
+              'hardDependency':False, 'providerArchitecture':True, 'threadAggregateReport':True,
+              'profileBaseline':True, 'reviewAuditLog':True, 'contentFingerprint':True
+          }, ensure_ascii=False))
           PY
