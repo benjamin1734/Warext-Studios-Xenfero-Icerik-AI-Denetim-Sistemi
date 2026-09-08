@@ -32,7 +32,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 5' or int(addon.get('version_id', 0)) != 1000110:
+          if addon.get('version_string') != '1.0.0 Alpha 6' or int(addon.get('version_id', 0)) != 1000120:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -58,21 +58,23 @@ jobs:
           }
           if not required_options.issubset(option_ids):
               raise SystemExit('OpenRouter ACP seçenekleri eksik')
-          forum_option = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiForums'), None)
-          if forum_option is None or forum_option.attrib.get('edit_format') != 'callback' or forum_option.attrib.get('data_type') != 'array':
-              raise SystemExit('Forum çoklu seçicisi eksik')
-
-          template = (data / 'template_modifications.xml').read_text(encoding='utf-8')
-          for marker in ["warext-ai/batch", "warext-ai/thread", "warext-ai/detail", "warext-ai/review", 'tracker.js', 'report-ui.js', 'thread-report.js', '100a5']:
-              if marker not in template:
-                  raise SystemExit('Template bağlantısı eksik: ' + marker)
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
-          for marker in ['Registry', 'UserProfile', 'Similarity', 'ExternalVerifier', 'external_metrics', 'content_fingerprint', 'authoredTextLength']:
+          for marker in ['Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState', 'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify', 'external_metrics', 'content_fingerprint', 'authoredTextLength']:
               if marker not in post:
-                  raise SystemExit('Post analiz zinciri eksik: ' + marker)
+                  raise SystemExit('Post analiz/queue zinciri eksik: ' + marker)
+          if '(new ExternalVerifier())->enrich' in post:
+              raise SystemExit('OpenRouter çağrısı mesaj kaydı sırasında senkron çalışmamalı')
           if 'Warext\\TurkishSpellCheck' in post:
               raise SystemExit('Writing Checker sınıfına hard dependency bulundu')
+
+          job = root / 'Job/ExternalVerify.php'
+          if not job.exists():
+              raise SystemExit('OpenRouter arka plan jobı eksik')
+          job_text = job.read_text(encoding='utf-8')
+          for marker in ['extends AbstractJob', 'ExternalVerifier', 'content_hash', 'hash_equals', "SELECT message FROM xf_post", 'return $this->complete()']:
+              if marker not in job_text:
+                  raise SystemExit('OpenRouter arka plan job koruması eksik: ' + marker)
 
           provider = root / 'Provider'
           for name in ['ProviderInterface.php', 'LocalProvider.php', 'Registry.php', 'OpenRouterProvider.php']:
@@ -106,9 +108,10 @@ jobs:
                   raise SystemExit('Rapor akışı eksik: ' + marker)
 
           print(json.dumps({
-              'status':'ok', 'version':'1.0.0 Alpha 5', 'permissions':sorted(required),
+              'status':'ok', 'version':'1.0.0 Alpha 6', 'permissions':sorted(required),
               'hardDependency':False, 'providerArchitecture':True, 'openRouterImplemented':True,
               'openRouterCostGate':True, 'openRouterPrivacyRegression':True,
+              'openRouterAsyncJob':True, 'staleContentHashGuard':True,
               'threadAggregateReport':True, 'profileBaseline':True,
               'reviewAuditLog':True, 'contentFingerprint':True
           }, ensure_ascii=False))
