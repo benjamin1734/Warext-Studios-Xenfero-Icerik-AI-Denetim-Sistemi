@@ -201,6 +201,7 @@ class Report extends AbstractController
             'classification' => (string)$row['classification'], 'reviewState' => (string)$row['review_state'],
             'textMetrics' => $this->decode($row['text_metrics']), 'behaviorMetrics' => $this->decode($row['behavior_metrics']),
             'writingMetrics' => $this->decode($row['writing_metrics']), 'profileMetrics' => $this->decode($row['profile_metrics'] ?? null),
+            'externalMetrics' => $this->decode($row['external_metrics'] ?? null),
             'signals' => $this->decode($row['signal_summary']), 'reviewHistory' => $history,
             'analyzedDate' => (int)$row['analyzed_date'], 'updatedDate' => (int)$row['updated_date'],
             'canReview' => $this->canReview()
