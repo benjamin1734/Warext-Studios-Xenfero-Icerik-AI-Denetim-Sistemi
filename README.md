@@ -6,9 +6,11 @@ XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ il
 
 ## Güncel sürüm
 
-**1.0.0 Alpha 9 — yapım aşamasında**
+**1.0.0 Alpha 10 — yapım aşamasında**
 
-Alpha 9 ile provider-neutral harici doğrulama katmanı gerçek doğrudan provider adapterlarıyla genişletildi. OpenRouter önerilen varsayılan bulut katmanı olmaya devam ederken OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude artık ACP'den doğrudan seçilebilir. Tüm harici doğrulamalar mesaj kaydı dışında XenForo job kuyruğunda çalışır; API hatası, kota veya bağlantı sorunu yerel sonucu bozmaz.
+Alpha 10 ile planlanan provider genişletme katmanı tamamlandı. OpenRouter önerilen varsayılan bulut katmanı olmaya devam ederken OpenAI/GPT, Google Gemini, DeepSeek, Anthropic Claude, xAI/Grok, Mistral AI, Qwen/Alibaba Model Studio, yerel Ollama ve özel OpenAI-compatible endpoint doğrudan seçilebilir hale geldi.
+
+Tüm harici doğrulamalar mesaj kaydı dışında XenForo job kuyruğunda çalışır. API hatası, kota veya bağlantı sorunu yerel sonucu bozmaz.
 
 ## Yetki sistemi
 
@@ -21,29 +23,29 @@ Eklenti dört ayrı XenForo yetkisi kullanır:
 
 ## Konu üstü raporlama
 
-Yetkili kullanıcılar analiz edilmiş mesajlarda doğrudan konu içinde kısa bir rapor görür:
+Yetkili kullanıcılar analiz edilmiş mesajlarda doğrudan konu içinde kısa bir rapor görür. AI risk puanı, güven puanı, sınıflandırma ve moderasyon inceleme durumu özetlenir. Konu genelinde analiz edilen mesaj sayısı, ortalama/en yüksek risk, yüksek riskli mesaj sayısı ve moderasyon durum dağılımı gösterilir.
 
-- AI risk puanı
-- güven puanı
-- sınıflandırma
-- moderasyon inceleme durumu
-
-Konu genelinde ayrıca analiz edilen mesaj sayısı, ortalama/en yüksek risk, yüksek riskli mesaj sayısı ve moderasyon durum dağılımı gösterilir.
-
-Detaylı rapor yetkisi bulunan kullanıcılar aynı alan üzerinden ayrıntılı raporu açabilir. Ayrıntılı raporda metin ölçümleri, editörde yazılan/yapıştırılan karakterler, Writing Checker düzeltmeleri, kullanıcı geçmişine göre profil sapması, analiz sinyalleri, harici provider ikinci görüşü ve son moderasyon kararları gösterilir.
+Detaylı rapor yetkisi bulunan kullanıcılar metin ölçümleri, editörde yazılan/yapıştırılan karakterler, Writing Checker düzeltmeleri, kullanıcı geçmişine göre profil sapması, analiz sinyalleri, harici provider ikinci görüşü ve son moderasyon kararlarını görebilir.
 
 ## Harici provider sistemi
 
 Harici API kullanımı **zorunlu değildir**. Yerel motor her zaman temel analiz katmanıdır. ACP'deki `Harici AI doğrulama sağlayıcısı` alanından şu providerlar seçilebilir:
 
 - OpenRouter — önerilen varsayılan bulut katmanı
-- OpenAI / GPT — doğrudan Responses API adapterı
-- Google Gemini — doğrudan Gemini adapterı
-- DeepSeek — doğrudan OpenAI-compatible chat adapterı
-- Anthropic Claude — doğrudan Messages API adapterı
+- OpenAI / GPT
+- Google Gemini
+- DeepSeek
+- Anthropic Claude
+- xAI / Grok
+- Mistral AI
+- Qwen / Alibaba Model Studio
+- Ollama — XenForo sunucusunun erişebildiği yerel OpenAI-compatible servis
+- Özel OpenAI-Compatible API
 - Harici sağlayıcı kullanma — yalnızca Warext Local Engine
 
-OpenRouter tarafında model fallback zinciri, ZDR yönlendirmesi, veri toplama reddi, fiyat/gecikme/throughput sıralaması ve opsiyonel yanıt cache seçeneği bulunur. Doğrudan providerlarda API anahtarı ve model kimliği ayrı tutulur; minimum yerel risk, maksimum ağırlık, gönderilecek maksimum karakter ve timeout ayarları ortak kullanılır.
+OpenRouter tarafında model fallback zinciri, ZDR yönlendirmesi, veri toplama reddi, fiyat/gecikme/throughput sıralaması ve opsiyonel yanıt cache seçeneği bulunur.
+
+Doğrudan providerlarda minimum yerel risk, maksimum ağırlık, gönderilecek maksimum karakter ve timeout ortak ayarlardır. Provider yapılandırılmamışsa gereksiz harici job kuyruğa eklenmez.
 
 Varsayılan doğrudan model değerleri:
 
@@ -51,39 +53,28 @@ Varsayılan doğrudan model değerleri:
 - Gemini: `gemini-3.8-flash`
 - DeepSeek: `deepseek-v4-flash`
 - Anthropic: `claude-sonnet-5`
+- xAI: `grok-4.6`
+- Mistral: `mistral-small-latest`
+- Qwen: `qwen3.8-flash`
+- Ollama: `llama3.2` yalnızca örnek varsayılandır; sunucuda pull edilmiş model adıyla değiştirilmelidir.
 
-Model kimlikleri ACP'den değiştirilebilir; eklenti kodu değiştirmek gerekmez.
+Model kimlikleri ACP'den değiştirilebilir; eklenti kodu değiştirmek gerekmez. Qwen base URL alanı bölge/workspace adresine göre değiştirilebilir. Ollama ve özel OpenAI-compatible servislerde base URL ACP'den yönetilir.
 
 Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıya ait olmayan içerik gönderilmez. URL ve BBCode kalıntıları temizlenir. API anahtarları analiz kayıtlarına veya rapor verisine yazılmaz.
+
+Özel OpenAI-compatible base URL yalnızca HTTP/HTTPS kabul eder ve URL içine gömülü kullanıcı adı/şifre reddedilir.
 
 ## Asenkron doğrulama
 
 Harici provider çağrısı mesaj kaydı sırasında yapılmaz. Yerel sonuç önce kaydedilir ve gerekli görülürse `Warext\AIContentInspector:ExternalVerify` XenForo jobı sıraya alınır. Job benzersiz post + içerik hash'i ile oluşturulur. Mesaj job çalışmadan önce değişirse eski job yeni içeriğin sonucunu güncelleyemez.
 
-Seçilen provider yapılandırılmamışsa veya istek başarısız olursa yerel sonuç korunur. Harici sonuç tek başına moderasyon kararı oluşturmaz; provider güven puanına göre sınırlı ağırlıkla yerel risk skoruna eklenir.
+Harici sonuç tek başına moderasyon kararı oluşturmaz; provider güven puanına göre sınırlı ağırlıkla yerel risk skoruna eklenir.
 
-## Çoklu provider mimarisi
+## Provider mimarisi
 
-`ProviderInterface` ve merkezi `Registry` kullanılır. Ortak doğrudan provider davranışı `AbstractJsonProvider` içinde güvenli metin temizleme, JSON ayrıştırma, sonuç normalizasyonu, token kullanım alanları ve hata fallback mantığını paylaşır.
+`ProviderInterface` ve merkezi `Registry` kullanılır. `AbstractJsonProvider` güvenli metin temizleme, JSON ayrıştırma, ortak sonuç normalizasyonu, token kullanım alanları ve hata fallback mantığını paylaşır.
 
-Şu anda uygulanmış providerlar:
-
-- Warext Local Engine
-- OpenRouter
-- OpenAI / GPT
-- Google Gemini
-- DeepSeek
-- Anthropic Claude
-
-Sonraki provider genişletme grubu için Registry kayıtları hazırdır:
-
-- xAI / Grok
-- Mistral
-- Qwen
-- Ollama
-- özel OpenAI-compatible endpoint
-
-Bu kayıtlar uygulanana kadar `implemented=false` tutulur; eklenti olmayan desteği varmış gibi göstermez.
+`OpenAICompatibleProvider` ise Grok, Mistral, Qwen, Ollama ve özel endpointler için ortak chat-completions istemcisidir. Böylece aynı kodun beş farklı adapterda kopyalanması engellenir.
 
 ## Kullanıcı yazım profili
 
@@ -107,27 +98,17 @@ Writing Checker kurulu değilse AI Content Inspector eksiksiz biçimde kendi ba�
 
 ## Otomatik doğrulama ve paketleme
 
-GitHub Actions:
-
-1. PHP ve JavaScript sözdizimini,
-2. yerel analiz false-positive regresyonlarını,
-3. OpenRouter temiz metin / JSON / rota regresyonlarını,
-4. OpenAI, Gemini, DeepSeek ve Claude payload regresyonlarını,
-5. harici providerların mesaj kaydı sırasında senkron çağrılmadığını,
-6. arka plan jobının içerik hash korumasını,
-7. XenForo XML ve provider mimarisini,
-8. kurulum ZIP bütünlüğü ve `hashes.json` eşleşmesini
-
-otomatik doğrular.
+GitHub Actions; PHP/JavaScript sözdizimini, yerel false-positive regresyonlarını, OpenRouter davranışını, native provider payloadlarını, OpenAI-compatible URL/payload güvenliğini, Writing Checker hard-dependency bulunmadığını, harici çağrıların asenkron olduğunu, içerik hash korumasını, XenForo XML/provider mimarisini ve kurulum ZIP bütünlüğünü doğrular.
 
 ## Geliştirme durumu
 
-9 ana adımın ilk 8'i tamamlandı. Son ana adım dört geliştirme grubuna ayrılmıştır.
+9 ana adımın ilk 8'i tamamlandı. Son ana adımın provider geliştirme bölümü de Alpha 9 ve Alpha 10 ile tamamlandı.
 
-**Tamamlanan son grup — Alpha 9:** OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan adapterları, ortak provider JSON çekirdeği, ACP provider seçimi ve regresyon testleri.
+**Tamamlanan Alpha 9:** OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan adapterları.
 
-**Kalan 3 grup:**
+**Tamamlanan Alpha 10:** xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint; ortak OpenAI-compatible çekirdek ve güvenli base URL doğrulaması.
 
-1. İkinci provider genişletmesi: xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint.
-2. Maliyet/batch: geçmiş içerik toplu tarama, provider batch desteği, günlük/aylık API limitleri, token/maliyet takibi ve kota/hata fallback görünürlüğü.
-3. Final ACP/rapor + 1.0.0 Stable: provider sağlık durumu, aktif model/son API hatası/token-maliyet görünümü, rapor ayrıştırması, performans/cache, büyük forum testleri, install/upgrade/uninstall kontrolleri, final ZIP/release ve dokümantasyon.
+**Kalan 2 geliştirme grubu:**
+
+1. **Maliyet / batch / geçmiş tarama:** geçmiş içerik toplu tarama, provider batch/queue optimizasyonu, günlük/aylık API limitleri, token ve tahmini/gerçek maliyet takibi, kota/hata fallback görünürlüğü.
+2. **Final ACP + rapor + 1.0.0 Stable:** provider sağlık durumu, aktif model, son API hatası, token/maliyet görünümü; sade/detaylı rapor ayrıştırması; performans/cache ve büyük forum testleri; install/upgrade/uninstall kontrolleri; final ZIP/release ve dokümantasyon.
