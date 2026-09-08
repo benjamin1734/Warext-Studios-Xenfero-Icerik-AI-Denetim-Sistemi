@@ -6,15 +6,16 @@
   <phrase title="permission_general_warextAiReview" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sonuçlarını inceleyebilir ve durumlandırabilir]]></phrase>
   <phrase title="permission_general_warextAiManage" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sistemini yönetebilir]]></phrase>
   <phrase title="option_group_warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
-  <phrase title="option_group_warextAi_description" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır. Harici doğrulama provider-neutral yapıdadır. OpenRouter önerilen bulut sağlayıcısıdır; ayrıca OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan bağlanabilir. Harici API zorunlu değildir ve başarısız olduğunda yerel sonuç korunur.]]></phrase>
+  <phrase title="option_group_warextAi_description" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır. OpenRouter önerilen bulut sağlayıcısıdır; OpenAI/GPT, Gemini, DeepSeek, Claude, Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible servisler opsiyonel ikinci görüş olarak kullanılabilir. Harici API zorunlu değildir.]]></phrase>
   <phrase title="option_warextAiEnabled" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
   <phrase title="option_warextAiEnabled_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir. Harici sağlayıcı kapalı olsa da sistem çalışır.]]></phrase>
   <phrase title="option_warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Minimum analiz karakteri]]></phrase>
   <phrase title="option_warextAiMinChars_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Bu karakter sayısının altındaki içerikler yetersiz veri nedeniyle analiz edilmez.]]></phrase>
   <phrase title="option_warextAiForums" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Analiz edilecek forumlar]]></phrase>
   <phrase title="option_warextAiForums_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetiminin çalışacağı forumları seçin. Hiçbir forum seçilmezse tüm forumlar analiz edilir.]]></phrase>
-  <phrase title="option_warextAiExternalProvider" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Harici AI doğrulama sağlayıcısı]]></phrase>
-  <phrase title="option_warextAiExternalProvider_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Harici ikinci görüş için OpenRouter, OpenAI/GPT, Google Gemini, DeepSeek veya Anthropic Claude seçilebilir. OpenRouter önerilen varsayılandır. Doğrudan provider seçildiğinde ilgili API anahtarı ve model alanı kullanılır. "Harici sağlayıcı kullanma" seçildiğinde yalnızca yerel motor çalışır.]]></phrase>
+  <phrase title="option_warextAiExternalProvider" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Harici AI doğrulama sağlayıcısı]]></phrase>
+  <phrase title="option_warextAiExternalProvider_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Harici ikinci görüş için OpenRouter, OpenAI/GPT, Google Gemini, DeepSeek, Anthropic Claude, xAI/Grok, Mistral, Qwen, yerel Ollama veya özel OpenAI-compatible API seçilebilir. OpenRouter önerilen varsayılandır. "Harici sağlayıcı kullanma" seçildiğinde yalnızca yerel motor çalışır.]]></phrase>
+
   <phrase title="option_warextAiOpenRouterEnabled" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter ile ikinci görüşü etkinleştir]]></phrase>
   <phrase title="option_warextAiOpenRouterEnabled_explain" version_id="1000140" version_string="1.0.0 Alpha 8"><![CDATA[Harici sağlayıcı olarak OpenRouter seçildiyse, yerel analizden sonra gerekli görülen içerikleri seçilen modele gönderir. Tamamen opsiyoneldir ve kapalıyken hiçbir OpenRouter isteği yapılmaz.]]></phrase>
   <phrase title="option_warextAiOpenRouterKey" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter API anahtarı]]></phrase>
@@ -22,23 +23,23 @@
   <phrase title="option_warextAiOpenRouterModel" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter birincil model kimliği]]></phrase>
   <phrase title="option_warextAiOpenRouterModel_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Örn. openrouter/auto veya OpenRouter üzerindeki başka bir model slug'ı. Model değişiminde eklenti kodu değiştirilmez.]]></phrase>
   <phrase title="option_warextAiOpenRouterFallbackModels" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[OpenRouter yedek model zinciri]]></phrase>
-  <phrase title="option_warextAiOpenRouterFallbackModels_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Birincil model hata, kota, moderasyon veya erişim sorunu yaşarsa OpenRouter'ın sırayla deneyebileceği model slug'larını satır satır yazın. Kod değişmeden model geçişi sağlar.]]></phrase>
+  <phrase title="option_warextAiOpenRouterFallbackModels_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Birincil model hata, kota, moderasyon veya erişim sorunu yaşarsa OpenRouter'ın sırayla deneyebileceği model slug'larını satır satır yazın.]]></phrase>
   <phrase title="option_warextAiOpenRouterRoutingSort" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[OpenRouter provider rota önceliği]]></phrase>
-  <phrase title="option_warextAiOpenRouterRoutingSort_explain" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[Varsayılan OpenRouter yönlendirmesini kullanabilir veya aynı modeli sunan provider uçlarını fiyat, gecikme ya da throughput önceliğine göre sıralayabilirsiniz. Model fallback zincirinden bağımsız çalışır.]]></phrase>
+  <phrase title="option_warextAiOpenRouterRoutingSort_explain" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[Varsayılan OpenRouter yönlendirmesini kullanabilir veya aynı modeli sunan provider uçlarını fiyat, gecikme ya da throughput önceliğine göre sıralayabilirsiniz.]]></phrase>
   <phrase title="option_warextAiOpenRouterZdrOnly" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Yalnızca Zero Data Retention uyumlu provider kullan]]></phrase>
-  <phrase title="option_warextAiOpenRouterZdrOnly_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Açıldığında OpenRouter yalnızca ZDR şartını karşılayan uygun provider uçlarına yönlendirilir. Uygun rota yoksa yerel analiz sonucu korunur.]]></phrase>
+  <phrase title="option_warextAiOpenRouterZdrOnly_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Açıldığında OpenRouter yalnızca ZDR şartını karşılayan uygun provider uçlarına yönlendirilir.]]></phrase>
   <phrase title="option_warextAiOpenRouterDenyDataCollection" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[Veri toplama yapan provider uçlarını dışla]]></phrase>
-  <phrase title="option_warextAiOpenRouterDenyDataCollection_explain" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[Açıkken OpenRouter provider yönlendirmesinde data_collection=deny kullanılır. Gizlilik açısından varsayılan olarak açıktır; uygun provider bulunamazsa harici doğrulama başarısız olur ve yerel sonuç korunur.]]></phrase>
+  <phrase title="option_warextAiOpenRouterDenyDataCollection_explain" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[Açıkken OpenRouter provider yönlendirmesinde data_collection=deny kullanılır. Gizlilik açısından varsayılan olarak açıktır.]]></phrase>
   <phrase title="option_warextAiOpenRouterResponseCache" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[OpenRouter yanıt önbelleğini etkinleştir]]></phrase>
-  <phrase title="option_warextAiOpenRouterResponseCache_explain" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[İleri düzey seçenektir. Aynı harici isteğin tekrarlandığı senaryolarda OpenRouter cache özelliğinin kullanılmasına izin verir. Forum içerikleri sık değişiyorsa kapalı bırakılması uygundur.]]></phrase>
+  <phrase title="option_warextAiOpenRouterResponseCache_explain" version_id="1000130" version_string="1.0.0 Alpha 7"><![CDATA[İleri düzey seçenektir. Aynı harici isteğin tekrarlandığı senaryolarda OpenRouter cache özelliğinin kullanılmasına izin verir.]]></phrase>
   <phrase title="option_warextAiOpenRouterMinRisk" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter çağrısı için minimum yerel risk]]></phrase>
-  <phrase title="option_warextAiOpenRouterMinRisk_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Yerel risk bu değerin altındaysa API çağrısı atlanır. Maliyeti ve gereksiz dış istekleri azaltır. Varsayılan 45.]]></phrase>
+  <phrase title="option_warextAiOpenRouterMinRisk_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Yerel risk bu değerin altındaysa API çağrısı atlanır. Varsayılan 45.]]></phrase>
   <phrase title="option_warextAiOpenRouterWeight" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter maksimum ağırlığı]]></phrase>
   <phrase title="option_warextAiOpenRouterWeight_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Harici modelin nihai risk hesabındaki azami etkisi. Model güven puanına göre gerçek ağırlık otomatik olarak daha düşük olabilir.]]></phrase>
   <phrase title="option_warextAiOpenRouterMaxChars" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter'a gönderilecek maksimum karakter]]></phrase>
   <phrase title="option_warextAiOpenRouterMaxChars_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[API maliyeti ve veri paylaşımını sınırlamak için harici modele gönderilecek metnin üst sınırı.]]></phrase>
   <phrase title="option_warextAiOpenRouterTimeout" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter zaman aşımı (saniye)]]></phrase>
-  <phrase title="option_warextAiOpenRouterTimeout_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Harici servis yanıt vermezse bu süreden sonra yerel sonuç korunur ve eklenti hata vermeden devam eder.]]></phrase>
+  <phrase title="option_warextAiOpenRouterTimeout_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Harici servis yanıt vermezse bu süreden sonra yerel sonuç korunur.]]></phrase>
 
   <phrase title="option_warextAiOpenAIKey" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[OpenAI API anahtarı]]></phrase>
   <phrase title="option_warextAiOpenAIKey_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan OpenAI/GPT provider seçildiğinde kullanılır. API anahtarı raporlara yazılmaz.]]></phrase>
@@ -56,14 +57,40 @@
   <phrase title="option_warextAiAnthropicKey_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan Anthropic Claude provider seçildiğinde kullanılır. API anahtarı raporlara yazılmaz.]]></phrase>
   <phrase title="option_warextAiAnthropicModel" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Claude model kimliği]]></phrase>
   <phrase title="option_warextAiAnthropicModel_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Varsayılan claude-sonnet-5. Hesabınızda erişilebilir başka bir Claude model kimliği yazılabilir.]]></phrase>
-  <phrase title="option_warextAiDirectMinRisk" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan provider çağrısı için minimum yerel risk]]></phrase>
-  <phrase title="option_warextAiDirectMinRisk_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[OpenAI, Gemini, DeepSeek veya Claude seçiliyken yerel risk bu değerin altındaysa dış API çağrısı yapılmaz. Varsayılan 45.]]></phrase>
-  <phrase title="option_warextAiDirectWeight" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan provider maksimum ağırlığı]]></phrase>
-  <phrase title="option_warextAiDirectWeight_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan harici modelin nihai risk hesabındaki azami etkisi. Gerçek ağırlık provider güven puanına göre otomatik azalabilir.]]></phrase>
-  <phrase title="option_warextAiDirectMaxChars" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan providera gönderilecek maksimum karakter]]></phrase>
-  <phrase title="option_warextAiDirectMaxChars_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Maliyet ve veri paylaşımını sınırlamak için doğrudan harici modele gönderilecek temizlenmiş kullanıcı metninin üst sınırı.]]></phrase>
-  <phrase title="option_warextAiDirectTimeout" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan provider zaman aşımı (saniye)]]></phrase>
-  <phrase title="option_warextAiDirectTimeout_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan harici provider yanıt vermezse bu süreden sonra yerel sonuç korunur.]]></phrase>
+
+  <phrase title="option_warextAiXaiKey" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[xAI API anahtarı]]></phrase>
+  <phrase title="option_warextAiXaiKey_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[xAI/Grok doğrudan provider seçildiğinde kullanılır.]]></phrase>
+  <phrase title="option_warextAiXaiModel" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Grok model kimliği]]></phrase>
+  <phrase title="option_warextAiXaiModel_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Varsayılan grok-4.6. Kullanılabilir başka bir xAI model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiMistralKey" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Mistral API anahtarı]]></phrase>
+  <phrase title="option_warextAiMistralKey_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Mistral AI doğrudan provider seçildiğinde kullanılır.]]></phrase>
+  <phrase title="option_warextAiMistralModel" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Mistral model kimliği]]></phrase>
+  <phrase title="option_warextAiMistralModel_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Varsayılan mistral-small-latest. Kullanılabilir başka bir Mistral model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiQwenKey" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Qwen / Model Studio API anahtarı]]></phrase>
+  <phrase title="option_warextAiQwenKey_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Alibaba Cloud Model Studio üzerinden Qwen doğrudan provider seçildiğinde kullanılır.]]></phrase>
+  <phrase title="option_warextAiQwenModel" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Qwen model kimliği]]></phrase>
+  <phrase title="option_warextAiQwenModel_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Varsayılan qwen3.8-flash. Kullanılabilir başka bir Model Studio model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiQwenBaseUrl" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Qwen OpenAI-compatible base URL]]></phrase>
+  <phrase title="option_warextAiQwenBaseUrl_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Model Studio bölgenize/workspace'inize ait compatible-mode/v1 adresini kullanabilirsiniz. Varsayılan uluslararası eski adres geriye uyumluluk içindir.]]></phrase>
+  <phrase title="option_warextAiOllamaBaseUrl" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Ollama base URL]]></phrase>
+  <phrase title="option_warextAiOllamaBaseUrl_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Varsayılan http://127.0.0.1:11434/v1. XenForo sunucusunun erişebildiği Ollama OpenAI-compatible adresini yazın.]]></phrase>
+  <phrase title="option_warextAiOllamaModel" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Ollama model adı]]></phrase>
+  <phrase title="option_warextAiOllamaModel_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Sunucuda önceden pull edilmiş model adı. Varsayılan llama3.2 örnek değeridir; kurulu modelinize göre değiştirin.]]></phrase>
+  <phrase title="option_warextAiCustomBaseUrl" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Özel OpenAI-compatible base URL]]></phrase>
+  <phrase title="option_warextAiCustomBaseUrl_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[HTTP/HTTPS base URL girin. Eklenti /chat/completions yolunu otomatik ekler; URL içinde kullanıcı adı/şifre kabul edilmez.]]></phrase>
+  <phrase title="option_warextAiCustomKey" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Özel API anahtarı]]></phrase>
+  <phrase title="option_warextAiCustomKey_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Endpoint Bearer anahtarı istiyorsa girin; anahtarsız yerel servislerde boş bırakılabilir.]]></phrase>
+  <phrase title="option_warextAiCustomModel" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Özel API model kimliği]]></phrase>
+  <phrase title="option_warextAiCustomModel_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[OpenAI-compatible endpoint'in kabul ettiği model kimliği. Bu alan boşsa provider etkinleşmez.]]></phrase>
+
+  <phrase title="option_warextAiDirectMinRisk" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan provider çağrısı için minimum yerel risk]]></phrase>
+  <phrase title="option_warextAiDirectMinRisk_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[OpenRouter dışındaki harici providerlarda yerel risk bu değerin altındaysa dış API çağrısı yapılmaz. Varsayılan 45.]]></phrase>
+  <phrase title="option_warextAiDirectWeight" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan provider maksimum ağırlığı]]></phrase>
+  <phrase title="option_warextAiDirectWeight_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan harici modelin nihai risk hesabındaki azami etkisi. Gerçek ağırlık provider güven puanına göre otomatik azalabilir.]]></phrase>
+  <phrase title="option_warextAiDirectMaxChars" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan providera gönderilecek maksimum karakter]]></phrase>
+  <phrase title="option_warextAiDirectMaxChars_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Maliyet ve veri paylaşımını sınırlamak için doğrudan harici modele gönderilecek temizlenmiş kullanıcı metninin üst sınırı.]]></phrase>
+  <phrase title="option_warextAiDirectTimeout" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan provider zaman aşımı (saniye)]]></phrase>
+  <phrase title="option_warextAiDirectTimeout_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan harici provider yanıt vermezse bu süreden sonra yerel sonuç korunur.]]></phrase>
 
   <phrase title="nav.warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI Denetimi]]></phrase>
 </phrases>
