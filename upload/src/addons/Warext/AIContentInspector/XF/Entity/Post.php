@@ -2,6 +2,7 @@
 
 namespace Warext\AIContentInspector\XF\Entity;
 
+use Warext\AIContentInspector\Provider\Registry;
 use Warext\AIContentInspector\Service\Analyzer;
 use Warext\AIContentInspector\Service\UserProfile;
 use Warext\AIContentInspector\Service\Similarity;
@@ -48,7 +49,8 @@ class Post extends XFCP_Post
             if ($forumIds && !in_array($forumId, $forumIds, true)) return;
 
             [$behavior, $writing] = $this->warextReadClientContext();
-            $result = $analyzer->analyze($message, $behavior, $writing);
+            $provider = (new Registry())->local();
+            $result = $provider->analyze($message, ['behavior' => $behavior, 'writing' => $writing]);
             $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
             $result = $this->warextEnrichSimilarity($forumId, $result, $message);
             $this->warextPersistAnalysis($forumId, $result, $message);
