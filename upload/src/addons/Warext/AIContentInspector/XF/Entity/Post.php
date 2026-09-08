@@ -6,7 +6,6 @@ use Warext\AIContentInspector\Provider\Registry;
 use Warext\AIContentInspector\Service\Analyzer;
 use Warext\AIContentInspector\Service\UserProfile;
 use Warext\AIContentInspector\Service\Similarity;
-use Warext\AIContentInspector\Service\ExternalVerifier;
 
 class Post extends XFCP_Post
 {
@@ -54,13 +53,79 @@ class Post extends XFCP_Post
             $result = $provider->analyze($message, ['behavior' => $behavior, 'writing' => $writing]);
             $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
             $result = $this->warextEnrichSimilarity($forumId, $result, $message);
-            $result = (new ExternalVerifier())->enrich($message, $result);
-            $this->warextPersistAnalysis($forumId, $result, $message);
+            $result = $this->warextPrepareExternalState($result);
+
+            $contentHash = hash('sha256', $message);
+            $this->warextPersistAnalysis($forumId, $result, $message, $contentHash);
+            $this->warextQueueExternalVerification($result, $contentHash);
         }
         catch (\Throwable $e)
         {
             \XF::logException($e, false, 'Warext AI Content Inspector: ');
         }
+    }
+
+    protected function warextPrepareExternalState(array $result): array
+    {
+        $options = \XF::options();
+        $enabled = !empty($options->warextAiOpenRouterEnabled);
+        $minimumRisk = max(0, min(100, (int)($options->warextAiOpenRouterMinRisk ?? 45)));
+        $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
+
+        $external = [
+            'enabled' => $enabled,
+            'available' => false,
+            'pending' => false,
+            'skipped' => false,
+            'provider' => 'openrouter',
+            'model' => (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
+            'minimum_local_risk' => $minimumRisk,
+            'weight' => 0,
+            'result' => []
+        ];
+
+        if (!$enabled)
+        {
+            $result['external_verification'] = $external;
+            return $result;
+        }
+
+        if ($localRisk < $minimumRisk)
+        {
+            $external['skipped'] = true;
+            $external['result'] = ['reason' => 'below_local_risk_threshold'];
+            $result['external_verification'] = $external;
+            return $result;
+        }
+
+        if (trim((string)($options->warextAiOpenRouterKey ?? '')) === '')
+        {
+            $external['result'] = ['reason' => 'not_configured'];
+            $result['external_verification'] = $external;
+            return $result;
+        }
+
+        $external['pending'] = true;
+        $external['result'] = ['reason' => 'queued'];
+        $result['external_verification'] = $external;
+        return $result;
+    }
+
+    protected function warextQueueExternalVerification(array $result, string $contentHash): void
+    {
+        $external = is_array($result['external_verification'] ?? null) ? $result['external_verification'] : [];
+        if (empty($external['pending'])) return;
+
+        $postId = (int)$this->post_id;
+        if ($postId <= 0 || $contentHash === '') return;
+
+        $uniqueId = 'warextAiExternal_' . $postId . '_' . substr($contentHash, 0, 16);
+        \XF::app()->jobManager()->enqueueUnique(
+            $uniqueId,
+            'Warext\AIContentInspector:ExternalVerify',
+            ['post_id' => $postId, 'content_hash' => $contentHash],
+            false
+        );
     }
 
     protected function warextEnrichSimilarity(int $forumId, array $result, string $message): array
@@ -152,12 +217,11 @@ class Post extends XFCP_Post
         ];
     }
 
-    protected function warextPersistAnalysis(int $forumId, array $result, string $message): void
+    protected function warextPersistAnalysis(int $forumId, array $result, string $message, string $contentHash): void
     {
         $db = \XF::db();
         $now = time();
         $postId = (int)$this->post_id;
-        $contentHash = hash('sha256', $message);
         $existing = $db->fetchRow(
             'SELECT analysis_id, content_hash, review_state FROM xf_warext_ai_analysis WHERE post_id = ? ORDER BY analysis_id DESC LIMIT 1',
             $postId
