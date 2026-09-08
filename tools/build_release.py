@@ -27,6 +27,7 @@ output = ROOT / package_name
 required = {
     'upload/src/addons/Warext/AIContentInspector/addon.json',
     'upload/src/addons/Warext/AIContentInspector/Setup.php',
+    'upload/src/addons/Warext/AIContentInspector/Job/ExternalVerify.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/ProviderInterface.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/LocalProvider.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/OpenRouterProvider.php',
