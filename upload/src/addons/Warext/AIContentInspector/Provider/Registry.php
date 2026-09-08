@@ -27,6 +27,11 @@ class Registry
             'gemini' => $this->gemini(),
             'deepseek' => $this->deepSeek(),
             'anthropic' => $this->anthropic(),
+            'xai' => $this->xAI(),
+            'mistral' => $this->mistral(),
+            'qwen' => $this->qwen(),
+            'ollama' => $this->ollama(),
+            'custom_openai' => $this->customOpenAI(),
             default => null
         };
     }
@@ -41,7 +46,8 @@ class Registry
             return !empty(\XF::options()->warextAiOpenRouterEnabled);
         }
 
-        return in_array($id, ['openai', 'gemini', 'deepseek', 'anthropic'], true);
+        $provider = $this->external();
+        return $provider ? $provider->isConfigured() : false;
     }
 
     public function externalConfig(): array
@@ -64,7 +70,12 @@ class Registry
             'openai' => (string)($options->warextAiOpenAIModel ?? 'gpt-5.6-luna'),
             'gemini' => (string)($options->warextAiGeminiModel ?? 'gemini-3.8-flash'),
             'deepseek' => (string)($options->warextAiDeepSeekModel ?? 'deepseek-v4-flash'),
-            'anthropic' => (string)($options->warextAiAnthropicModel ?? 'claude-sonnet-5')
+            'anthropic' => (string)($options->warextAiAnthropicModel ?? 'claude-sonnet-5'),
+            'xai' => (string)($options->warextAiXaiModel ?? 'grok-4.6'),
+            'mistral' => (string)($options->warextAiMistralModel ?? 'mistral-small-latest'),
+            'qwen' => (string)($options->warextAiQwenModel ?? 'qwen3.8-flash'),
+            'ollama' => (string)($options->warextAiOllamaModel ?? 'llama3.2'),
+            'custom_openai' => (string)($options->warextAiCustomModel ?? '')
         ];
 
         if (isset($models[$id]))
@@ -142,6 +153,66 @@ class Registry
         );
     }
 
+    public function xAI(): ProviderInterface
+    {
+        $options = \XF::options();
+        return new OpenAICompatibleProvider(
+            'xai', 'xAI / Grok', 'https://api.x.ai/v1',
+            (string)($options->warextAiXaiKey ?? ''),
+            (string)($options->warextAiXaiModel ?? 'grok-4.6'),
+            (int)($options->warextAiDirectTimeout ?? 8)
+        );
+    }
+
+    public function mistral(): ProviderInterface
+    {
+        $options = \XF::options();
+        return new OpenAICompatibleProvider(
+            'mistral', 'Mistral AI', 'https://api.mistral.ai/v1',
+            (string)($options->warextAiMistralKey ?? ''),
+            (string)($options->warextAiMistralModel ?? 'mistral-small-latest'),
+            (int)($options->warextAiDirectTimeout ?? 8)
+        );
+    }
+
+    public function qwen(): ProviderInterface
+    {
+        $options = \XF::options();
+        return new OpenAICompatibleProvider(
+            'qwen', 'Qwen / Alibaba Model Studio',
+            (string)($options->warextAiQwenBaseUrl ?? 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),
+            (string)($options->warextAiQwenKey ?? ''),
+            (string)($options->warextAiQwenModel ?? 'qwen3.8-flash'),
+            (int)($options->warextAiDirectTimeout ?? 8)
+        );
+    }
+
+    public function ollama(): ProviderInterface
+    {
+        $options = \XF::options();
+        return new OpenAICompatibleProvider(
+            'ollama', 'Ollama',
+            (string)($options->warextAiOllamaBaseUrl ?? 'http://127.0.0.1:11434/v1'),
+            '',
+            (string)($options->warextAiOllamaModel ?? 'llama3.2'),
+            (int)($options->warextAiDirectTimeout ?? 8),
+            false
+        );
+    }
+
+    public function customOpenAI(): ProviderInterface
+    {
+        $options = \XF::options();
+        return new OpenAICompatibleProvider(
+            'custom_openai', 'Özel OpenAI-Compatible API',
+            (string)($options->warextAiCustomBaseUrl ?? ''),
+            (string)($options->warextAiCustomKey ?? ''),
+            (string)($options->warextAiCustomModel ?? ''),
+            (int)($options->warextAiDirectTimeout ?? 8),
+            false
+        );
+    }
+
     public function knownProviders(): array
     {
         return [
@@ -151,11 +222,11 @@ class Registry
             'gemini' => ['label' => 'Google Gemini', 'mode' => 'native', 'implemented' => true],
             'deepseek' => ['label' => 'DeepSeek', 'mode' => 'openai_compatible', 'implemented' => true],
             'anthropic' => ['label' => 'Anthropic Claude', 'mode' => 'native', 'implemented' => true],
-            'xai' => ['label' => 'xAI / Grok', 'mode' => 'openai_compatible', 'implemented' => false],
-            'mistral' => ['label' => 'Mistral AI', 'mode' => 'openai_compatible', 'implemented' => false],
-            'qwen' => ['label' => 'Qwen', 'mode' => 'openai_compatible', 'implemented' => false],
-            'ollama' => ['label' => 'Ollama', 'mode' => 'local_http', 'implemented' => false],
-            'custom_openai' => ['label' => 'Özel OpenAI-Compatible API', 'mode' => 'openai_compatible', 'implemented' => false]
+            'xai' => ['label' => 'xAI / Grok', 'mode' => 'openai_compatible', 'implemented' => true],
+            'mistral' => ['label' => 'Mistral AI', 'mode' => 'openai_compatible', 'implemented' => true],
+            'qwen' => ['label' => 'Qwen / Alibaba Model Studio', 'mode' => 'openai_compatible', 'implemented' => true],
+            'ollama' => ['label' => 'Ollama', 'mode' => 'local_http', 'implemented' => true],
+            'custom_openai' => ['label' => 'Özel OpenAI-Compatible API', 'mode' => 'openai_compatible', 'implemented' => true]
         ];
     }
 
