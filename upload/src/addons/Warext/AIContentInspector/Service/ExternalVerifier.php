@@ -8,15 +8,17 @@ class ExternalVerifier
 {
     public function enrich(string $message, array $result): array
     {
-        $options = \XF::options();
+        $registry = new Registry();
+        $config = $registry->externalConfig();
+        $providerId = (string)($config['provider'] ?? $registry->selectedExternalId());
+        $minimumRisk = max(0, min(100, (int)($config['minimum_local_risk'] ?? 100)));
         $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
-        $minimumRisk = max(0, min(100, (int)($options->warextAiOpenRouterMinRisk ?? 45)));
 
         $external = [
-            'enabled' => !empty($options->warextAiOpenRouterEnabled),
+            'enabled' => $registry->isExternalEnabled(),
             'available' => false,
-            'provider' => 'openrouter',
-            'model' => (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
+            'provider' => $providerId,
+            'model' => (string)($config['model'] ?? ''),
             'weight' => 0,
             'minimum_local_risk' => $minimumRisk,
             'skipped' => false,
@@ -37,7 +39,13 @@ class ExternalVerifier
             return $result;
         }
 
-        $provider = (new Registry())->openRouter();
+        $provider = $registry->external();
+        if (!$provider)
+        {
+            $external['result'] = ['reason' => 'provider_not_implemented'];
+            $result['external_verification'] = $external;
+            return $result;
+        }
         if (!$provider->isConfigured())
         {
             $external['result'] = ['reason' => 'not_configured'];
@@ -46,10 +54,11 @@ class ExternalVerifier
         }
 
         $assessment = $provider->analyze($message, [
-            'max_chars' => (int)($options->warextAiOpenRouterMaxChars ?? 12000)
+            'max_chars' => (int)($config['max_chars'] ?? 12000)
         ]);
         $external['result'] = $assessment;
         $external['available'] = !empty($assessment['available']);
+        $external['provider'] = (string)($assessment['provider']['id'] ?? $providerId);
         $external['model'] = (string)($assessment['provider']['model'] ?? $external['model']);
         $external['fallback_models'] = (array)($assessment['provider']['fallback_models'] ?? []);
         $external['zdr_only'] = !empty($assessment['provider']['zdr_only']);
@@ -61,7 +70,7 @@ class ExternalVerifier
             return $result;
         }
 
-        $baseWeight = max(5, min(40, (int)($options->warextAiOpenRouterWeight ?? 20)));
+        $baseWeight = max(0, min(40, (int)($config['weight'] ?? 0)));
         $providerConfidence = max(0, min(100, (int)($assessment['confidence'] ?? 0)));
         $effectiveWeight = ($baseWeight / 100) * ($providerConfidence / 100);
         $external['weight'] = round($effectiveWeight * 100, 2);
@@ -74,9 +83,10 @@ class ExternalVerifier
         $result['classification'] = $this->classification($result['risk_score']);
         $result['external_verification'] = $external;
         $result['signals'][] = [
-            'key' => 'openrouter_verification',
+            'key' => 'external_provider_verification',
             'level' => 'context',
-            'value' => $externalRisk
+            'value' => $externalRisk,
+            'provider' => $external['provider']
         ];
 
         return $result;
