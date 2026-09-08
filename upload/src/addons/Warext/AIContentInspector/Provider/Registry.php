@@ -9,6 +9,62 @@ class Registry
         return new LocalProvider();
     }
 
+    public function selectedExternalId(): string
+    {
+        $id = trim((string)(\XF::options()->warextAiExternalProvider ?? 'openrouter'));
+        return $id !== '' ? $id : 'openrouter';
+    }
+
+    public function external(): ?ProviderInterface
+    {
+        $id = $this->selectedExternalId();
+        if ($id === 'none') return null;
+
+        return match ($id)
+        {
+            'openrouter' => $this->openRouter(),
+            default => null
+        };
+    }
+
+    public function isExternalEnabled(): bool
+    {
+        $id = $this->selectedExternalId();
+        if ($id === 'none') return false;
+
+        if ($id === 'openrouter')
+        {
+            return !empty(\XF::options()->warextAiOpenRouterEnabled);
+        }
+
+        return false;
+    }
+
+    public function externalConfig(): array
+    {
+        $id = $this->selectedExternalId();
+        $options = \XF::options();
+
+        if ($id === 'openrouter')
+        {
+            return [
+                'provider' => 'openrouter',
+                'model' => (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
+                'minimum_local_risk' => max(0, min(100, (int)($options->warextAiOpenRouterMinRisk ?? 45))),
+                'weight' => max(5, min(40, (int)($options->warextAiOpenRouterWeight ?? 20))),
+                'max_chars' => max(1000, min(50000, (int)($options->warextAiOpenRouterMaxChars ?? 12000)))
+            ];
+        }
+
+        return [
+            'provider' => $id,
+            'model' => '',
+            'minimum_local_risk' => 100,
+            'weight' => 0,
+            'max_chars' => 12000
+        ];
+    }
+
     public function openRouter(): ProviderInterface
     {
         $options = \XF::options();
