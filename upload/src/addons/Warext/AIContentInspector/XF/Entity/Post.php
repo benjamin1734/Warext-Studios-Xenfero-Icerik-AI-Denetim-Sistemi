@@ -67,18 +67,20 @@ class Post extends XFCP_Post
 
     protected function warextPrepareExternalState(array $result): array
     {
-        $options = \XF::options();
-        $enabled = !empty($options->warextAiOpenRouterEnabled);
-        $minimumRisk = max(0, min(100, (int)($options->warextAiOpenRouterMinRisk ?? 45)));
+        $registry = new Registry();
+        $config = $registry->externalConfig();
+        $providerId = (string)($config['provider'] ?? $registry->selectedExternalId());
+        $minimumRisk = max(0, min(100, (int)($config['minimum_local_risk'] ?? 100)));
         $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
+        $enabled = $registry->isExternalEnabled();
 
         $external = [
             'enabled' => $enabled,
             'available' => false,
             'pending' => false,
             'skipped' => false,
-            'provider' => 'openrouter',
-            'model' => (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
+            'provider' => $providerId,
+            'model' => (string)($config['model'] ?? ''),
             'minimum_local_risk' => $minimumRisk,
             'weight' => 0,
             'result' => []
@@ -98,7 +100,14 @@ class Post extends XFCP_Post
             return $result;
         }
 
-        if (trim((string)($options->warextAiOpenRouterKey ?? '')) === '')
+        $provider = $registry->external();
+        if (!$provider)
+        {
+            $external['result'] = ['reason' => 'provider_not_implemented'];
+            $result['external_verification'] = $external;
+            return $result;
+        }
+        if (!$provider->isConfigured())
         {
             $external['result'] = ['reason' => 'not_configured'];
             $result['external_verification'] = $external;
@@ -119,7 +128,8 @@ class Post extends XFCP_Post
         $postId = (int)$this->post_id;
         if ($postId <= 0 || $contentHash === '') return;
 
-        $uniqueId = 'warextAiExternal_' . $postId . '_' . substr($contentHash, 0, 16);
+        $providerId = preg_replace('/[^a-z0-9_\-]/i', '', (string)($external['provider'] ?? 'external')) ?: 'external';
+        $uniqueId = 'warextAiExternal_' . $providerId . '_' . $postId . '_' . substr($contentHash, 0, 16);
         \XF::app()->jobManager()->enqueueUnique(
             $uniqueId,
             'Warext\AIContentInspector:ExternalVerify',
