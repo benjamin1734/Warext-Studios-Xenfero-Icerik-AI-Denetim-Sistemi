@@ -30,6 +30,7 @@ class Setup extends AbstractSetup
             $table->addColumn('behavior_metrics', 'mediumblob')->nullable();
             $table->addColumn('writing_metrics', 'mediumblob')->nullable();
             $table->addColumn('profile_metrics', 'mediumblob')->nullable();
+            $table->addColumn('external_metrics', 'mediumblob')->nullable();
             $table->addColumn('signal_summary', 'mediumblob')->nullable();
             $table->addColumn('content_hash', 'varchar', 64)->setDefault('');
             $table->addColumn('content_fingerprint', 'varchar', 16)->setDefault('');
@@ -66,6 +67,14 @@ class Setup extends AbstractSetup
         {
             $table->addColumn('content_fingerprint', 'varchar', 16)->setDefault('')->after('content_hash');
             $table->addKey(['forum_id', 'content_fingerprint'], 'forum_fingerprint');
+        });
+    }
+
+    public function upgrade1000110Step1(): void
+    {
+        $this->schemaManager()->alterTable('xf_warext_ai_analysis', function (\XF\Db\Schema\Alter $table)
+        {
+            $table->addColumn('external_metrics', 'mediumblob')->nullable()->after('profile_metrics');
         });
     }
 
