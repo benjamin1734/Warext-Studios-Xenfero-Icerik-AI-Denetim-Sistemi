@@ -2,7 +2,7 @@
 
 namespace Warext\AIContentInspector\Service;
 
-use Warext\AIContentInspector\Provider\OpenRouterProvider;
+use Warext\AIContentInspector\Provider\Registry;
 
 class ExternalVerifier
 {
@@ -37,12 +37,7 @@ class ExternalVerifier
             return $result;
         }
 
-        $provider = new OpenRouterProvider(
-            (string)($options->warextAiOpenRouterKey ?? ''),
-            (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
-            (int)($options->warextAiOpenRouterTimeout ?? 8)
-        );
-
+        $provider = (new Registry())->openRouter();
         if (!$provider->isConfigured())
         {
             $external['result'] = ['reason' => 'not_configured'];
@@ -56,6 +51,8 @@ class ExternalVerifier
         $external['result'] = $assessment;
         $external['available'] = !empty($assessment['available']);
         $external['model'] = (string)($assessment['provider']['model'] ?? $external['model']);
+        $external['fallback_models'] = (array)($assessment['provider']['fallback_models'] ?? []);
+        $external['zdr_only'] = !empty($assessment['provider']['zdr_only']);
 
         if (!$external['available'])
         {
