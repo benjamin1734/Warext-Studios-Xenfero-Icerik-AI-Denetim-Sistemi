@@ -9,17 +9,30 @@ class ExternalVerifier
     public function enrich(string $message, array $result): array
     {
         $options = \XF::options();
+        $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
+        $minimumRisk = max(0, min(100, (int)($options->warextAiOpenRouterMinRisk ?? 45)));
+
         $external = [
             'enabled' => !empty($options->warextAiOpenRouterEnabled),
             'available' => false,
             'provider' => 'openrouter',
             'model' => (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
             'weight' => 0,
+            'minimum_local_risk' => $minimumRisk,
+            'skipped' => false,
             'result' => []
         ];
 
         if (!$external['enabled'])
         {
+            $result['external_verification'] = $external;
+            return $result;
+        }
+
+        if ($localRisk < $minimumRisk)
+        {
+            $external['skipped'] = true;
+            $external['result'] = ['reason' => 'below_local_risk_threshold'];
             $result['external_verification'] = $external;
             return $result;
         }
@@ -56,7 +69,6 @@ class ExternalVerifier
         $effectiveWeight = ($baseWeight / 100) * ($providerConfidence / 100);
         $external['weight'] = round($effectiveWeight * 100, 2);
 
-        $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
         $externalRisk = max(0, min(100, (int)($assessment['risk_score'] ?? 0)));
         $combined = (int)round(($localRisk * (1 - $effectiveWeight)) + ($externalRisk * $effectiveWeight));
 
