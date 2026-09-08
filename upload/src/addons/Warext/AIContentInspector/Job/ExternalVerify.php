@@ -2,6 +2,7 @@
 
 namespace Warext\AIContentInspector\Job;
 
+use Warext\AIContentInspector\Provider\Registry;
 use Warext\AIContentInspector\Service\ExternalVerifier;
 use XF\Job\AbstractJob;
 
@@ -22,7 +23,8 @@ class ExternalVerify extends AbstractJob
         }
 
         $options = \XF::options();
-        if (empty($options->warextAiEnabled) || empty($options->warextAiOpenRouterEnabled))
+        $registry = new Registry();
+        if (empty($options->warextAiEnabled) || !$registry->isExternalEnabled())
         {
             return $this->complete();
         }
@@ -78,7 +80,7 @@ class ExternalVerify extends AbstractJob
 
     public function getStatusMessage()
     {
-        return 'Warext AI OpenRouter doğrulaması işleniyor...';
+        return 'Warext AI harici sağlayıcı doğrulaması işleniyor...';
     }
 
     public function canCancel()
