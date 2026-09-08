@@ -1,9 +1,9 @@
 {
   "legacy_addon_id": "",
   "title": "Warext Studios | İçerik AI Denetim Sistemi",
-  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı ve kullanıcı yazım profili sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel entegrasyon verisini kullanır. OpenRouter opsiyonel ikinci görüş sağlayıcısıdır ve harici doğrulama XenForo arka plan job kuyruğunda çalışır. Çoklu AI sağlayıcı mimarisi genişletilebilir ve zorunlu bağımlılık oluşturmaz.",
-  "version_id": 1000120,
-  "version_string": "1.0.0 Alpha 6",
+  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı ve kullanıcı yazım profili sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel entegrasyon verisini kullanır. OpenRouter önerilen opsiyonel ikinci görüş sağlayıcısıdır; model fallback, maliyet/gizlilik yönlendirmesi ve arka plan job kuyruğu desteklenir. Çoklu AI sağlayıcı mimarisi genişletilebilir ve zorunlu bağımlılık oluşturmaz.",
+  "version_id": 1000130,
+  "version_string": "1.0.0 Alpha 7",
   "dev": "Warext Studios",
   "dev_url": "",
   "faq_url": "",
