@@ -9,6 +9,11 @@ openai=OpenAI / GPT
 gemini=Google Gemini
 deepseek=DeepSeek
 anthropic=Anthropic Claude
+xai=xAI / Grok
+mistral=Mistral AI
+qwen=Qwen / Alibaba Model Studio
+ollama=Ollama (yerel)
+custom_openai=Özel OpenAI-Compatible API
 none=Harici sağlayıcı kullanma</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="90"/></option>
   <option option_id="warextAiOpenRouterEnabled" edit_format="onoff" data_type="boolean" advanced="0"><default_value>0</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="100"/></option>
   <option option_id="warextAiOpenRouterKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="110"/></option>
@@ -38,12 +43,26 @@ max=30</edit_format_params><sub_options></sub_options><relation group_id="warext
   <option option_id="warextAiDeepSeekModel" edit_format="textbox" data_type="string" advanced="0"><default_value>deepseek-v4-flash</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="250"/></option>
   <option option_id="warextAiAnthropicKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="260"/></option>
   <option option_id="warextAiAnthropicModel" edit_format="textbox" data_type="string" advanced="0"><default_value>claude-sonnet-5</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="270"/></option>
+
+  <option option_id="warextAiXaiKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="320"/></option>
+  <option option_id="warextAiXaiModel" edit_format="textbox" data_type="string" advanced="0"><default_value>grok-4.6</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="330"/></option>
+  <option option_id="warextAiMistralKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="340"/></option>
+  <option option_id="warextAiMistralModel" edit_format="textbox" data_type="string" advanced="0"><default_value>mistral-small-latest</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="350"/></option>
+  <option option_id="warextAiQwenKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="360"/></option>
+  <option option_id="warextAiQwenModel" edit_format="textbox" data_type="string" advanced="0"><default_value>qwen3.8-flash</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="370"/></option>
+  <option option_id="warextAiQwenBaseUrl" edit_format="textbox" data_type="string" advanced="1"><default_value>https://dashscope-intl.aliyuncs.com/compatible-mode/v1</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="380"/></option>
+  <option option_id="warextAiOllamaBaseUrl" edit_format="textbox" data_type="string" advanced="0"><default_value>http://127.0.0.1:11434/v1</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="390"/></option>
+  <option option_id="warextAiOllamaModel" edit_format="textbox" data_type="string" advanced="0"><default_value>llama3.2</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="400"/></option>
+  <option option_id="warextAiCustomBaseUrl" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="410"/></option>
+  <option option_id="warextAiCustomKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="420"/></option>
+  <option option_id="warextAiCustomModel" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="430"/></option>
+
   <option option_id="warextAiDirectMinRisk" edit_format="spinbox" data_type="integer" advanced="0"><default_value>45</default_value><edit_format_params>min=0
-max=100</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="280"/></option>
+max=100</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="500"/></option>
   <option option_id="warextAiDirectWeight" edit_format="spinbox" data_type="integer" advanced="0"><default_value>20</default_value><edit_format_params>min=5
-max=40</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="290"/></option>
+max=40</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="510"/></option>
   <option option_id="warextAiDirectMaxChars" edit_format="spinbox" data_type="integer" advanced="1"><default_value>12000</default_value><edit_format_params>min=1000
-max=50000</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="300"/></option>
+max=50000</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="520"/></option>
   <option option_id="warextAiDirectTimeout" edit_format="spinbox" data_type="integer" advanced="1"><default_value>8</default_value><edit_format_params>min=3
-max=30</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="310"/></option>
+max=30</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="530"/></option>
 </options>
