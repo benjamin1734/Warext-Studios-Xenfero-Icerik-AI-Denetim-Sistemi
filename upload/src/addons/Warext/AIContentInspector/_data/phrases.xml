@@ -6,15 +6,15 @@
   <phrase title="permission_general_warextAiReview" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sonuçlarını inceleyebilir ve durumlandırabilir]]></phrase>
   <phrase title="permission_general_warextAiManage" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sistemini yönetebilir]]></phrase>
   <phrase title="option_group_warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
-  <phrase title="option_group_warextAi_description" version_id="1000140" version_string="1.0.0 Alpha 8"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır. Harici doğrulama provider-neutral yapıdadır. OpenRouter önerilen bulut sağlayıcısıdır; tek API anahtarıyla farklı modeller, fallback zinciri, maliyet odaklı rota ve gizlilik tercihleri kullanılabilir. Harici API zorunlu değildir.]]></phrase>
+  <phrase title="option_group_warextAi_description" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır. Harici doğrulama provider-neutral yapıdadır. OpenRouter önerilen bulut sağlayıcısıdır; ayrıca OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan bağlanabilir. Harici API zorunlu değildir ve başarısız olduğunda yerel sonuç korunur.]]></phrase>
   <phrase title="option_warextAiEnabled" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
   <phrase title="option_warextAiEnabled_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir. Harici sağlayıcı kapalı olsa da sistem çalışır.]]></phrase>
   <phrase title="option_warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Minimum analiz karakteri]]></phrase>
   <phrase title="option_warextAiMinChars_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Bu karakter sayısının altındaki içerikler yetersiz veri nedeniyle analiz edilmez.]]></phrase>
   <phrase title="option_warextAiForums" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Analiz edilecek forumlar]]></phrase>
   <phrase title="option_warextAiForums_explain" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetiminin çalışacağı forumları seçin. Hiçbir forum seçilmezse tüm forumlar analiz edilir.]]></phrase>
-  <phrase title="option_warextAiExternalProvider" version_id="1000140" version_string="1.0.0 Alpha 8"><![CDATA[Harici AI doğrulama sağlayıcısı]]></phrase>
-  <phrase title="option_warextAiExternalProvider_explain" version_id="1000140" version_string="1.0.0 Alpha 8"><![CDATA[Harici ikinci görüş için kullanılacak provider'ı seçin. OpenRouter önerilen seçenektir. İlerleyen sürümlerde doğrudan GPT, Gemini, DeepSeek ve diğer adapterlar aynı seçim alanına eklenebilir. "Harici sağlayıcı kullanma" seçildiğinde yalnızca yerel motor çalışır.]]></phrase>
+  <phrase title="option_warextAiExternalProvider" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Harici AI doğrulama sağlayıcısı]]></phrase>
+  <phrase title="option_warextAiExternalProvider_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Harici ikinci görüş için OpenRouter, OpenAI/GPT, Google Gemini, DeepSeek veya Anthropic Claude seçilebilir. OpenRouter önerilen varsayılandır. Doğrudan provider seçildiğinde ilgili API anahtarı ve model alanı kullanılır. "Harici sağlayıcı kullanma" seçildiğinde yalnızca yerel motor çalışır.]]></phrase>
   <phrase title="option_warextAiOpenRouterEnabled" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter ile ikinci görüşü etkinleştir]]></phrase>
   <phrase title="option_warextAiOpenRouterEnabled_explain" version_id="1000140" version_string="1.0.0 Alpha 8"><![CDATA[Harici sağlayıcı olarak OpenRouter seçildiyse, yerel analizden sonra gerekli görülen içerikleri seçilen modele gönderir. Tamamen opsiyoneldir ve kapalıyken hiçbir OpenRouter isteği yapılmaz.]]></phrase>
   <phrase title="option_warextAiOpenRouterKey" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter API anahtarı]]></phrase>
@@ -39,5 +39,31 @@
   <phrase title="option_warextAiOpenRouterMaxChars_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[API maliyeti ve veri paylaşımını sınırlamak için harici modele gönderilecek metnin üst sınırı.]]></phrase>
   <phrase title="option_warextAiOpenRouterTimeout" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter zaman aşımı (saniye)]]></phrase>
   <phrase title="option_warextAiOpenRouterTimeout_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Harici servis yanıt vermezse bu süreden sonra yerel sonuç korunur ve eklenti hata vermeden devam eder.]]></phrase>
+
+  <phrase title="option_warextAiOpenAIKey" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[OpenAI API anahtarı]]></phrase>
+  <phrase title="option_warextAiOpenAIKey_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan OpenAI/GPT provider seçildiğinde kullanılır. API anahtarı raporlara yazılmaz.]]></phrase>
+  <phrase title="option_warextAiOpenAIModel" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[OpenAI model kimliği]]></phrase>
+  <phrase title="option_warextAiOpenAIModel_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Varsayılan gpt-5.6-luna. Hesabınızda erişilebilir başka bir OpenAI model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiGeminiKey" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Google Gemini API anahtarı]]></phrase>
+  <phrase title="option_warextAiGeminiKey_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan Google Gemini provider seçildiğinde kullanılır. API anahtarı raporlara yazılmaz.]]></phrase>
+  <phrase title="option_warextAiGeminiModel" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Gemini model kimliği]]></phrase>
+  <phrase title="option_warextAiGeminiModel_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Varsayılan gemini-3.8-flash. Hesabınızda erişilebilir başka bir Gemini model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiDeepSeekKey" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[DeepSeek API anahtarı]]></phrase>
+  <phrase title="option_warextAiDeepSeekKey_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan DeepSeek provider seçildiğinde kullanılır. API anahtarı raporlara yazılmaz.]]></phrase>
+  <phrase title="option_warextAiDeepSeekModel" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[DeepSeek model kimliği]]></phrase>
+  <phrase title="option_warextAiDeepSeekModel_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Varsayılan deepseek-v4-flash. Hesabınızda erişilebilir başka bir DeepSeek model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiAnthropicKey" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Anthropic API anahtarı]]></phrase>
+  <phrase title="option_warextAiAnthropicKey_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan Anthropic Claude provider seçildiğinde kullanılır. API anahtarı raporlara yazılmaz.]]></phrase>
+  <phrase title="option_warextAiAnthropicModel" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Claude model kimliği]]></phrase>
+  <phrase title="option_warextAiAnthropicModel_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Varsayılan claude-sonnet-5. Hesabınızda erişilebilir başka bir Claude model kimliği yazılabilir.]]></phrase>
+  <phrase title="option_warextAiDirectMinRisk" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan provider çağrısı için minimum yerel risk]]></phrase>
+  <phrase title="option_warextAiDirectMinRisk_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[OpenAI, Gemini, DeepSeek veya Claude seçiliyken yerel risk bu değerin altındaysa dış API çağrısı yapılmaz. Varsayılan 45.]]></phrase>
+  <phrase title="option_warextAiDirectWeight" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan provider maksimum ağırlığı]]></phrase>
+  <phrase title="option_warextAiDirectWeight_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan harici modelin nihai risk hesabındaki azami etkisi. Gerçek ağırlık provider güven puanına göre otomatik azalabilir.]]></phrase>
+  <phrase title="option_warextAiDirectMaxChars" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan providera gönderilecek maksimum karakter]]></phrase>
+  <phrase title="option_warextAiDirectMaxChars_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Maliyet ve veri paylaşımını sınırlamak için doğrudan harici modele gönderilecek temizlenmiş kullanıcı metninin üst sınırı.]]></phrase>
+  <phrase title="option_warextAiDirectTimeout" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan provider zaman aşımı (saniye)]]></phrase>
+  <phrase title="option_warextAiDirectTimeout_explain" version_id="1000150" version_string="1.0.0 Alpha 9"><![CDATA[Doğrudan harici provider yanıt vermezse bu süreden sonra yerel sonuç korunur.]]></phrase>
+
   <phrase title="nav.warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI Denetimi]]></phrase>
 </phrases>
