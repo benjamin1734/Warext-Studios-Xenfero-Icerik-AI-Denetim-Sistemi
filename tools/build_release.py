@@ -27,15 +27,22 @@ output = ROOT / package_name
 required = {
     'upload/src/addons/Warext/AIContentInspector/addon.json',
     'upload/src/addons/Warext/AIContentInspector/Setup.php',
+    'upload/src/addons/Warext/AIContentInspector/Provider/ProviderInterface.php',
+    'upload/src/addons/Warext/AIContentInspector/Provider/LocalProvider.php',
+    'upload/src/addons/Warext/AIContentInspector/Provider/OpenRouterProvider.php',
+    'upload/src/addons/Warext/AIContentInspector/Provider/Registry.php',
     'upload/src/addons/Warext/AIContentInspector/Service/Analyzer.php',
     'upload/src/addons/Warext/AIContentInspector/Service/UserProfile.php',
+    'upload/src/addons/Warext/AIContentInspector/Service/Similarity.php',
+    'upload/src/addons/Warext/AIContentInspector/Service/ExternalVerifier.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/Report.php',
     'upload/src/addons/Warext/AIContentInspector/_data/options.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/permissions.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/routes.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/templates.xml',
     'upload/js/warext/ai-content-inspector/tracker.js',
-    'upload/js/warext/ai-content-inspector/report-ui.js'
+    'upload/js/warext/ai-content-inspector/report-ui.js',
+    'upload/js/warext/ai-content-inspector/thread-report.js'
 }
 
 with tempfile.TemporaryDirectory(prefix='warext-ai-release-') as temp_dir:
@@ -58,7 +65,7 @@ with tempfile.TemporaryDirectory(prefix='warext-ai-release-') as temp_dir:
     if output.exists():
         output.unlink()
 
-    fixed = (2026, 9, 7, 0, 0, 0)
+    fixed = (2026, 9, 8, 0, 0, 0)
     with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path in sorted(stage.rglob('*')):
             if not path.is_file():
