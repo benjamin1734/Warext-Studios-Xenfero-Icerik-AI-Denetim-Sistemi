@@ -6,6 +6,7 @@ use Warext\AIContentInspector\Provider\Registry;
 use Warext\AIContentInspector\Service\Analyzer;
 use Warext\AIContentInspector\Service\UserProfile;
 use Warext\AIContentInspector\Service\Similarity;
+use Warext\AIContentInspector\Service\ExternalVerifier;
 
 class Post extends XFCP_Post
 {
@@ -53,6 +54,7 @@ class Post extends XFCP_Post
             $result = $provider->analyze($message, ['behavior' => $behavior, 'writing' => $writing]);
             $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
             $result = $this->warextEnrichSimilarity($forumId, $result, $message);
+            $result = (new ExternalVerifier())->enrich($message, $result);
             $this->warextPersistAnalysis($forumId, $result, $message);
         }
         catch (\Throwable $e)
@@ -173,6 +175,7 @@ class Post extends XFCP_Post
             'behavior_metrics' => json_encode($result['behavior_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'writing_metrics' => json_encode($result['writing_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'profile_metrics' => json_encode($result['profile_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'external_metrics' => json_encode($result['external_verification'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'signal_summary' => json_encode($result['signals'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'content_hash' => $contentHash,
             'content_fingerprint' => (string)($result['similarity_metrics']['fingerprint'] ?? ''),
