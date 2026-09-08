@@ -4,10 +4,11 @@
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[<div id="warext-ai-config" hidden
  data-batch-endpoint="{{ link('warext-ai/batch') }}"
+ data-thread-endpoint="{{ link('warext-ai/thread') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=100a2"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=100a2"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=100a4"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=100a4"></script>
 $0]]></replace>
   </modification>
 </template_modifications>
