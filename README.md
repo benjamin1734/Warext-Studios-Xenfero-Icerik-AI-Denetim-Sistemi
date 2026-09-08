@@ -1,21 +1,21 @@
 # Warext Studios | XenForo İçerik AI Denetim Sistemi
 
-XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ ile üretilmiş veya yapay zekâ yardımıyla düzenlenmiş olma ihtimalini tek bir işarete dayanarak değil; metin yapısı, editör davranışı, Writing Checker kullanımı ve kullanıcının önceki yazım profili gibi birden fazla yerel sinyali birlikte değerlendirerek raporlar.
+XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ ile üretilmiş veya yapay zekâ yardımıyla düzenlenmiş olma ihtimalini tek bir işarete dayanarak değil; metin yapısı, editör davranışı, Writing Checker kullanımı, kullanıcının önceki yazım profili, içerik benzerliği ve isteğe bağlı harici model ikinci görüşünü birlikte değerlendirerek raporlar.
 
 > Sistem otomatik ceza vermez ve sonuçları kesin AI tespiti olarak kabul etmez. Üretilen risk/güven puanları moderasyon kararını desteklemek için kullanılır.
 
 ## Güncel sürüm
 
-**1.0.0 Alpha 2 — yapım aşamasında**
+**1.0.0 Alpha 5 — yapım aşamasında**
 
-Bu sürüm artık yalnızca analiz çekirdeği değil; konu üstü raporlama, yetki sistemi, kullanıcı profili, moderasyon merkezi ve denetim geçmişi içeren kullanılabilir geliştirme sürümüdür.
+Alpha 5 ile OpenRouter gerçek opsiyonel provider olarak eklendi. Eklenti OpenRouter olmadan tamamen yerel çalışmaya devam eder.
 
 ## Yetki sistemi
 
 Eklenti dört ayrı XenForo yetkisi kullanır:
 
 - `warextAiViewSimple` — konu üstündeki düz raporu ve AI denetim merkezini görüntüleme.
-- `warextAiViewDetailed` — ayrıntılı metin, davranış, Writing Checker ve kullanıcı profili verilerini görüntüleme.
+- `warextAiViewDetailed` — ayrıntılı metin, davranış, Writing Checker, kullanıcı profili ve harici doğrulama verilerini görüntüleme.
 - `warextAiReview` — sonucu bekleyen / temizlendi / şüpheli / onaylandı durumlarından biriyle inceleme ve not ekleme.
 - `warextAiManage` — sistem yönetimi için ayrılmış yönetim yetkisi.
 
@@ -28,7 +28,48 @@ Yetkili kullanıcılar analiz edilmiş mesajlarda doğrudan konu içinde kısa b
 - sınıflandırma
 - moderasyon inceleme durumu
 
-Detaylı rapor yetkisi bulunan kullanıcılar aynı alan üzerinden ayrıntılı raporu açabilir. Ayrıntılı raporda metin ölçümleri, editörde yazılan/yapıştırılan karakterler, Writing Checker düzeltmeleri, kullanıcı geçmişine göre profil sapması, analiz sinyalleri ve son moderasyon kararları gösterilir.
+Konu genelinde ayrıca analiz edilen mesaj sayısı, ortalama/en yüksek risk, yüksek riskli mesaj sayısı ve moderasyon durum dağılımı gösterilir.
+
+Detaylı rapor yetkisi bulunan kullanıcılar aynı alan üzerinden ayrıntılı raporu açabilir. Ayrıntılı raporda metin ölçümleri, editörde yazılan/yapıştırılan karakterler, Writing Checker düzeltmeleri, kullanıcı geçmişine göre profil sapması, analiz sinyalleri, OpenRouter ikinci görüşü ve son moderasyon kararları gösterilir.
+
+## OpenRouter entegrasyonu
+
+OpenRouter **zorunlu değildir** ve önerilen bulut sağlayıcı katmanıdır. ACP'den açılırsa:
+
+- API anahtarı girilebilir,
+- model kimliği kod değiştirmeden değiştirilebilir,
+- varsayılan model olarak `openrouter/auto` kullanılabilir,
+- harici modele gönderilecek maksimum karakter sınırlandırılabilir,
+- zaman aşımı belirlenebilir,
+- OpenRouter'ın nihai skora azami etkisi sınırlandırılabilir,
+- yalnızca belirlenen yerel risk eşiğinin üstündeki içeriklerde API çağrısı yapılarak maliyet düşürülebilir.
+
+OpenRouter başarısız olursa veya kota/bağlantı sorunu yaşanırsa yerel sonuç korunur. OpenRouter sonucu tek başına moderasyon kararı oluşturmaz.
+
+Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıya ait olmayan içerik gönderilmez. API anahtarı rapor verisine yazılmaz.
+
+## Çoklu provider mimarisi
+
+`ProviderInterface` ve merkezi `Registry` kullanılır. Şu anda gerçek provider olarak:
+
+- Warext Local Engine
+- OpenRouter
+
+çalışır.
+
+Registry gelecekte şu adapter'lar eklenebilecek şekilde hazırlanmıştır:
+
+- OpenAI / GPT
+- Google Gemini
+- DeepSeek
+- Anthropic Claude
+- xAI / Grok
+- Mistral
+- Qwen
+- Ollama
+- özel OpenAI-compatible endpoint
+
+Bu kayıtların henüz uygulanmamış olanları sistemde `implemented=false` tutulur; eklenti olmayan desteği varmış gibi göstermez.
 
 ## Kullanıcı yazım profili
 
@@ -41,6 +82,10 @@ Bir kullanıcının en az üç önceki analiz kaydı varsa sistem son 25 uygun �
 - mesaj gövdesindeki Writing Checker düzeltme oranı
 
 bakımından geçmiş profil ile karşılaştırılır. Profil sapması nihai risk skorunu sınırlı biçimde etkiler; tek başına ihlal veya AI kullanımı kararı oluşturmaz.
+
+## İçerik benzerliği
+
+Metinler için yerel 64-bit fingerprint üretilir. Aynı forumdaki yakın geçmiş analizlerle karşılaştırma yapılabilir. Yüksek benzerlik AI kullanımı olarak değerlendirilmez; kopya/yeniden paylaşım bağlamı için ayrı moderasyon sinyalidir.
 
 ## Moderasyon merkezi
 
@@ -58,7 +103,7 @@ Bir moderatör sonucu durumlandırdığında değişiklik `xf_warext_ai_review_l
 
 ## Forum kapsamı
 
-ACP seçeneklerinde analiz edilecek forumlar XenForo'nun yerleşik çoklu forum seçicisi ile seçilir. Hiçbir forum seçilmezse tüm forumlar analiz edilir. Alpha 1 dönemindeki virgülle ayrılmış eski forum ID değeri kod tarafından geriye dönük okunmaya devam eder.
+ACP seçeneklerinde analiz edilecek forumlar XenForo'nun yerleşik çoklu forum seçicisi ile seçilir. Hiçbir forum seçilmezse tüm forumlar analiz edilir. Eski virgülle ayrılmış forum ID değeri kod tarafından geriye dönük okunmaya devam eder.
 
 ## Warext Türkçe Yazım Denetimi entegrasyonu
 
@@ -69,6 +114,9 @@ Writing Checker köprüsü tam mesaj metnini ikinci eklentiye kopyalamaz. Yalnı
 ## Yerel çalışma ve veri yaklaşımı
 
 - Harici AI API zorunlu değildir.
+- Local Engine her zaman temel analiz katmanıdır.
+- OpenRouter yalnızca yönetici etkinleştirirse çalışır.
+- API çağrısı yerel risk eşiği ile sınırlandırılabilir.
 - Analiz sonucu risk ve güven skoru olarak saklanır.
 - Editör davranışı yalnızca ilgili gönderim sırasında toplanan sınırlı ölçümlerden oluşur.
 - Writing Checker entegrasyonunda tam içerik kopyası tutulmaz.
@@ -76,15 +124,18 @@ Writing Checker köprüsü tam mesaj metnini ikinci eklentiye kopyalamaz. Yalnı
 
 ## Otomatik doğrulama ve paketleme
 
-GitHub Actions iki ayrı kontrol yürütür:
+GitHub Actions:
 
-1. PHP, JavaScript ve XenForo XML/veri yapısı doğrulaması.
-2. XenForo arşiv kurulumu için `hashes.json` içeren doğrulanmış Alpha 2 ZIP paketi üretimi.
+1. PHP ve JavaScript sözdizimini,
+2. yerel analiz false-positive regresyonlarını,
+3. OpenRouter temiz metin / JSON cevap regresyonlarını,
+4. XenForo XML ve mimari yapısını,
+5. kurulum ZIP bütünlüğü ve `hashes.json` eşleşmesini
 
-Paket iş akışı bozuk ZIP, eksik zorunlu dosya, sürüm uyuşmazlığı veya hash uyuşmazlığı tespit ederse başarısız olur.
+otomatik doğrular.
 
 ## Geliştirme durumu
 
-Alpha 2 ile tamamlanan ana parçalar: analiz çekirdeği, dört parçalı yetki sistemi, düz/detaylı konu raporu, Writing Checker entegrasyonu, kullanıcı yazım profili, moderasyon merkezi, inceleme geçmişi, XenForo forum seçicisi ve otomatik ZIP paketleme.
+Alpha 5 ile tamamlanan ana parçalar: yerel analiz çekirdeği, dört parçalı yetki sistemi, düz/detaylı mesaj raporu, konu genel raporu, Writing Checker entegrasyonu, kullanıcı yazım profili, içerik fingerprint/benzerlik sistemi, moderasyon merkezi, inceleme geçmişi, XenForo forum seçicisi, provider mimarisi, gerçek OpenRouter ikinci görüşü ve otomatik ZIP paketleme.
 
-Henüz final olarak kabul edilmeyen başlıca alanlar: canlı XenForo kurulumunda geniş ölçekli uyumluluk testi, false-positive kalibrasyonu, performans/yük testleri, gelişmiş ACP yönetim ekranları ve nihai kararlı sürüm paketlemesi.
+Kararlı 1.0.0 öncesi kalan başlıca alanlar: analiz işlerini mesaj gönderiminden ayıracak queue/job optimizasyonu, toplu/batch yeniden analiz sistemi, geniş ölçek performans testleri, canlı XenForo kurulum/upgrade kombinasyon testleri, false-positive kalibrasyonu ve final release denetimi.
