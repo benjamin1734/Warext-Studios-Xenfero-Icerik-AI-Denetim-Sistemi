@@ -9,6 +9,7 @@
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
 <script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=100a4"></script>
 <script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=100a4"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=100a4"></script>
 $0]]></replace>
   </modification>
 </template_modifications>
