@@ -32,7 +32,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 7' or int(addon.get('version_id', 0)) != 1000130:
+          if addon.get('version_string') != '1.0.0 Alpha 8' or int(addon.get('version_id', 0)) != 1000140:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -52,7 +52,8 @@ jobs:
           options = ET.parse(data / 'options.xml').getroot()
           option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
           required_options = {
-              'warextAiForums', 'warextAiOpenRouterEnabled', 'warextAiOpenRouterKey',
+              'warextAiForums', 'warextAiExternalProvider',
+              'warextAiOpenRouterEnabled', 'warextAiOpenRouterKey',
               'warextAiOpenRouterModel', 'warextAiOpenRouterFallbackModels',
               'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterZdrOnly',
               'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache',
@@ -60,36 +61,42 @@ jobs:
               'warextAiOpenRouterMaxChars', 'warextAiOpenRouterTimeout'
           }
           if not required_options.issubset(option_ids):
-              raise SystemExit('OpenRouter ACP seçenekleri eksik')
+              raise SystemExit('Provider/OpenRouter ACP seçenekleri eksik')
+
+          phrases = ET.parse(data / 'phrases.xml').getroot()
+          phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
+          for required_phrase in ['option_warextAiExternalProvider', 'option_warextAiExternalProvider_explain']:
+              if required_phrase not in phrase_titles:
+                  raise SystemExit('Harici provider phrase eksik: ' + required_phrase)
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
-          for marker in ['Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState', 'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify', 'external_metrics', 'content_fingerprint', 'authoredTextLength']:
+          for marker in ['Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState', 'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify', 'external_metrics', 'content_fingerprint', 'authoredTextLength', 'selectedExternalId', 'externalConfig', 'provider_not_implemented']:
               if marker not in post:
-                  raise SystemExit('Post analiz/queue zinciri eksik: ' + marker)
+                  raise SystemExit('Post analiz/provider queue zinciri eksik: ' + marker)
           if '(new ExternalVerifier())->enrich' in post:
-              raise SystemExit('OpenRouter çağrısı mesaj kaydı sırasında senkron çalışmamalı')
+              raise SystemExit('Harici provider çağrısı mesaj kaydı sırasında senkron çalışmamalı')
           if 'Warext\\TurkishSpellCheck' in post:
               raise SystemExit('Writing Checker sınıfına hard dependency bulundu')
 
           job = root / 'Job/ExternalVerify.php'
           if not job.exists():
-              raise SystemExit('OpenRouter arka plan jobı eksik')
+              raise SystemExit('Harici provider arka plan jobı eksik')
           job_text = job.read_text(encoding='utf-8')
-          for marker in ['extends AbstractJob', 'ExternalVerifier', 'content_hash', 'hash_equals', "SELECT message FROM xf_post", 'return $this->complete()']:
+          for marker in ['extends AbstractJob', 'Registry', 'isExternalEnabled', 'ExternalVerifier', 'content_hash', 'hash_equals', "SELECT message FROM xf_post", 'return $this->complete()']:
               if marker not in job_text:
-                  raise SystemExit('OpenRouter arka plan job koruması eksik: ' + marker)
+                  raise SystemExit('Harici provider job koruması eksik: ' + marker)
 
           provider = root / 'Provider'
           for name in ['ProviderInterface.php', 'LocalProvider.php', 'Registry.php', 'OpenRouterProvider.php']:
               if not (provider / name).exists():
                   raise SystemExit('Provider mimarisi eksik: ' + name)
           registry = (provider / 'Registry.php').read_text(encoding='utf-8')
-          for marker in ['openai', 'gemini', 'deepseek', 'anthropic', 'xai', 'mistral', 'qwen', 'openrouter', 'ollama', 'custom_openai']:
+          for marker in ['selectedExternalId', 'external()', 'isExternalEnabled', 'externalConfig', 'openai', 'gemini', 'deepseek', 'anthropic', 'xai', 'mistral', 'qwen', 'openrouter', 'ollama', 'custom_openai']:
               if marker not in registry:
-                  raise SystemExit('Provider kaydı eksik: ' + marker)
-          for marker in ['warextAiOpenRouterRoutingSort', 'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache']:
+                  raise SystemExit('Provider Registry kaydı eksik: ' + marker)
+          for marker in ['warextAiExternalProvider', 'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache']:
               if marker not in registry:
-                  raise SystemExit('OpenRouter rota ayarı Registryye bağlı değil: ' + marker)
+                  raise SystemExit('Provider ACP ayarı Registryye bağlı değil: ' + marker)
 
           openrouter = (provider / 'OpenRouterProvider.php').read_text(encoding='utf-8')
           for marker in ['https://openrouter.ai/api/v1/chat/completions', 'Authorization', 'openrouter/auto', 'sanitizeAuthoredText', 'request_failed', "'sort'", "'data_collection'", "'usage' => ['include' => true]", 'X-OpenRouter-Cache']:
@@ -97,9 +104,11 @@ jobs:
                   raise SystemExit('OpenRouter adapter/rota özelliği eksik: ' + marker)
 
           verifier = (root / 'Service/ExternalVerifier.php').read_text(encoding='utf-8')
-          for marker in ['warextAiOpenRouterMinRisk', 'warextAiOpenRouterWeight', 'below_local_risk_threshold', 'openrouter_verification']:
+          for marker in ['externalConfig', 'selectedExternalId', 'provider_not_implemented', 'external_provider_verification', 'below_local_risk_threshold']:
               if marker not in verifier:
-                  raise SystemExit('Harici doğrulama maliyet/güven kontrolü eksik: ' + marker)
+                  raise SystemExit('Provider-neutral harici doğrulama eksik: ' + marker)
+          if '(new Registry())->openRouter()' in verifier:
+              raise SystemExit('ExternalVerifier doğrudan OpenRouter adapterına kilitlenmemeli')
 
           setup = (root / 'Setup.php').read_text(encoding='utf-8')
           for marker in ['upgrade1000080Step1', 'upgrade1000090Step1', 'upgrade1000110Step1', 'external_metrics', 'content_fingerprint', 'xf_warext_ai_review_log']:
@@ -112,11 +121,13 @@ jobs:
                   raise SystemExit('Rapor akışı eksik: ' + marker)
 
           print(json.dumps({
-              'status':'ok', 'version':'1.0.0 Alpha 7', 'permissions':sorted(required),
-              'hardDependency':False, 'providerArchitecture':True, 'openRouterImplemented':True,
+              'status':'ok', 'version':'1.0.0 Alpha 8', 'permissions':sorted(required),
+              'hardDependency':False, 'providerArchitecture':True,
+              'providerNeutralExternalVerifier':True, 'externalProviderSelector':True,
+              'openRouterImplemented':True, 'openRouterRecommended':True,
               'openRouterCostGate':True, 'openRouterRoutingControls':True,
               'openRouterUsageMetrics':True, 'openRouterPrivacyControls':True,
-              'openRouterAsyncJob':True, 'staleContentHashGuard':True,
+              'externalAsyncJob':True, 'staleContentHashGuard':True,
               'threadAggregateReport':True, 'profileBaseline':True,
               'reviewAuditLog':True, 'contentFingerprint':True
           }, ensure_ascii=False))
