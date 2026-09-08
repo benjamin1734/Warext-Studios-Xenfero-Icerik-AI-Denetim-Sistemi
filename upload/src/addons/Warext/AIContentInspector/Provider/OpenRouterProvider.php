@@ -6,13 +6,17 @@ class OpenRouterProvider implements ProviderInterface
 {
     protected string $apiKey;
     protected string $model;
+    protected array $fallbackModels;
     protected int $timeout;
+    protected bool $zdrOnly;
 
-    public function __construct(string $apiKey = '', string $model = 'openrouter/auto', int $timeout = 8)
+    public function __construct(string $apiKey = '', string $model = 'openrouter/auto', int $timeout = 8, array $fallbackModels = [], bool $zdrOnly = false)
     {
         $this->apiKey = trim($apiKey);
         $this->model = trim($model) ?: 'openrouter/auto';
         $this->timeout = max(3, min(30, $timeout));
+        $this->fallbackModels = $this->sanitizeModels($fallbackModels);
+        $this->zdrOnly = $zdrOnly;
     }
 
     public function getId(): string
@@ -49,17 +53,7 @@ class OpenRouterProvider implements ProviderInterface
             $message = mb_substr($message, 0, $maxChars, 'UTF-8');
         }
 
-        $system = 'Sen bir forum moderasyon destek analizörüsün. Verilen metnin yapay zeka tarafından tamamen üretilmiş, yapay zeka yardımıyla düzenlenmiş veya insan ağırlıklı yazılmış olma ihtimalini değerlendir. Kesin hüküm verme. Yalnızca geçerli JSON döndür. Şema: {"risk":0-100,"confidence":0-100,"usage_type":"human_likely|editing_assistance|ai_assistance|ai_heavy|unknown","signals":["kısa sinyal"],"note":"tek kısa açıklama"}. Dil veya konu bilgisini AI kanıtı sayma; teknik, akademik ve düzgün yazılmış insan metinlerinde false-positive riskine dikkat et.';
-
-        $payload = [
-            'model' => $this->model,
-            'messages' => [
-                ['role' => 'system', 'content' => $system],
-                ['role' => 'user', 'content' => $message]
-            ],
-            'temperature' => 0,
-            'max_tokens' => 280
-        ];
+        $payload = $this->buildPayload($message);
 
         try
         {
@@ -110,7 +104,10 @@ class OpenRouterProvider implements ProviderInterface
                     'id' => $this->getId(),
                     'label' => $this->getLabel(),
                     'external' => true,
-                    'model' => (string)($data['model'] ?? $this->model)
+                    'model' => (string)($data['model'] ?? $this->model),
+                    'requested_model' => $this->model,
+                    'fallback_models' => $this->fallbackModels,
+                    'zdr_only' => $this->zdrOnly
                 ],
                 'available' => true,
                 'risk_score' => $risk,
@@ -125,6 +122,46 @@ class OpenRouterProvider implements ProviderInterface
             \XF::logException($e, false, 'Warext AI OpenRouter: ');
             return $this->unavailable('request_failed');
         }
+    }
+
+    protected function buildPayload(string $message): array
+    {
+        $system = 'Sen bir forum moderasyon destek analizörüsün. Verilen metnin yapay zeka tarafından tamamen üretilmiş, yapay zeka yardımıyla düzenlenmiş veya insan ağırlıklı yazılmış olma ihtimalini değerlendir. Kesin hüküm verme. Yalnızca geçerli JSON döndür. Şema: {"risk":0-100,"confidence":0-100,"usage_type":"human_likely|editing_assistance|ai_assistance|ai_heavy|unknown","signals":["kısa sinyal"],"note":"tek kısa açıklama"}. Dil veya konu bilgisini AI kanıtı sayma; teknik, akademik ve düzgün yazılmış insan metinlerinde false-positive riskine dikkat et.';
+
+        $payload = [
+            'model' => $this->model,
+            'messages' => [
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user', 'content' => $message]
+            ],
+            'temperature' => 0,
+            'max_tokens' => 280
+        ];
+
+        if ($this->fallbackModels)
+        {
+            $payload['models'] = array_values(array_unique(array_merge([$this->model], $this->fallbackModels)));
+        }
+        if ($this->zdrOnly)
+        {
+            $payload['provider'] = ['zdr' => true, 'allow_fallbacks' => true];
+        }
+
+        return $payload;
+    }
+
+    protected function sanitizeModels(array $models): array
+    {
+        $clean = [];
+        foreach ($models as $model)
+        {
+            if (!is_scalar($model)) continue;
+            $model = trim((string)$model);
+            if ($model === '' || $model === $this->model) continue;
+            $clean[] = mb_substr($model, 0, 180, 'UTF-8');
+            if (count($clean) >= 8) break;
+        }
+        return array_values(array_unique($clean));
     }
 
     protected function sanitizeAuthoredText(string $message): string
@@ -164,7 +201,14 @@ class OpenRouterProvider implements ProviderInterface
     protected function unavailable(string $reason): array
     {
         return [
-            'provider' => ['id' => $this->getId(), 'label' => $this->getLabel(), 'external' => true, 'model' => $this->model],
+            'provider' => [
+                'id' => $this->getId(),
+                'label' => $this->getLabel(),
+                'external' => true,
+                'model' => $this->model,
+                'fallback_models' => $this->fallbackModels,
+                'zdr_only' => $this->zdrOnly
+            ],
             'available' => false,
             'reason' => $reason
         ];
