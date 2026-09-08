@@ -63,7 +63,7 @@ jobs:
               raise SystemExit('Forum çoklu seçicisi eksik')
 
           template = (data / 'template_modifications.xml').read_text(encoding='utf-8')
-          for marker in ["warext-ai/batch", "warext-ai/thread", "warext-ai/detail", "warext-ai/review", 'tracker.js', 'report-ui.js', 'thread-report.js', '100a4']:
+          for marker in ["warext-ai/batch", "warext-ai/thread", "warext-ai/detail", "warext-ai/review", 'tracker.js', 'report-ui.js', 'thread-report.js', '100a5']:
               if marker not in template:
                   raise SystemExit('Template bağlantısı eksik: ' + marker)
 
