@@ -37,7 +37,7 @@ class OpenRouterProvider implements ProviderInterface
             return $this->unavailable('not_configured');
         }
 
-        $message = trim($message);
+        $message = $this->sanitizeAuthoredText($message);
         if ($message === '')
         {
             return $this->unavailable('empty_message');
@@ -125,6 +125,25 @@ class OpenRouterProvider implements ProviderInterface
             \XF::logException($e, false, 'Warext AI OpenRouter: ');
             return $this->unavailable('request_failed');
         }
+    }
+
+    protected function sanitizeAuthoredText(string $message): string
+    {
+        $text = $message;
+        $pattern = '/\[(QUOTE|CODE|PHP|HTML|ICODE|PLAIN)(?:=[^\]]*)?\][\s\S]*?\[\/\1\]/iu';
+        for ($pass = 0; $pass < 5; $pass++)
+        {
+            $count = 0;
+            $next = preg_replace($pattern, ' ', $text, -1, $count);
+            if ($next === null || $count === 0) break;
+            $text = $next;
+        }
+        $text = preg_replace('/\[[^\]]{1,200}\]/u', ' ', $text) ?? $text;
+        $text = strip_tags($text);
+        $text = preg_replace('/https?:\/\/\S+/iu', ' ', $text) ?? $text;
+        $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/\R{3,}/u', "\n\n", $text) ?? $text;
+        return trim($text);
     }
 
     protected function parseJson(string $content): array
