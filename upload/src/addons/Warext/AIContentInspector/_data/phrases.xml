@@ -6,7 +6,7 @@
   <phrase title="permission_general_warextAiReview" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sonuçlarını inceleyebilir ve durumlandırabilir]]></phrase>
   <phrase title="permission_general_warextAiManage" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sistemini yönetebilir]]></phrase>
   <phrase title="option_group_warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
-  <phrase title="option_group_warextAi_description" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır; isteğe bağlı OpenRouter doğrulaması ile çok sayıda bulut modelini tek API üzerinden kullanabilir. Harici API zorunlu değildir.]]></phrase>
+  <phrase title="option_group_warextAi_description" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır; isteğe bağlı OpenRouter doğrulaması, model fallback zinciri ve gizlilik yönlendirmesi ile çok sayıda bulut modelini tek API üzerinden kullanabilir. Harici API zorunlu değildir.]]></phrase>
   <phrase title="option_warextAiEnabled" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
   <phrase title="option_warextAiEnabled_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir. OpenRouter kapalı olsa da sistem çalışır.]]></phrase>
   <phrase title="option_warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Minimum analiz karakteri]]></phrase>
@@ -17,8 +17,12 @@
   <phrase title="option_warextAiOpenRouterEnabled_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Yerel analizden sonra gerekli görülen içerikleri OpenRouter üzerinden seçilen modele gönderir. Tamamen opsiyoneldir ve kapalıyken hiçbir harici istek yapılmaz.]]></phrase>
   <phrase title="option_warextAiOpenRouterKey" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter API anahtarı]]></phrase>
   <phrase title="option_warextAiOpenRouterKey_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter hesabınızdan oluşturulan API anahtarı. Raporlara veya kullanıcı tarafına gönderilmez.]]></phrase>
-  <phrase title="option_warextAiOpenRouterModel" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter model kimliği]]></phrase>
-  <phrase title="option_warextAiOpenRouterModel_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Örn. openrouter/auto veya OpenRouter üzerinde mevcut başka bir model slug'ı. Model değişiminde eklenti kodu değiştirilmez.]]></phrase>
+  <phrase title="option_warextAiOpenRouterModel" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter birincil model kimliği]]></phrase>
+  <phrase title="option_warextAiOpenRouterModel_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Örn. openrouter/auto veya OpenRouter üzerindeki başka bir model slug'ı. Model değişiminde eklenti kodu değiştirilmez.]]></phrase>
+  <phrase title="option_warextAiOpenRouterFallbackModels" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[OpenRouter yedek model zinciri]]></phrase>
+  <phrase title="option_warextAiOpenRouterFallbackModels_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Birincil model hata, kota, moderasyon veya erişim sorunu yaşarsa OpenRouter'ın sırayla deneyebileceği model slug'larını satır satır yazın. Kod değişmeden model geçişi sağlar.]]></phrase>
+  <phrase title="option_warextAiOpenRouterZdrOnly" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Yalnızca Zero Data Retention uyumlu provider kullan]]></phrase>
+  <phrase title="option_warextAiOpenRouterZdrOnly_explain" version_id="1000120" version_string="1.0.0 Alpha 6"><![CDATA[Açıldığında OpenRouter yalnızca ZDR şartını karşılayan uygun provider uçlarına yönlendirilir. Uygun rota yoksa yerel analiz sonucu korunur.]]></phrase>
   <phrase title="option_warextAiOpenRouterMinRisk" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter çağrısı için minimum yerel risk]]></phrase>
   <phrase title="option_warextAiOpenRouterMinRisk_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Yerel risk bu değerin altındaysa API çağrısı atlanır. Maliyeti ve gereksiz dış istekleri azaltır. Varsayılan 45.]]></phrase>
   <phrase title="option_warextAiOpenRouterWeight" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[OpenRouter maksimum ağırlığı]]></phrase>
