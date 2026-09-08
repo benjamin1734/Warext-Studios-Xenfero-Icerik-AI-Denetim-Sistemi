@@ -8,7 +8,13 @@ max=50000</edit_format_params><sub_options></sub_options><relation group_id="war
   <option option_id="warextAiOpenRouterKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="110"/></option>
   <option option_id="warextAiOpenRouterModel" edit_format="textbox" data_type="string" advanced="0"><default_value>openrouter/auto</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="120"/></option>
   <option option_id="warextAiOpenRouterFallbackModels" edit_format="textarea" data_type="string" advanced="0"><default_value></default_value><edit_format_params>rows=4</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="125"/></option>
+  <option option_id="warextAiOpenRouterRoutingSort" edit_format="select" data_type="string" advanced="0"><default_value></default_value><edit_format_params>=OpenRouter varsayılan yönlendirme
+price=Fiyata göre önceliklendir
+latency=Gecikmeye göre önceliklendir
+throughput=Hıza göre önceliklendir</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="126"/></option>
   <option option_id="warextAiOpenRouterZdrOnly" edit_format="onoff" data_type="boolean" advanced="0"><default_value>0</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="127"/></option>
+  <option option_id="warextAiOpenRouterDenyDataCollection" edit_format="onoff" data_type="boolean" advanced="0"><default_value>1</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="128"/></option>
+  <option option_id="warextAiOpenRouterResponseCache" edit_format="onoff" data_type="boolean" advanced="1"><default_value>0</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="129"/></option>
   <option option_id="warextAiOpenRouterMinRisk" edit_format="spinbox" data_type="integer" advanced="0"><default_value>45</default_value><edit_format_params>min=0
 max=100</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="130"/></option>
   <option option_id="warextAiOpenRouterWeight" edit_format="spinbox" data_type="integer" advanced="0"><default_value>20</default_value><edit_format_params>min=5
