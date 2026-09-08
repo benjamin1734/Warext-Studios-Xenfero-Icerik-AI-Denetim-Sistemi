@@ -6,9 +6,9 @@ XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ il
 
 ## Güncel sürüm
 
-**1.0.0 Alpha 5 — yapım aşamasında**
+**1.0.0 Alpha 6 — yapım aşamasında**
 
-Alpha 5 ile OpenRouter gerçek opsiyonel provider olarak eklendi. Eklenti OpenRouter olmadan tamamen yerel çalışmaya devam eder.
+Alpha 6 ile OpenRouter doğrulaması mesaj kaydetme isteğinden ayrılmış ve XenForo'nun otomatik job kuyruğuna taşınmıştır. Kullanıcı mesajını gönderirken harici API yanıtını beklemez; yerel analiz hemen kaydedilir, gerekiyorsa OpenRouter ikinci görüşü daha sonra arka planda sonucu günceller.
 
 ## Yetki sistemi
 
@@ -44,6 +44,8 @@ OpenRouter **zorunlu değildir** ve önerilen bulut sağlayıcı katmanıdır. A
 - OpenRouter'ın nihai skora azami etkisi sınırlandırılabilir,
 - yalnızca belirlenen yerel risk eşiğinin üstündeki içeriklerde API çağrısı yapılarak maliyet düşürülebilir.
 
+OpenRouter çağrısı mesaj kaydı sırasında yapılmaz. Yerel sonuç önce kaydedilir ve gerekli görülürse `Warext\AIContentInspector:ExternalVerify` otomatik XenForo jobı sıraya alınır. Job benzersiz post + içerik hash'i ile oluşturulur. Mesaj job çalışmadan önce değişirse eski job yeni içeriğin sonucunu güncelleyemez.
+
 OpenRouter başarısız olursa veya kota/bağlantı sorunu yaşanırsa yerel sonuç korunur. OpenRouter sonucu tek başına moderasyon kararı oluşturmaz.
 
 Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıya ait olmayan içerik gönderilmez. API anahtarı rapor verisine yazılmaz.
@@ -73,15 +75,7 @@ Bu kayıtların henüz uygulanmamış olanları sistemde `implemented=false` tut
 
 ## Kullanıcı yazım profili
 
-Bir kullanıcının en az üç önceki analiz kaydı varsa sistem son 25 uygun örnekten yerel bir referans profil oluşturur. Yeni içerik;
-
-- cümle uzunluğu düzeni,
-- kelime çeşitliliği,
-- yerel metin risk skoru,
-- yapıştırma oranı,
-- mesaj gövdesindeki Writing Checker düzeltme oranı
-
-bakımından geçmiş profil ile karşılaştırılır. Profil sapması nihai risk skorunu sınırlı biçimde etkiler; tek başına ihlal veya AI kullanımı kararı oluşturmaz.
+Bir kullanıcının en az üç önceki analiz kaydı varsa sistem son 25 uygun örnekten yerel bir referans profil oluşturur. Profil sapması nihai risk skorunu sınırlı biçimde etkiler; tek başına ihlal veya AI kullanımı kararı oluşturmaz.
 
 ## İçerik benzerliği
 
@@ -89,38 +83,13 @@ Metinler için yerel 64-bit fingerprint üretilir. Aynı forumdaki yakın geçmi
 
 ## Moderasyon merkezi
 
-`/warext-ai/` altında yetki kontrollü denetim merkezi bulunur. Merkezde:
+`/warext-ai/` altında yetki kontrollü denetim merkezi bulunur. Minimum risk, forum, kullanıcı ve durum filtreleri; konu/mesaj bağlantıları; risk, güven, profil sapması ve inceleme durumları bulunur.
 
-- bekleyen, şüpheli, onaylanan ve temizlenen kayıt sayıları,
-- minimum risk, forum, kullanıcı ve durum filtreleri,
-- konu/mesaj bağlantıları,
-- risk, güven ve profil sapması,
-- sayfalama
-
-bulunur.
-
-Bir moderatör sonucu durumlandırdığında değişiklik `xf_warext_ai_review_log` tablosunda eski durum, yeni durum, moderatör, tarih ve isteğe bağlı not ile kaydedilir. Mesaj daha sonra düzenlenirse önceki inceleme kararı otomatik olarak `pending` durumuna döner ve yeniden değerlendirilmesi gerekir.
-
-## Forum kapsamı
-
-ACP seçeneklerinde analiz edilecek forumlar XenForo'nun yerleşik çoklu forum seçicisi ile seçilir. Hiçbir forum seçilmezse tüm forumlar analiz edilir. Eski virgülle ayrılmış forum ID değeri kod tarafından geriye dönük okunmaya devam eder.
+Bir moderatör sonucu durumlandırdığında değişiklik `xf_warext_ai_review_log` tablosunda eski durum, yeni durum, moderatör, tarih ve isteğe bağlı not ile kaydedilir. Mesaj daha sonra düzenlenirse önceki inceleme kararı otomatik olarak `pending` durumuna döner.
 
 ## Warext Türkçe Yazım Denetimi entegrasyonu
 
-Warext Türkçe Yazım Denetimi **zorunlu bağımlılık değildir**. Her iki eklenti kuruluysa tarayıcıdaki entegrasyon köprüsü otomatik algılanır.
-
-Writing Checker köprüsü tam mesaj metnini ikinci eklentiye kopyalamaz. Yalnızca düzeltme ölçümleri aktarılır ve başlık ile mesaj gövdesi ayrı tutulur. AI sistemi profil ve risk hesabında mesaj gövdesine ait düzeltme ölçümlerini kullanır.
-
-## Yerel çalışma ve veri yaklaşımı
-
-- Harici AI API zorunlu değildir.
-- Local Engine her zaman temel analiz katmanıdır.
-- OpenRouter yalnızca yönetici etkinleştirirse çalışır.
-- API çağrısı yerel risk eşiği ile sınırlandırılabilir.
-- Analiz sonucu risk ve güven skoru olarak saklanır.
-- Editör davranışı yalnızca ilgili gönderim sırasında toplanan sınırlı ölçümlerden oluşur.
-- Writing Checker entegrasyonunda tam içerik kopyası tutulmaz.
-- Kullanıcı profili yalnızca bu XenForo kurulumunda oluşmuş geçmiş analiz kayıtlarından üretilir.
+Warext Türkçe Yazım Denetimi **zorunlu bağımlılık değildir**. Her iki eklenti kuruluysa tarayıcıdaki entegrasyon köprüsü otomatik algılanır. Tam mesaj kopyalanmaz; yalnızca düzeltme ölçümleri aktarılır ve başlık ile mesaj gövdesi ayrı tutulur.
 
 ## Otomatik doğrulama ve paketleme
 
@@ -129,13 +98,15 @@ GitHub Actions:
 1. PHP ve JavaScript sözdizimini,
 2. yerel analiz false-positive regresyonlarını,
 3. OpenRouter temiz metin / JSON cevap regresyonlarını,
-4. XenForo XML ve mimari yapısını,
-5. kurulum ZIP bütünlüğü ve `hashes.json` eşleşmesini
+4. OpenRouter'ın mesaj kaydı sırasında senkron çağrılmadığını,
+5. arka plan jobının içerik hash korumasını,
+6. XenForo XML ve mimari yapısını,
+7. kurulum ZIP bütünlüğü ve `hashes.json` eşleşmesini
 
 otomatik doğrular.
 
 ## Geliştirme durumu
 
-Alpha 5 ile tamamlanan ana parçalar: yerel analiz çekirdeği, dört parçalı yetki sistemi, düz/detaylı mesaj raporu, konu genel raporu, Writing Checker entegrasyonu, kullanıcı yazım profili, içerik fingerprint/benzerlik sistemi, moderasyon merkezi, inceleme geçmişi, XenForo forum seçicisi, provider mimarisi, gerçek OpenRouter ikinci görüşü ve otomatik ZIP paketleme.
+Alpha 6 ile tamamlanan ana parçalar: yerel analiz çekirdeği, dört parçalı yetki sistemi, düz/detaylı mesaj raporu, konu genel raporu, Writing Checker entegrasyonu, kullanıcı yazım profili, içerik fingerprint/benzerlik sistemi, moderasyon merkezi, inceleme geçmişi, XenForo forum seçicisi, provider mimarisi, gerçek OpenRouter ikinci görüşü, OpenRouter için arka plan job kuyruğu ve otomatik ZIP paketleme.
 
-Kararlı 1.0.0 öncesi kalan başlıca alanlar: analiz işlerini mesaj gönderiminden ayıracak queue/job optimizasyonu, toplu/batch yeniden analiz sistemi, geniş ölçek performans testleri, canlı XenForo kurulum/upgrade kombinasyon testleri, false-positive kalibrasyonu ve final release denetimi.
+Kararlı 1.0.0 öncesi kalan başlıca alanlar: toplu/batch yeniden analiz sistemi, büyük forumlarda performans ve sorgu optimizasyonu, canlı XenForo kurulum/upgrade kombinasyon testleri, false-positive kalibrasyonu ve final release denetimi.
