@@ -20,6 +20,9 @@ jobs:
       - name: OpenRouter provider regresyonları
         run: php tests/openrouter_provider_regression.php
 
+      - name: Doğrudan provider regresyonları
+        run: php tests/direct_provider_regression.php
+
       - name: JavaScript syntax
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
@@ -32,7 +35,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 8' or int(addon.get('version_id', 0)) != 1000140:
+          if addon.get('version_string') != '1.0.0 Alpha 9' or int(addon.get('version_id', 0)) != 1000150:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -58,16 +61,28 @@ jobs:
               'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterZdrOnly',
               'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache',
               'warextAiOpenRouterMinRisk', 'warextAiOpenRouterWeight',
-              'warextAiOpenRouterMaxChars', 'warextAiOpenRouterTimeout'
+              'warextAiOpenRouterMaxChars', 'warextAiOpenRouterTimeout',
+              'warextAiOpenAIKey', 'warextAiOpenAIModel',
+              'warextAiGeminiKey', 'warextAiGeminiModel',
+              'warextAiDeepSeekKey', 'warextAiDeepSeekModel',
+              'warextAiAnthropicKey', 'warextAiAnthropicModel',
+              'warextAiDirectMinRisk', 'warextAiDirectWeight',
+              'warextAiDirectMaxChars', 'warextAiDirectTimeout'
           }
           if not required_options.issubset(option_ids):
-              raise SystemExit('Provider/OpenRouter ACP seçenekleri eksik')
+              raise SystemExit('Provider ACP seçenekleri eksik')
 
           phrases = ET.parse(data / 'phrases.xml').getroot()
           phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
-          for required_phrase in ['option_warextAiExternalProvider', 'option_warextAiExternalProvider_explain']:
-              if required_phrase not in phrase_titles:
-                  raise SystemExit('Harici provider phrase eksik: ' + required_phrase)
+          required_phrases = {
+              'option_warextAiExternalProvider', 'option_warextAiExternalProvider_explain',
+              'option_warextAiOpenAIKey', 'option_warextAiGeminiKey',
+              'option_warextAiDeepSeekKey', 'option_warextAiAnthropicKey',
+              'option_warextAiDirectMinRisk', 'option_warextAiDirectWeight'
+          }
+          missing_phrases = required_phrases - phrase_titles
+          if missing_phrases:
+              raise SystemExit('Provider phrase eksik: ' + ', '.join(sorted(missing_phrases)))
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
           for marker in ['Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState', 'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify', 'external_metrics', 'content_fingerprint', 'authoredTextLength', 'selectedExternalId', 'externalConfig', 'provider_not_implemented']:
@@ -87,21 +102,49 @@ jobs:
                   raise SystemExit('Harici provider job koruması eksik: ' + marker)
 
           provider = root / 'Provider'
-          for name in ['ProviderInterface.php', 'LocalProvider.php', 'Registry.php', 'OpenRouterProvider.php']:
+          provider_files = [
+              'ProviderInterface.php', 'LocalProvider.php', 'Registry.php', 'OpenRouterProvider.php',
+              'AbstractJsonProvider.php', 'OpenAIProvider.php', 'GeminiProvider.php',
+              'DeepSeekProvider.php', 'AnthropicProvider.php'
+          ]
+          for name in provider_files:
               if not (provider / name).exists():
                   raise SystemExit('Provider mimarisi eksik: ' + name)
+
           registry = (provider / 'Registry.php').read_text(encoding='utf-8')
-          for marker in ['selectedExternalId', 'external()', 'isExternalEnabled', 'externalConfig', 'openai', 'gemini', 'deepseek', 'anthropic', 'xai', 'mistral', 'qwen', 'openrouter', 'ollama', 'custom_openai']:
+          for marker in ['selectedExternalId', 'external()', 'isExternalEnabled', 'externalConfig', 'openAI()', 'gemini()', 'deepSeek()', 'anthropic()', 'xai', 'mistral', 'qwen', 'openrouter', 'ollama', 'custom_openai']:
               if marker not in registry:
                   raise SystemExit('Provider Registry kaydı eksik: ' + marker)
-          for marker in ['warextAiExternalProvider', 'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache']:
+          for marker in ['warextAiExternalProvider', 'warextAiOpenRouterRoutingSort', 'warextAiOpenRouterDenyDataCollection', 'warextAiOpenRouterResponseCache', 'warextAiOpenAIKey', 'warextAiGeminiKey', 'warextAiDeepSeekKey', 'warextAiAnthropicKey', 'warextAiDirectTimeout']:
               if marker not in registry:
                   raise SystemExit('Provider ACP ayarı Registryye bağlı değil: ' + marker)
+          for provider_id in ['openai', 'gemini', 'deepseek', 'anthropic']:
+              marker = "'" + provider_id + "' => ['label'"
+              pos = registry.find(marker)
+              if pos == -1 or "'implemented' => true" not in registry[pos:pos + 220]:
+                  raise SystemExit('Doğrudan provider implemented=true değil: ' + provider_id)
 
           openrouter = (provider / 'OpenRouterProvider.php').read_text(encoding='utf-8')
           for marker in ['https://openrouter.ai/api/v1/chat/completions', 'Authorization', 'openrouter/auto', 'sanitizeAuthoredText', 'request_failed', "'sort'", "'data_collection'", "'usage' => ['include' => true]", 'X-OpenRouter-Cache']:
               if marker not in openrouter:
                   raise SystemExit('OpenRouter adapter/rota özelliği eksik: ' + marker)
+
+          abstract = (provider / 'AbstractJsonProvider.php').read_text(encoding='utf-8')
+          for marker in ['sanitizeAuthoredText', 'parseJson', 'normalizeResponse', 'systemPrompt', 'request_failed', 'max_chars']:
+              if marker not in abstract:
+                  raise SystemExit('Ortak doğrudan provider çekirdeği eksik: ' + marker)
+
+          direct_checks = {
+              'OpenAIProvider.php': ['https://api.openai.com/v1/responses', 'max_output_tokens', 'output_text'],
+              'GeminiProvider.php': ['generativelanguage.googleapis.com', ':generateContent', 'responseMimeType', 'usageMetadata'],
+              'DeepSeekProvider.php': ['https://api.deepseek.com/chat/completions', 'response_format', "'thinking'", 'json_object'],
+              'AnthropicProvider.php': ['https://api.anthropic.com/v1/messages', 'anthropic-version', 'x-api-key', 'max_tokens']
+          }
+          for name, markers in direct_checks.items():
+              text = (provider / name).read_text(encoding='utf-8')
+              for marker in markers:
+                  if marker not in text:
+                      raise SystemExit(name + ' adapter özelliği eksik: ' + marker)
 
           verifier = (root / 'Service/ExternalVerifier.php').read_text(encoding='utf-8')
           for marker in ['externalConfig', 'selectedExternalId', 'provider_not_implemented', 'external_provider_verification', 'below_local_risk_threshold']:
@@ -121,10 +164,12 @@ jobs:
                   raise SystemExit('Rapor akışı eksik: ' + marker)
 
           print(json.dumps({
-              'status':'ok', 'version':'1.0.0 Alpha 8', 'permissions':sorted(required),
+              'status':'ok', 'version':'1.0.0 Alpha 9', 'permissions':sorted(required),
               'hardDependency':False, 'providerArchitecture':True,
               'providerNeutralExternalVerifier':True, 'externalProviderSelector':True,
               'openRouterImplemented':True, 'openRouterRecommended':True,
+              'openAIImplemented':True, 'geminiImplemented':True,
+              'deepSeekImplemented':True, 'anthropicImplemented':True,
               'openRouterCostGate':True, 'openRouterRoutingControls':True,
               'openRouterUsageMetrics':True, 'openRouterPrivacyControls':True,
               'externalAsyncJob':True, 'staleContentHashGuard':True,
