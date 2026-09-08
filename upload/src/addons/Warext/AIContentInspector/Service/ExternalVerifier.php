@@ -1,0 +1,84 @@
+<?php
+
+namespace Warext\AIContentInspector\Service;
+
+use Warext\AIContentInspector\Provider\OpenRouterProvider;
+
+class ExternalVerifier
+{
+    public function enrich(string $message, array $result): array
+    {
+        $options = \XF::options();
+        $external = [
+            'enabled' => !empty($options->warextAiOpenRouterEnabled),
+            'available' => false,
+            'provider' => 'openrouter',
+            'model' => (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
+            'weight' => 0,
+            'result' => []
+        ];
+
+        if (!$external['enabled'])
+        {
+            $result['external_verification'] = $external;
+            return $result;
+        }
+
+        $provider = new OpenRouterProvider(
+            (string)($options->warextAiOpenRouterKey ?? ''),
+            (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
+            (int)($options->warextAiOpenRouterTimeout ?? 8)
+        );
+
+        if (!$provider->isConfigured())
+        {
+            $external['result'] = ['reason' => 'not_configured'];
+            $result['external_verification'] = $external;
+            return $result;
+        }
+
+        $assessment = $provider->analyze($message, [
+            'max_chars' => (int)($options->warextAiOpenRouterMaxChars ?? 12000)
+        ]);
+        $external['result'] = $assessment;
+        $external['available'] = !empty($assessment['available']);
+        $external['model'] = (string)($assessment['provider']['model'] ?? $external['model']);
+
+        if (!$external['available'])
+        {
+            $result['external_verification'] = $external;
+            $result['signals'][] = ['key' => 'external_verifier_unavailable', 'level' => 'context', 'value' => (string)($assessment['reason'] ?? 'unknown')];
+            return $result;
+        }
+
+        $baseWeight = max(5, min(40, (int)($options->warextAiOpenRouterWeight ?? 20)));
+        $providerConfidence = max(0, min(100, (int)($assessment['confidence'] ?? 0)));
+        $effectiveWeight = ($baseWeight / 100) * ($providerConfidence / 100);
+        $external['weight'] = round($effectiveWeight * 100, 2);
+
+        $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
+        $externalRisk = max(0, min(100, (int)($assessment['risk_score'] ?? 0)));
+        $combined = (int)round(($localRisk * (1 - $effectiveWeight)) + ($externalRisk * $effectiveWeight));
+
+        $result['risk_score'] = max(0, min(100, $combined));
+        $result['confidence'] = min(98, (int)($result['confidence'] ?? 0) + (int)round(8 * $effectiveWeight));
+        $result['classification'] = $this->classification($result['risk_score']);
+        $result['external_verification'] = $external;
+        $result['signals'][] = [
+            'key' => 'openrouter_verification',
+            'level' => 'context',
+            'value' => $externalRisk
+        ];
+
+        return $result;
+    }
+
+    protected function classification(int $risk): string
+    {
+        if ($risk < 30) return 'human_likely';
+        if ($risk < 50) return 'low_ai_signal';
+        if ($risk < 70) return 'ai_assistance_possible';
+        if ($risk < 85) return 'ai_heavy_possible';
+        return 'high_risk';
+    }
+}
