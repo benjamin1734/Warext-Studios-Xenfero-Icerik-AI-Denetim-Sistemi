@@ -5,6 +5,10 @@
 max=50000</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="20"/></option>
   <option option_id="warextAiForums" edit_format="callback" data_type="array" advanced="0"><default_value>[]</default_value><edit_format_params>\XF\Option\Forum::renderSelectMultiple</edit_format_params><sub_options>*</sub_options><relation group_id="warextAi" display_order="30"/></option>
   <option option_id="warextAiExternalProvider" edit_format="select" data_type="string" advanced="0"><default_value>openrouter</default_value><edit_format_params>openrouter=OpenRouter (önerilen)
+openai=OpenAI / GPT
+gemini=Google Gemini
+deepseek=DeepSeek
+anthropic=Anthropic Claude
 none=Harici sağlayıcı kullanma</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="90"/></option>
   <option option_id="warextAiOpenRouterEnabled" edit_format="onoff" data_type="boolean" advanced="0"><default_value>0</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="100"/></option>
   <option option_id="warextAiOpenRouterKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="110"/></option>
@@ -25,4 +29,21 @@ max=40</edit_format_params><sub_options></sub_options><relation group_id="warext
 max=50000</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="150"/></option>
   <option option_id="warextAiOpenRouterTimeout" edit_format="spinbox" data_type="integer" advanced="1"><default_value>8</default_value><edit_format_params>min=3
 max=30</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="160"/></option>
+
+  <option option_id="warextAiOpenAIKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="200"/></option>
+  <option option_id="warextAiOpenAIModel" edit_format="textbox" data_type="string" advanced="0"><default_value>gpt-5.6-luna</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="210"/></option>
+  <option option_id="warextAiGeminiKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="220"/></option>
+  <option option_id="warextAiGeminiModel" edit_format="textbox" data_type="string" advanced="0"><default_value>gemini-3.8-flash</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="230"/></option>
+  <option option_id="warextAiDeepSeekKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="240"/></option>
+  <option option_id="warextAiDeepSeekModel" edit_format="textbox" data_type="string" advanced="0"><default_value>deepseek-v4-flash</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="250"/></option>
+  <option option_id="warextAiAnthropicKey" edit_format="textbox" data_type="string" advanced="0"><default_value></default_value><edit_format_params>type=password</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="260"/></option>
+  <option option_id="warextAiAnthropicModel" edit_format="textbox" data_type="string" advanced="0"><default_value>claude-sonnet-5</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="270"/></option>
+  <option option_id="warextAiDirectMinRisk" edit_format="spinbox" data_type="integer" advanced="0"><default_value>45</default_value><edit_format_params>min=0
+max=100</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="280"/></option>
+  <option option_id="warextAiDirectWeight" edit_format="spinbox" data_type="integer" advanced="0"><default_value>20</default_value><edit_format_params>min=5
+max=40</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="290"/></option>
+  <option option_id="warextAiDirectMaxChars" edit_format="spinbox" data_type="integer" advanced="1"><default_value>12000</default_value><edit_format_params>min=1000
+max=50000</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="300"/></option>
+  <option option_id="warextAiDirectTimeout" edit_format="spinbox" data_type="integer" advanced="1"><default_value>8</default_value><edit_format_params>min=3
+max=30</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="310"/></option>
 </options>
