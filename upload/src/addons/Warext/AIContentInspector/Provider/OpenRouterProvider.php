@@ -9,14 +9,29 @@ class OpenRouterProvider implements ProviderInterface
     protected array $fallbackModels;
     protected int $timeout;
     protected bool $zdrOnly;
+    protected string $routingSort;
+    protected bool $denyDataCollection;
+    protected bool $responseCache;
 
-    public function __construct(string $apiKey = '', string $model = 'openrouter/auto', int $timeout = 8, array $fallbackModels = [], bool $zdrOnly = false)
+    public function __construct(
+        string $apiKey = '',
+        string $model = 'openrouter/auto',
+        int $timeout = 8,
+        array $fallbackModels = [],
+        bool $zdrOnly = false,
+        string $routingSort = '',
+        bool $denyDataCollection = true,
+        bool $responseCache = false
+    )
     {
         $this->apiKey = trim($apiKey);
         $this->model = trim($model) ?: 'openrouter/auto';
         $this->timeout = max(3, min(30, $timeout));
         $this->fallbackModels = $this->sanitizeModels($fallbackModels);
         $this->zdrOnly = $zdrOnly;
+        $this->routingSort = in_array($routingSort, ['price', 'latency', 'throughput'], true) ? $routingSort : '';
+        $this->denyDataCollection = $denyDataCollection;
+        $this->responseCache = $responseCache;
     }
 
     public function getId(): string
@@ -65,6 +80,7 @@ class OpenRouterProvider implements ProviderInterface
             ];
             if (!empty($options->boardUrl)) $headers['HTTP-Referer'] = (string)$options->boardUrl;
             if (!empty($options->boardTitle)) $headers['X-Title'] = (string)$options->boardTitle . ' - Warext AI Content Inspector';
+            if ($this->responseCache) $headers['X-OpenRouter-Cache'] = 'true';
 
             $response = \XF::app()->http()->client()->post(
                 'https://openrouter.ai/api/v1/chat/completions',
@@ -99,6 +115,17 @@ class OpenRouterProvider implements ProviderInterface
                 if (count($signals) >= 6) break;
             }
 
+            $usage = is_array($data['usage'] ?? null) ? $data['usage'] : [];
+            $usageMetrics = [
+                'prompt_tokens' => max(0, (int)($usage['prompt_tokens'] ?? 0)),
+                'completion_tokens' => max(0, (int)($usage['completion_tokens'] ?? 0)),
+                'total_tokens' => max(0, (int)($usage['total_tokens'] ?? 0))
+            ];
+            if (isset($usage['cost']) && is_numeric($usage['cost']))
+            {
+                $usageMetrics['cost'] = (float)$usage['cost'];
+            }
+
             return [
                 'provider' => [
                     'id' => $this->getId(),
@@ -107,13 +134,17 @@ class OpenRouterProvider implements ProviderInterface
                     'model' => (string)($data['model'] ?? $this->model),
                     'requested_model' => $this->model,
                     'fallback_models' => $this->fallbackModels,
-                    'zdr_only' => $this->zdrOnly
+                    'zdr_only' => $this->zdrOnly,
+                    'routing_sort' => $this->routingSort,
+                    'deny_data_collection' => $this->denyDataCollection,
+                    'response_cache' => $this->responseCache
                 ],
                 'available' => true,
                 'risk_score' => $risk,
                 'confidence' => $confidence,
                 'usage_type' => $usageType,
                 'signals' => $signals,
+                'usage' => $usageMetrics,
                 'note' => mb_substr(trim((string)($parsed['note'] ?? '')), 0, 300, 'UTF-8')
             ];
         }
@@ -135,17 +166,20 @@ class OpenRouterProvider implements ProviderInterface
                 ['role' => 'user', 'content' => $message]
             ],
             'temperature' => 0,
-            'max_tokens' => 280
+            'max_tokens' => 280,
+            'usage' => ['include' => true]
         ];
 
         if ($this->fallbackModels)
         {
             $payload['models'] = array_values(array_unique(array_merge([$this->model], $this->fallbackModels)));
         }
-        if ($this->zdrOnly)
-        {
-            $payload['provider'] = ['zdr' => true, 'allow_fallbacks' => true];
-        }
+
+        $providerRouting = ['allow_fallbacks' => true];
+        if ($this->zdrOnly) $providerRouting['zdr'] = true;
+        if ($this->routingSort !== '') $providerRouting['sort'] = $this->routingSort;
+        if ($this->denyDataCollection) $providerRouting['data_collection'] = 'deny';
+        $payload['provider'] = $providerRouting;
 
         return $payload;
     }
@@ -207,7 +241,10 @@ class OpenRouterProvider implements ProviderInterface
                 'external' => true,
                 'model' => $this->model,
                 'fallback_models' => $this->fallbackModels,
-                'zdr_only' => $this->zdrOnly
+                'zdr_only' => $this->zdrOnly,
+                'routing_sort' => $this->routingSort,
+                'deny_data_collection' => $this->denyDataCollection,
+                'response_cache' => $this->responseCache
             ],
             'available' => false,
             'reason' => $reason
