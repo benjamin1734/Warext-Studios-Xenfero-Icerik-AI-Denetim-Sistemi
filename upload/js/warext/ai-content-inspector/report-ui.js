@@ -14,6 +14,13 @@
     high_risk: 'Yüksek AI riski',
     unknown: 'Belirsiz'
   };
+  const externalUsageLabels = {
+    human_likely: 'İnsan ağırlıklı',
+    editing_assistance: 'AI düzenleme desteği',
+    ai_assistance: 'AI desteği',
+    ai_heavy: 'AI ağırlıklı',
+    unknown: 'Belirsiz'
+  };
   const reviewLabels = {
     pending: 'Bekleyen',
     cleared: 'Temizlendi',
@@ -115,6 +122,7 @@
     const behavior = data.behaviorMetrics || {};
     const writing = data.writingMetrics || {};
     const profile = data.profileMetrics || {};
+    const external = data.externalMetrics || {};
     const signals = Array.isArray(data.signals) ? data.signals : [];
     const history = Array.isArray(data.reviewHistory) ? data.reviewHistory : [];
     dialog.innerHTML = '';
@@ -145,6 +153,25 @@
       profileGrid.appendChild(cell('Cümle düzeni', `${formatPercent(profile.current?.sentence_uniformity)} / geçmiş ${formatPercent(profile.baseline?.sentence_uniformity)}`));
       section.appendChild(profileGrid);
       if (profile.note) { const note=document.createElement('div'); note.className='warextAiSignals'; note.textContent=profile.note; section.appendChild(note); }
+    }
+
+    if (external.enabled) {
+      const section=addSection(body,'OpenRouter ikinci görüşü');
+      const extGrid=document.createElement('div'); extGrid.className='warextAiGrid';
+      const result=external.result || {};
+      const provider=result.provider || {};
+      extGrid.appendChild(cell('Durum', external.available ? 'Yanıt alındı' : (external.skipped ? 'Maliyet eşiği nedeniyle atlandı' : 'Kullanılamadı')));
+      extGrid.appendChild(cell('Model', String(provider.model || external.model || '-')));
+      extGrid.appendChild(cell('OpenRouter riski', external.available ? `${result.risk_score ?? 0}/100` : '-'));
+      extGrid.appendChild(cell('OpenRouter güveni', external.available ? `${result.confidence ?? 0}/100` : '-'));
+      extGrid.appendChild(cell('Kullanım tahmini', external.available ? (externalUsageLabels[result.usage_type] || result.usage_type || 'Belirsiz') : '-'));
+      extGrid.appendChild(cell('Nihai ağırlık', external.available ? `${external.weight ?? 0}%` : '0%'));
+      section.appendChild(extGrid);
+      if (result.note) { const note=document.createElement('div'); note.className='warextAiSignals'; note.textContent=result.note; section.appendChild(note); }
+      if (Array.isArray(result.signals) && result.signals.length) {
+        const extSignals=document.createElement('div'); extSignals.className='warextAiSignals';
+        extSignals.textContent=`Model sinyalleri: ${result.signals.join(' · ')}`; section.appendChild(extSignals);
+      }
     }
 
     const signalSection=addSection(body,'Sinyaller');
@@ -179,7 +206,7 @@
       historySection.appendChild(list);
     }
 
-    const disclaimer=document.createElement('div'); disclaimer.className='warextAiSignals'; disclaimer.textContent='Bu rapor kesin AI tespiti değildir; metin, editör davranışı, Writing Checker ve kullanıcı geçmişi sinyallerini birlikte değerlendiren moderasyon destek raporudur.';
+    const disclaimer=document.createElement('div'); disclaimer.className='warextAiSignals'; disclaimer.textContent='Bu rapor kesin AI tespiti değildir; yerel analiz, editör davranışı, Writing Checker, kullanıcı geçmişi ve varsa OpenRouter ikinci görüşünü birlikte değerlendiren moderasyon destek raporudur.';
     body.appendChild(disclaimer);
     dialog.append(head,body);
     if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open','');
