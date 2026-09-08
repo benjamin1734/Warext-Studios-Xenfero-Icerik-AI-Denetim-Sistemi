@@ -17,7 +17,10 @@ class Registry
             (string)($options->warextAiOpenRouterModel ?? 'openrouter/auto'),
             (int)($options->warextAiOpenRouterTimeout ?? 8),
             $this->parseModelList((string)($options->warextAiOpenRouterFallbackModels ?? '')),
-            !empty($options->warextAiOpenRouterZdrOnly)
+            !empty($options->warextAiOpenRouterZdrOnly),
+            (string)($options->warextAiOpenRouterRoutingSort ?? ''),
+            !isset($options->warextAiOpenRouterDenyDataCollection) || !empty($options->warextAiOpenRouterDenyDataCollection),
+            !empty($options->warextAiOpenRouterResponseCache)
         );
     }
 
