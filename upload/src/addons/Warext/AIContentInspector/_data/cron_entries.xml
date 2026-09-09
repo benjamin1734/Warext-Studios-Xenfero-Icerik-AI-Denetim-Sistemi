@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cron_entries>
+  <cron_entry cron_entry_id="warextAiUsagePrune" addon_id="Warext/AIContentInspector" run_rules='{"minutes":[20],"hours":[3],"days_type":"dom","days":[]}'>
+    <title>Warext AI: API kullanım geçmişini temizle</title>
+    <callback class="Warext\AIContentInspector\Cron\UsagePrune" method="run"/>
+    <active>1</active>
+  </cron_entry>
+</cron_entries>
