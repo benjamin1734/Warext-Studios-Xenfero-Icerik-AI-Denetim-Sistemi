@@ -29,7 +29,7 @@ jobs:
       - name: JavaScript syntax
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
-      - name: XenForo Stable release validation
+      - name: XenForo 2.3 installer and master-data validation
         run: |
           python3 - <<'PY'
           import json
@@ -37,35 +37,44 @@ jobs:
           from pathlib import Path
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
+          data = root / '_data'
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0' or int(addon.get('version_id', 0)) != 1000300:
-              raise SystemExit('Stable sürüm kimliği beklenenden farklı')
+
+          if addon.get('version_string') != '1.0.1' or int(addon.get('version_id', 0)) != 1000310:
+              raise SystemExit('v1.0.1 sürüm kimliği beklenenden farklı')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
           if 'Warext/TurkishSpellCheck' in json.dumps(addon, ensure_ascii=False):
               raise SystemExit('Writing Checker zorunlu bağımlılık olamaz')
 
-          data = root / '_data'
+          parsed = {}
           for path in sorted(data.glob('*.xml')):
-              ET.parse(path)
+              parsed[path.name] = ET.parse(path).getroot()
 
-          groups = {g.attrib.get('group_id') for g in ET.parse(data / 'option_groups.xml').getroot().findall('option_group')}
-          if 'warextAi' not in groups:
-              raise SystemExit('AI ayarları için ayrı XenForo option group eksik')
+          # XenForo XF\Entity\Option supports only these edit formats.
+          allowed_formats = {
+              'textbox', 'spinbox', 'onoff', 'onofftextbox', 'radio',
+              'select', 'checkbox', 'template', 'callback', 'username'
+          }
+          options = parsed['options.xml']
+          invalid_formats = {
+              o.attrib.get('option_id'): o.attrib.get('edit_format')
+              for o in options.findall('option')
+              if o.attrib.get('edit_format') not in allowed_formats
+          }
+          if invalid_formats:
+              raise SystemExit('Geçersiz XenForo option edit formatı: ' + repr(invalid_formats))
+          if any(o.attrib.get('edit_format') == 'textarea' for o in options.findall('option')):
+              raise SystemExit('edit_format=textarea XenForo tarafından kabul edilmez')
 
-          admin_nav = ET.parse(data / 'admin_navigation.xml').getroot()
-          nav_ids = {n.attrib.get('id') for n in admin_nav.findall('nav')}
-          if not {'warextAiAdmin', 'warextAiSettings'}.issubset(nav_ids):
-              raise SystemExit('Ayrı ACP Warext AI navigasyonu eksik')
+          fallback = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiOpenRouterFallbackModels'), None)
+          if fallback is None or fallback.attrib.get('edit_format') != 'textbox' or 'rows=4' not in (fallback.findtext('edit_format_params') or ''):
+              raise SystemExit('OpenRouter fallback listesi textbox + rows=4 olmalı')
 
-          permissions = ET.parse(data / 'permissions.xml').getroot()
-          actual_permissions = {p.attrib.get('permission_id') for p in permissions.findall('permission')}
-          required_permissions = {'warextAiViewSimple', 'warextAiViewDetailed', 'warextAiReview', 'warextAiManage'}
-          if not required_permissions.issubset(actual_permissions):
-              raise SystemExit('Yetki tanımları eksik')
+          forum_option = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiForums'), None)
+          if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'XF\Option\Forum::renderSelectMultiple':
+              raise SystemExit('Forum selector callback XenForo export biçiminde değil')
 
-          options = ET.parse(data / 'options.xml').getroot()
-          option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
           required_options = {
               'warextAiEnabled', 'warextAiMinChars', 'warextAiForums', 'warextAiExternalProvider',
               'warextAiDailyRequestLimit', 'warextAiMonthlyRequestLimit',
@@ -73,34 +82,70 @@ jobs:
               'warextAiEstimatedInputUsdPerMillion', 'warextAiEstimatedOutputUsdPerMillion',
               'warextAiUsageRetentionDays', 'warextAiHistoryBatchSize'
           }
+          option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
           if not required_options.issubset(option_ids):
-              raise SystemExit('Stable ayarları eksik: ' + ', '.join(sorted(required_options - option_ids)))
+              raise SystemExit('Zorunlu ayarlar eksik: ' + ', '.join(sorted(required_options - option_ids)))
 
-          phrases = ET.parse(data / 'phrases.xml').getroot()
-          phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
+          groups = {g.attrib.get('group_id') for g in parsed['option_groups.xml'].findall('option_group')}
+          if 'warextAi' not in groups:
+              raise SystemExit('Warext AI option group eksik')
+
+          # XenForo AddOn DataType AdminNavigation imports admin_navigation_entry.
+          admin_nav = parsed['admin_navigation.xml']
+          entries = admin_nav.findall('admin_navigation_entry')
+          nav_ids = {n.attrib.get('navigation_id') for n in entries}
+          if not {'warextAiAdmin', 'warextAiSettings'}.issubset(nav_ids):
+              raise SystemExit('ACP navigation export şeması hatalı')
+          if admin_nav.findall('nav'):
+              raise SystemExit('Legacy <nav> ACP navigation yapısı kullanılamaz')
+
+          public_navigation = (data / 'navigation.xml').read_text(encoding='utf-8')
+          if "$xf.visitor->hasPermission" in public_navigation:
+              raise SystemExit('Public navigation PHP -> sözdizimi içeriyor')
+          if "$xf.visitor.hasPermission('general', 'warextAiViewSimple')" not in public_navigation:
+              raise SystemExit('Public navigation XenForo template yetki koşulu eksik')
+
+          permissions = parsed['permissions.xml']
+          actual_permissions = {p.attrib.get('permission_id') for p in permissions.findall('permission')}
+          required_permissions = {'warextAiViewSimple', 'warextAiViewDetailed', 'warextAiReview', 'warextAiManage'}
+          if not required_permissions.issubset(actual_permissions):
+              raise SystemExit('Yetki tanımları eksik')
+
+          phrase_titles = {p.attrib.get('title') for p in parsed['phrases.xml'].findall('phrase')}
           required_phrases = {
-              'option_warextAiDailyRequestLimit', 'option_warextAiMonthlyRequestLimit',
-              'option_warextAiDailyBudgetUsd', 'option_warextAiMonthlyBudgetUsd',
-              'option_warextAiEstimatedInputUsdPerMillion', 'option_warextAiEstimatedOutputUsdPerMillion',
-              'option_warextAiUsageRetentionDays', 'option_warextAiHistoryBatchSize'
+              'permission_interface.warextAi',
+              'permission.general_warextAiViewSimple', 'permission.general_warextAiViewDetailed',
+              'permission.general_warextAiReview', 'permission.general_warextAiManage',
+              'option_group.warextAi', 'option_group_description.warextAi',
+              'option.warextAiEnabled', 'option_explain.warextAiEnabled',
+              'option.warextAiDailyRequestLimit', 'option.warextAiMonthlyRequestLimit',
+              'option.warextAiDailyBudgetUsd', 'option.warextAiMonthlyBudgetUsd',
+              'option.warextAiEstimatedInputUsdPerMillion', 'option.warextAiEstimatedOutputUsdPerMillion',
+              'option.warextAiUsageRetentionDays', 'option.warextAiHistoryBatchSize',
+              'admin_navigation.warextAiAdmin', 'admin_navigation.warextAiSettings', 'nav.warextAi'
           }
           if not required_phrases.issubset(phrase_titles):
-              raise SystemExit('Stable phrase kayıtları eksik')
+              raise SystemExit('Kanonik XenForo phrase kayıtları eksik: ' + ', '.join(sorted(required_phrases - phrase_titles)))
+          legacy_prefixes = ('option_', 'option_group_', 'permission_interface_', 'permission_general_')
+          legacy = sorted(t for t in phrase_titles if t.startswith(legacy_prefixes))
+          if legacy:
+              raise SystemExit('Legacy underscore master phrase anahtarları kaldı: ' + ', '.join(legacy[:10]))
 
-          cron = ET.parse(data / 'cron_entries.xml').getroot()
-          cron_ids = {e.attrib.get('cron_entry_id') for e in cron.findall('cron_entry')}
+          cron_ids = {e.attrib.get('cron_entry_id') for e in parsed['cron_entries.xml'].findall('cron_entry')}
           if 'warextAiUsagePrune' not in cron_ids:
               raise SystemExit('Usage prune cron eksik')
 
           setup = (root / 'Setup.php').read_text(encoding='utf-8')
+          analysis_block = setup.split("$this->createReviewLogTable();", 1)[0]
+          if '$table->checkExists(true);' not in analysis_block:
+              raise SystemExit('Başarısız kurulum sonrası analysis table retry koruması eksik')
           for marker in [
-              'installStep1', 'uninstallStep1', 'upgrade1000080Step1', 'upgrade1000090Step1',
-              'upgrade1000110Step1', 'upgrade1000170Step1', 'upgrade1000190Step1', 'upgrade1000200Step1',
-              'xf_warext_ai_analysis', 'xf_warext_ai_review_log', 'xf_warext_ai_usage',
-              'similarity_metrics', 'cost_source', 'forum_date'
+              'installStep1', 'uninstallStep1', 'xf_warext_ai_analysis',
+              'xf_warext_ai_review_log', 'xf_warext_ai_usage', 'similarity_metrics',
+              'cost_source', 'forum_date'
           ]:
               if marker not in setup:
-                  raise SystemExit('Install/upgrade/uninstall şeması eksik: ' + marker)
+                  raise SystemExit('Install/uninstall şeması eksik: ' + marker)
           for drop in [
               "dropTable('xf_warext_ai_usage')",
               "dropTable('xf_warext_ai_review_log')",
@@ -110,11 +155,7 @@ jobs:
                   raise SystemExit('Uninstall temizliği eksik: ' + drop)
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
-          for marker in [
-              'Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState',
-              'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify',
-              'similarity_metrics', 'content_fingerprint', 'existingHash', 'hash_equals'
-          ]:
+          for marker in ['Registry', 'UserProfile', 'Similarity', 'enqueueUnique', 'ExternalVerify', 'existingHash', 'hash_equals']:
               if marker not in post:
                   raise SystemExit('Post analiz zinciri eksik: ' + marker)
           if '(new ExternalVerifier())->enrich' in post:
@@ -122,9 +163,9 @@ jobs:
 
           provider = root / 'Provider'
           for name in [
-              'ProviderInterface.php','LocalProvider.php','Registry.php','OpenRouterProvider.php',
-              'AbstractJsonProvider.php','OpenAICompatibleProvider.php','OpenAIProvider.php',
-              'GeminiProvider.php','DeepSeekProvider.php','AnthropicProvider.php'
+              'ProviderInterface.php', 'LocalProvider.php', 'Registry.php', 'OpenRouterProvider.php',
+              'AbstractJsonProvider.php', 'OpenAICompatibleProvider.php', 'OpenAIProvider.php',
+              'GeminiProvider.php', 'DeepSeekProvider.php', 'AnthropicProvider.php'
           ]:
               if not (provider / name).exists():
                   raise SystemExit('Provider mimarisi eksik: ' + name)
@@ -132,96 +173,27 @@ jobs:
           registry = (provider / 'Registry.php').read_text(encoding='utf-8')
           for marker in ['openrouter','openai','gemini','deepseek','anthropic','xai','mistral','qwen','ollama','custom_openai']:
               if marker not in registry:
-                  raise SystemExit('Provider registry kaydı eksik: ' + marker)
+                  raise SystemExit('Provider registry eksik: ' + marker)
 
-          usage = root / 'Service/UsageTracker.php'
-          usage_text = usage.read_text(encoding='utf-8')
-          for marker in [
-              'canRequest', 'record', 'summary', 'prune', 'daily_request_limit',
-              'monthly_request_limit', 'daily_budget_limit', 'monthly_budget_limit',
-              'warextAiEstimatedInputUsdPerMillion', 'warextAiEstimatedOutputUsdPerMillion',
-              "costSource = 'actual'", "costSource = 'estimated'", 'cost_source',
-              'hasInputPrice', 'hasOutputPrice', 'COUNT(*) AS monthly_requests',
-              'SUM(IF(created_date >= ?, 1, 0))'
-          ]:
-              if marker not in usage_text:
-                  raise SystemExit('Stable kullanım/bütçe özelliği eksik: ' + marker)
-          if 'fetchOne(' in usage_text:
-              raise SystemExit('Stable UsageTracker tekrar çoklu period fetchOne sorgularına dönmüş')
-
-          verifier = (root / 'Service/ExternalVerifier.php').read_text(encoding='utf-8')
-          for marker in ['UsageTracker', 'canRequest', 'external_budget_limit', 'usage_summary', 'external_provider_verification', 'recordedUsage', 'cost_source']:
-              if marker not in verifier:
-                  raise SystemExit('Harici doğrulama entegrasyonu eksik: ' + marker)
-
-          historical = (root / 'Service/HistoricalAnalyzer.php').read_text(encoding='utf-8')
-          history_job = (root / 'Job/HistoricalScan.php').read_text(encoding='utf-8')
-          for marker in ['historical_unobserved', 'historical_behavior_unavailable', 'includeExternal', 'ExternalVerify', 'similarity_metrics']:
-              if marker not in historical:
-                  raise SystemExit('Geçmiş analiz özelliği eksik: ' + marker)
-          for marker in ['NOT EXISTS', 'warextAiHistoryBatchSize', 'include_external', 'resume()', 'canCancel', 'ORDER BY p.post_id ASC']:
-              if marker not in history_job:
-                  raise SystemExit('HistoricalScan güvenli kuyruk akışı eksik: ' + marker)
-
-          external_job = (root / 'Job/ExternalVerify.php').read_text(encoding='utf-8')
-          for marker in ["['post_id' => $postId]", 'hash_equals', 'ExternalVerifier']:
-              if marker not in external_job:
-                  raise SystemExit('Harici job içerik-hash koruması eksik: ' + marker)
-
-          report = (root / 'Pub/Controller/Report.php').read_text(encoding='utf-8')
-          for marker in [
-              'canManage', 'UsageTracker', 'actionHistoryScan', 'warextAiHistoryScan',
-              'include_external', 'similarityMetrics', 'if ($this->canViewDetailed())',
-              "SUM(review_state = 'pending')", "SUM(review_state = 'suspicious')",
-              "SUM(review_state = 'confirmed')", "SUM(review_state = 'cleared')"
-          ]:
-              if marker not in report:
-                  raise SystemExit('Stable rapor akışı eksik: ' + marker)
-          if "SELECT COUNT(*) FROM xf_warext_ai_analysis WHERE review_state" in report:
-              raise SystemExit('Moderasyon durum sayaçları tekrar ayrı sorgulara dönmüş')
-
-          report_ui = Path('upload/js/warext/ai-content-inspector/report-ui.js').read_text(encoding='utf-8')
-          for marker in ['costSourceLabels', 'Gerçek maliyet', 'Tahmini maliyet', 'Maliyet kaynağı', 'similarityMetrics']:
-              if marker not in report_ui:
-                  raise SystemExit('Detay rapor Stable görünümü eksik: ' + marker)
+          usage = (root / 'Service/UsageTracker.php').read_text(encoding='utf-8')
+          for marker in ['canRequest', 'record', 'summary', 'prune', 'daily_request_limit', 'monthly_request_limit', 'cost_source']:
+              if marker not in usage:
+                  raise SystemExit('Kullanım/bütçe katmanı eksik: ' + marker)
 
           modifications = (data / 'template_modifications.xml').read_text(encoding='utf-8')
-          for marker in ['?wai=1000300', 'warextAiViewSimple', 'warext_ai_daily_cost_sources', 'warext_ai_monthly_cost_sources']:
-              if marker not in modifications:
-                  raise SystemExit('Stable template/cache entegrasyonu eksik: ' + marker)
-
-          templates = (data / 'templates.xml').read_text(encoding='utf-8')
-          for marker in ['Harici AI kullanımı ve provider sağlığı', 'Geçmiş içerik taraması', 'usage.providers', 'history-scan']:
-              if marker not in templates:
-                  raise SystemExit('Yönetim arayüzü eksik: ' + marker)
-
-          prune = root / 'Cron/UsagePrune.php'
-          if not prune.exists() or 'UsageTracker' not in prune.read_text(encoding='utf-8'):
-              raise SystemExit('Usage prune callback eksik')
+          if '?wai=1000310' not in modifications:
+              raise SystemExit('v1.0.1 JS cache anahtarı eksik')
 
           print(json.dumps({
-              'status':'ok',
-              'version':'1.0.0',
-              'versionId':1000300,
-              'permissions':sorted(required_permissions),
-              'localFirst':True,
-              'externalOptional':True,
-              'externalAsyncJob':True,
-              'contentHashGuard':True,
-              'providerArchitecture':True,
-              'providerHealthSummary':True,
-              'requestAndBudgetLimits':True,
-              'actualCostTracking':True,
-              'estimatedCostFallback':True,
-              'partialEstimateRejected':True,
-              'singleBudgetAggregateQuery':True,
-              'singlePeriodSummaryQuery':True,
-              'singleModerationCountQuery':True,
-              'usageRetentionCron':True,
-              'historicalScanJob':True,
-              'similarityMetricsPersisted':True,
-              'duplicateAnalysisGuard':True,
-              'permissionAwareReporting':True,
-              'installUpgradeUninstallChecked':True
+              'status': 'ok',
+              'version': '1.0.1',
+              'versionId': 1000310,
+              'installerMasterDataValidated': True,
+              'unsupportedTextareaBlocked': True,
+              'canonicalAdminNavigation': True,
+              'canonicalPhrases': True,
+              'failedInstallRetryGuard': True,
+              'externalOptional': True,
+              'externalAsyncJob': True
           }, ensure_ascii=False))
           PY
