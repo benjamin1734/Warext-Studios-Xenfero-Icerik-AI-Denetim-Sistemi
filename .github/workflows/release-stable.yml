@@ -72,20 +72,25 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          XenForo 2.3+ ACP seçenek master-data onarım sürümü.
+          XenForo 2.3+ moderatör manuel analiz ve mesaj eylemleri sürümü.
 
-          Kritik ayar düzeltmesi:
-          - `option_groups.xml` içindeki hatalı `<option_group>` öğesi XenForo'nun kanonik `<group>` export şemasına geçirildi.
-          - v1.0.4 ve öncesinde `Add-ons > Options` sayfasında görülen `No items have been created yet.` durumu giderildi.
-          - Tüm Warext AI seçenekleri `warextAi` option group ilişkisiyle yeniden doğrulanıyor.
-          - Mevcut kurulumlar için `upgrade1000350Step1()` option group kaydını tekrar doğruluyor; manuel SQL gerekmiyor.
+          Yeni moderasyon akışı:
+          - Mesajların üç nokta / moderatör eylemleri menüsüne `AI ile manuel analiz et` eylemi eklendi.
+          - Eylem yalnız `warextAiReview` veya `warextAiManage` yetkisi bulunan kullanıcılara gösterilir.
+          - Aynı içerik daha önce analiz edilmiş olsa bile moderatör manuel olarak yeniden analiz çalıştırabilir.
+          - ACP otomatik tarama forum seçimi manuel moderatör çalıştırmasını engellemez.
+          - Otomatik analiz eşiğinin altındaki içerikler manuel çalıştırılabilir; 80 karakterden kısa içerikte yanıltıcı skor üretmek yerine yetersiz metin uyarısı döner.
+          - Manuel çalıştırmada geçmiş editör/paste/Writing Checker verisi uydurulmaz ve gözlemlenmemiş olarak kaydedilir.
+          - Yerel sonuç konu ekranındaki mevcut kısa rapora anında yansıtılır.
+          - Harici ikinci görüş etkinse mevcut risk eşiği, provider ayarları, istek limitleri ve bütçe sınırları korunur; gerekli doğrulama arka plan job kuyruğuna gider.
 
           Release güvenliği:
-          - Validator legacy `<option_group>` etiketini artık release engelleyici hata sayar.
-          - Minimum option sayısı, zorunlu option ID'leri ve bütün option → `warextAi` ilişkileri test edilir.
-          - Frontend cache anahtarı `1000350` olarak güncellendi.
+          - Manuel analiz endpoint'i POST + XenForo CSRF akışıyla çalışır.
+          - Release validator manuel route, controller, post action menu entegrasyonu ve tarayıcı kodunu zorunlu olarak doğrular.
+          - Stable ZIP doğrulaması `ManualAnalyze.php` ve `manual-analysis.js` dosyalarını zorunlu runtime dosyaları olarak kontrol eder.
+          - Frontend cache anahtarı `1000360` olarak güncellendi.
 
-          Mevcut v1.0.4 kurulumunda eklentiyi kaldırmayın. Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
+          Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
           Path('RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
           PY
