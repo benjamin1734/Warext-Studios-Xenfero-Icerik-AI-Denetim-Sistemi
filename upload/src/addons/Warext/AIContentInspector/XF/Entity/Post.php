@@ -20,20 +20,54 @@ class Post extends XFCP_Post
         }
     }
 
-    protected function warextRunAiAnalysis(): void
+    public function warextRunAiAnalysis(bool $force = false, bool $manual = false): array
     {
         try
         {
             $options = \XF::options();
-            if (empty($options->warextAiEnabled)) return;
+            if (empty($options->warextAiEnabled))
+            {
+                return ['success' => false, 'reason' => 'disabled'];
+            }
 
             $message = (string)$this->message;
-            $minChars = max(100, (int)($options->warextAiMinChars ?? 350));
             $analyzer = new Analyzer();
-            if ($analyzer->authoredTextLength($message) < $minChars) return;
+            $authoredChars = $analyzer->authoredTextLength($message);
+            $minChars = max(100, (int)($options->warextAiMinChars ?? 350));
+
+            if ($authoredChars <= 0)
+            {
+                return ['success' => false, 'reason' => 'empty_text', 'chars' => 0];
+            }
+            if ($force)
+            {
+                // Manual moderation must be able to bypass the ACP automatic-scan threshold,
+                // but tiny fragments cannot produce a responsible AI-origin assessment.
+                if ($authoredChars < 80)
+                {
+                    return [
+                        'success' => false,
+                        'reason' => 'insufficient_text',
+                        'chars' => $authoredChars,
+                        'minimum_chars' => 80
+                    ];
+                }
+            }
+            elseif ($authoredChars < $minChars)
+            {
+                return [
+                    'success' => false,
+                    'reason' => 'below_automatic_threshold',
+                    'chars' => $authoredChars,
+                    'minimum_chars' => $minChars
+                ];
+            }
 
             $thread = $this->Thread;
-            if (!$thread) return;
+            if (!$thread)
+            {
+                return ['success' => false, 'reason' => 'thread_unavailable'];
+            }
             $forumId = (int)$thread->node_id;
 
             $configured = $options->warextAiForums ?? [];
@@ -46,31 +80,64 @@ class Post extends XFCP_Post
                 $legacy = trim((string)$configured);
                 $forumIds = $legacy === '' ? [] : array_values(array_filter(array_map('intval', preg_split('/[\s,;]+/', $legacy) ?: [])));
             }
-            if ($forumIds && !in_array($forumId, $forumIds, true)) return;
+            // Forum selection governs automatic scanning. An authorised moderator may
+            // explicitly inspect a post outside that list with a forced manual run.
+            if (!$force && $forumIds && !in_array($forumId, $forumIds, true))
+            {
+                return ['success' => false, 'reason' => 'forum_not_selected'];
+            }
 
             $contentHash = hash('sha256', $message);
             $existingHash = \XF::db()->fetchOne(
                 'SELECT content_hash FROM xf_warext_ai_analysis WHERE post_id = ? ORDER BY analysis_id DESC LIMIT 1',
                 (int)$this->post_id
             );
-            if (is_string($existingHash) && strlen($existingHash) === 64 && hash_equals($existingHash, $contentHash))
+            if (!$force && is_string($existingHash) && strlen($existingHash) === 64 && hash_equals($existingHash, $contentHash))
             {
-                return;
+                return ['success' => false, 'reason' => 'unchanged'];
             }
 
-            [$behavior, $writing] = $this->warextReadClientContext();
+            [$behavior, $writing] = $manual
+                ? [$this->warextEmptyObservedBehavior(), $this->warextEmptyWritingContext()]
+                : $this->warextReadClientContext();
+
             $provider = (new Registry())->local();
             $result = $provider->analyze($message, ['behavior' => $behavior, 'writing' => $writing]);
             $result = (new UserProfile())->enrich((int)$this->user_id, (int)$this->post_id, $result);
             $result = $this->warextEnrichSimilarity($forumId, $result, $message);
+
+            if ($manual)
+            {
+                $result['signals'] = is_array($result['signals'] ?? null) ? $result['signals'] : [];
+                $result['signals'][] = [
+                    'key' => 'manual_analysis',
+                    'level' => 'context',
+                    'value' => (int)\XF::visitor()->user_id
+                ];
+            }
+
             $result = $this->warextPrepareExternalState($result);
 
             $this->warextPersistAnalysis($forumId, $result, $contentHash);
             $this->warextQueueExternalVerification($result, $contentHash);
+
+            $external = is_array($result['external_verification'] ?? null) ? $result['external_verification'] : [];
+            return [
+                'success' => true,
+                'reason' => $manual ? 'manual_complete' : 'automatic_complete',
+                'post_id' => (int)$this->post_id,
+                'thread_id' => (int)$this->thread_id,
+                'forum_id' => $forumId,
+                'risk' => (int)($result['risk_score'] ?? 0),
+                'confidence' => (int)($result['confidence'] ?? 0),
+                'classification' => (string)($result['classification'] ?? 'unknown'),
+                'external_pending' => !empty($external['pending'])
+            ];
         }
         catch (\Throwable $e)
         {
             \XF::logException($e, false, 'Warext AI Content Inspector: ');
+            return ['success' => false, 'reason' => 'analysis_error'];
         }
     }
 
@@ -227,6 +294,38 @@ class Post extends XFCP_Post
         ];
 
         return [$behavior, $writing];
+    }
+
+    protected function warextEmptyObservedBehavior(): array
+    {
+        return [
+            'observed' => false,
+            'typedChars' => 0,
+            'pastedChars' => 0,
+            'deletedChars' => 0,
+            'pasteEvents' => 0,
+            'inputEvents' => 0,
+            'durationSeconds' => 0,
+            'source' => 'manual_reanalysis_unobserved'
+        ];
+    }
+
+    protected function warextEmptyWritingContext(): array
+    {
+        return [
+            'available' => false,
+            'bridgeVersion' => '',
+            'addonVersion' => '',
+            'correctionCount' => 0,
+            'changedChars' => 0,
+            'insertedChars' => 0,
+            'removedChars' => 0,
+            'fields' => [
+                'title' => $this->warextSanitizeWritingField([]),
+                'message' => $this->warextSanitizeWritingField([])
+            ],
+            'source' => 'manual_reanalysis_unobserved'
+        ];
     }
 
     protected function warextSanitizeWritingField($field): array
