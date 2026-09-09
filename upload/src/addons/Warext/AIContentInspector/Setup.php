@@ -121,6 +121,14 @@ class Setup extends AbstractSetup
         $this->ensureOptionGroup();
     }
 
+    public function upgrade1000350Step1(): void
+    {
+        // v1.0.4 ve öncesinde hatalı option_groups.xml şeması nedeniyle eksik kalabilen
+        // grup kaydını yükseltme sırasında tekrar doğrula. Seçeneklerin kendileri düzeltilmiş
+        // XenForo master-data dosyasından yükseltme importu sırasında yeniden içeri alınır.
+        $this->ensureOptionGroup();
+    }
+
     protected function ensureOptionGroup(): void
     {
         \XF::db()->insert('xf_option_group', [
