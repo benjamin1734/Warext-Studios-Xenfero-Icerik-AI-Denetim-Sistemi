@@ -45,6 +45,7 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/Service/UsageTracker.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/Report.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ThreadAnalyze.php',
+    'upload/src/addons/Warext/AIContentInspector/Option/Forum.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ManualAnalyze.php',
     'upload/src/addons/Warext/AIContentInspector/XF/Entity/Post.php',
     'upload/src/addons/Warext/AIContentInspector/_data/admin_navigation.xml',

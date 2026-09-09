@@ -6,7 +6,7 @@ XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ il
 
 ## Güncel sürüm
 
-**1.0.1 Stable**
+**1.0.7 Stable**
 
 1.0.1, XenForo kurulumunda master-data importunu durduran geçersiz `textarea` option formatını XenForo uyumlu `textbox + rows` yapısına çevirir. ACP navigation ve phrase exportları da XenForo’nun kanonik `_data` formatına geçirildi; başarısız 1.0.0 kurulumundan kalabilecek analiz tablosunda yeniden deneme güvenliği eklendi.
 

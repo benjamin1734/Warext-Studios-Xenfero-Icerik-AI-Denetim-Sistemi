@@ -1,5 +1,15 @@
 # Değişiklik Günlüğü
 
+## v1.0.7 Stable
+
+- Konu sayfasının üst üç nokta / konu araçları menüsüne `Konuyu AI ile analiz et` eylemi eklendi.
+- Tek mesaj manuel analizi `Bu mesajı AI ile analiz et` adıyla mesaj eylem menüsünde korunuyor.
+- `Analiz edilecek forumlar` alanı çoklu select yerine checkbox listesine geçirildi.
+- Forumlar `Kategori › Alt kategori › Forum` yolu ile gösteriliyor; seçili forumlar doğrudan tick ile görülebiliyor.
+- Hiç forum seçilmezse tüm forumların otomatik analiz edilmesi davranışı korunuyor.
+- Forum checkbox renderer, konu üst menü entegrasyonu ve ilgili runtime dosyaları Stable release kapısına eklendi.
+- Frontend cache anahtarı `1000370` olarak güncellendi.
+
 ## v1.0.6 Stable
 
 - Mesajların XenForo üç nokta / moderatör eylemleri menüsüne **AI ile manuel analiz et** eylemi eklendi.

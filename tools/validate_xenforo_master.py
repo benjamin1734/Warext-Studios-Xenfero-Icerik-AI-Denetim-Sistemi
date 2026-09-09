@@ -68,8 +68,16 @@ def main() -> None:
         fail('OpenRouter fallback listesi textbox + rows=4 olmalı')
 
     forum_option = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiForums'), None)
-    if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'XF\Option\Forum::renderSelectMultiple':
-        fail('Forum selector callback XenForo export biçiminde değil')
+    if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'Warext\AIContentInspector\Option\Forum::renderCheckboxList':
+        fail('Forum selector özel checkbox callback biçiminde değil')
+
+    forum_renderer = ROOT / 'Option/Forum.php'
+    if not forum_renderer.exists():
+        fail('Forum checkbox option renderer eksik')
+    forum_renderer_code = forum_renderer.read_text(encoding='utf-8')
+    for marker in ['renderCheckboxList', 'getCheckboxRow', "node_type_id !== 'Forum'", "implode(' › ', $path)"]:
+        if marker not in forum_renderer_code:
+            fail('Forum checkbox option renderer eksik: ' + marker)
 
     option_groups = parsed['option_groups.xml']
     if option_groups.findall('option_group'):
@@ -157,6 +165,13 @@ def main() -> None:
     ]:
         if marker not in modifications:
             fail('Mesaj moderatör menüsü manuel analiz entegrasyonu eksik: ' + marker)
+    for marker in [
+        'warext_ai_manual_thread_action', 'template="thread_view"',
+        '[XF:thread_tools_menu:before_footer]', 'js-warextAiManualThreadAnalyze',
+        "link('warext-ai-thread/run'", 'Konuyu AI ile analiz et'
+    ]:
+        if marker not in modifications:
+            fail('Konu üst üç nokta manuel analiz entegrasyonu eksik: ' + marker)
 
     routes = parsed['routes.xml'].findall('route')
     route_map = {(r.attrib.get('route_type'), r.attrib.get('route_prefix')): r.attrib.get('controller') for r in routes}
@@ -214,7 +229,7 @@ def main() -> None:
         if marker not in manual_code:
             fail('Manuel analiz controller eksik: ' + marker)
     manual_js = manual_ui.read_text(encoding='utf-8')
-    for marker in ['js-warextAiManualAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'ensureReportBox']:
+    for marker in ['js-warextAiManualAnalyze', 'js-warextAiManualThreadAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'warext-ai-manual-thread-analysis-queued', 'ensureReportBox']:
         if marker not in manual_js:
             fail('Manuel analiz tarayıcı entegrasyonu eksik: ' + marker)
 
