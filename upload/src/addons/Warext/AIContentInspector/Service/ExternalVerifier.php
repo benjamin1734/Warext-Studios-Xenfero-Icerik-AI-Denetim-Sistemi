@@ -75,12 +75,25 @@ class ExternalVerifier
         $assessment = $provider->analyze($message, [
             'max_chars' => (int)($config['max_chars'] ?? 12000)
         ]);
-        $usageTracker->record(
+        $recordedUsage = $usageTracker->record(
             $providerId,
             (string)($assessment['provider']['model'] ?? $external['model']),
             $assessment,
             $postId
         );
+
+        if (!isset($assessment['usage']) || !is_array($assessment['usage']))
+        {
+            $assessment['usage'] = [];
+        }
+        $assessment['usage']['prompt_tokens'] = (int)$recordedUsage['prompt_tokens'];
+        $assessment['usage']['completion_tokens'] = (int)$recordedUsage['completion_tokens'];
+        $assessment['usage']['total_tokens'] = (int)$recordedUsage['total_tokens'];
+        $assessment['usage']['cost_source'] = (string)$recordedUsage['cost_source'];
+        if ($recordedUsage['cost_source'] !== 'unknown')
+        {
+            $assessment['usage']['cost'] = (float)$recordedUsage['cost'];
+        }
 
         $external['result'] = $assessment;
         $external['available'] = !empty($assessment['available']);
