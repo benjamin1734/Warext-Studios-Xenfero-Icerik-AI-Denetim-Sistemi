@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <admin_navigation>
-  <navigation navigation_id="warextAiAdmin" parent_navigation_id="" display_order="95" link="" admin_permission_id="" debug_only="0" hide_no_children="1"/>
-  <navigation navigation_id="warextAiSettings" parent_navigation_id="warextAiAdmin" display_order="10" link="options/groups/warextAi" admin_permission_id="" debug_only="0" hide_no_children="0"/>
+  <nav id="warextAiAdmin" addon_id="Warext/AIContentInspector" display_order="95" parent_id="home" icon="fa-robot">
+    <title>Warext AI İçerik Denetimi</title>
+    <link>options/groups/warextAi</link>
+    <admin_permission_id></admin_permission_id>
+  </nav>
+  <nav id="warextAiSettings" addon_id="Warext/AIContentInspector" display_order="10" parent_id="warextAiAdmin">
+    <title>Ayarlar</title>
+    <link>options/groups/warextAi</link>
+    <admin_permission_id></admin_permission_id>
+  </nav>
 </admin_navigation>
