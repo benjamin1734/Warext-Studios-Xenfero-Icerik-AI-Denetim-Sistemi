@@ -109,7 +109,7 @@ class Setup extends AbstractSetup
         });
     }
 
-    public function upgrade1000320Step1(): void
+    public function upgrade1000330Step1(): void
     {
         $this->ensureOptionGroup();
     }
