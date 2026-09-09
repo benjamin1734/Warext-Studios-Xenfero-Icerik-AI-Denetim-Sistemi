@@ -34,7 +34,7 @@ jobs:
       - name: Kurulum paketini artifact olarak yükle
         uses: actions/upload-artifact@v4
         with:
-          name: Warext-XenForo-Icerik-AI-Denetim-Sistemi-Alpha11
+          name: Warext-XenForo-Icerik-AI-Denetim-Sistemi-Alpha12
           path: ${{ steps.build.outputs.package }}
           if-no-files-found: error
           retention-days: 30
