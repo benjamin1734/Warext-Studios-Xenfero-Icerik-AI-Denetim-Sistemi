@@ -10,10 +10,15 @@
 <div id="warext-ai-config" hidden
  data-batch-endpoint="{{ link('warext-ai/batch') }}"
  data-thread-endpoint="{{ link('warext-ai/thread') }}"
+ data-thread-analyze-endpoint="{{ link('warext-ai-thread/run') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
+<xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
+<div id="warext-ai-review-capability" hidden></div>
+</xf:if>
 <script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000320"></script>
 <script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000320"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-controls.js') }}?wai=1000320"></script>
 </xf:if>
 $0]]></replace>
   </modification>
