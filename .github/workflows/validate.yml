@@ -126,8 +126,16 @@ jobs:
           }
           if not required_phrases.issubset(phrase_titles):
               raise SystemExit('Kanonik XenForo phrase kayıtları eksik: ' + ', '.join(sorted(required_phrases - phrase_titles)))
-          legacy_prefixes = ('option_', 'option_group_', 'permission_interface_', 'permission_general_')
-          legacy = sorted(t for t in phrase_titles if t.startswith(legacy_prefixes))
+
+          # Only the old Warext underscore master-phrase forms are invalid.
+          # option_explain.* and option_group_description.* are canonical XenForo keys.
+          legacy = sorted(
+              t for t in phrase_titles
+              if t.startswith('option_warext')
+              or t.startswith('option_group_warext')
+              or t.startswith('permission_interface_')
+              or t.startswith('permission_general_')
+          )
           if legacy:
               raise SystemExit('Legacy underscore master phrase anahtarları kaldı: ' + ', '.join(legacy[:10]))
 
