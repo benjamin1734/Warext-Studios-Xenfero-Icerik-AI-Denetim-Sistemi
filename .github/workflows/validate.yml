@@ -38,7 +38,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 13' or int(addon.get('version_id', 0)) != 1000190:
+          if addon.get('version_string') != '1.0.0 Alpha 14' or int(addon.get('version_id', 0)) != 1000200:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -69,6 +69,7 @@ jobs:
           required_options = {
               'warextAiExternalProvider', 'warextAiDailyRequestLimit', 'warextAiMonthlyRequestLimit',
               'warextAiDailyBudgetUsd', 'warextAiMonthlyBudgetUsd',
+              'warextAiEstimatedInputUsdPerMillion', 'warextAiEstimatedOutputUsdPerMillion',
               'warextAiUsageRetentionDays', 'warextAiHistoryBatchSize'
           }
           if not required_options.issubset(option_ids):
@@ -79,6 +80,7 @@ jobs:
           required_phrases = {
               'option_warextAiDailyRequestLimit', 'option_warextAiMonthlyRequestLimit',
               'option_warextAiDailyBudgetUsd', 'option_warextAiMonthlyBudgetUsd',
+              'option_warextAiEstimatedInputUsdPerMillion', 'option_warextAiEstimatedOutputUsdPerMillion',
               'option_warextAiUsageRetentionDays', 'option_warextAiHistoryBatchSize'
           }
           if not required_phrases.issubset(phrase_titles):
@@ -96,7 +98,7 @@ jobs:
               'similarity_metrics', 'content_fingerprint', 'existingHash', 'hash_equals'
           ]:
               if marker not in post:
-                  raise SystemExit('Post Alpha 13 analiz zinciri eksik: ' + marker)
+                  raise SystemExit('Post analiz zinciri eksik: ' + marker)
           if '(new ExternalVerifier())->enrich' in post:
               raise SystemExit('Harici provider mesaj kaydı sırasında senkron çalışmamalı')
 
@@ -121,7 +123,9 @@ jobs:
           for marker in [
               'canRequest', 'record', 'summary', 'prune', 'daily_request_limit',
               'monthly_request_limit', 'daily_budget_limit', 'monthly_budget_limit',
-              'success_rate', 'last_failure_reason', 'warextAiMonthlyRequestLimit'
+              'success_rate', 'last_failure_reason', 'warextAiMonthlyRequestLimit',
+              'warextAiEstimatedInputUsdPerMillion', 'warextAiEstimatedOutputUsdPerMillion',
+              "costSource = 'actual'", "costSource = 'estimated'", 'cost_source'
           ]:
               if marker not in usage_text:
                   raise SystemExit('Maliyet/kullanım takip özelliği eksik: ' + marker)
@@ -143,9 +147,9 @@ jobs:
                   raise SystemExit('HistoricalScan job özelliği eksik: ' + marker)
 
           verifier = (root / 'Service/ExternalVerifier.php').read_text(encoding='utf-8')
-          for marker in ['UsageTracker', 'canRequest', 'external_budget_limit', 'usage_summary', 'external_provider_verification']:
+          for marker in ['UsageTracker', 'canRequest', 'external_budget_limit', 'usage_summary', 'external_provider_verification', 'recordedUsage', 'cost_source']:
               if marker not in verifier:
-                  raise SystemExit('Harici doğrulama bütçe entegrasyonu eksik: ' + marker)
+                  raise SystemExit('Harici doğrulama bütçe/maliyet entegrasyonu eksik: ' + marker)
 
           external_job = (root / 'Job/ExternalVerify.php').read_text(encoding='utf-8')
           for marker in ["['post_id' => $postId]", 'hash_equals', 'ExternalVerifier']:
@@ -158,7 +162,12 @@ jobs:
               'include_external', 'similarityMetrics', 'if ($this->canViewDetailed())'
           ]:
               if marker not in report:
-                  raise SystemExit('Rapor/Alpha 13 sorgu akışı eksik: ' + marker)
+                  raise SystemExit('Rapor sorgu akışı eksik: ' + marker)
+
+          report_ui = Path('upload/js/warext/ai-content-inspector/report-ui.js').read_text(encoding='utf-8')
+          for marker in ['costSourceLabels', 'Gerçek maliyet', 'Tahmini maliyet', 'Maliyet kaynağı']:
+              if marker not in report_ui:
+                  raise SystemExit('Detay rapor maliyet kaynağı görünümü eksik: ' + marker)
 
           templates = (data / 'templates.xml').read_text(encoding='utf-8')
           for marker in ['Harici AI kullanımı ve provider sağlığı', 'Geçmiş içerik taraması', 'usage.providers', 'history-scan']:
@@ -171,15 +180,16 @@ jobs:
 
           setup = (root / 'Setup.php').read_text(encoding='utf-8')
           for marker in [
-              'upgrade1000170Step1', 'upgrade1000190Step1', 'createUsageTable',
-              'xf_warext_ai_usage', 'cost_microusd', 'similarity_metrics', 'forum_date'
+              'upgrade1000170Step1', 'upgrade1000190Step1', 'upgrade1000200Step1',
+              'createUsageTable', 'xf_warext_ai_usage', 'cost_microusd', 'cost_source',
+              'similarity_metrics', 'forum_date'
           ]:
               if marker not in setup:
-                  raise SystemExit('Alpha 13 kurulum/upgrade şeması eksik: ' + marker)
+                  raise SystemExit('Alpha 14 kurulum/upgrade şeması eksik: ' + marker)
 
           print(json.dumps({
               'status':'ok',
-              'version':'1.0.0 Alpha 13',
+              'version':'1.0.0 Alpha 14',
               'permissions':sorted(required),
               'separateOptionGroup':True,
               'separateAdminNavigation':True,
@@ -193,6 +203,9 @@ jobs:
               'monthlyRequestLimit':True,
               'dailyBudgetLimit':True,
               'monthlyBudgetLimit':True,
+              'actualCostTracking':True,
+              'estimatedCostFallback':True,
+              'costSourceReporting':True,
               'usageRetentionCron':True,
               'historicalScanJob':True,
               'similarityMetricsPersisted':True,
