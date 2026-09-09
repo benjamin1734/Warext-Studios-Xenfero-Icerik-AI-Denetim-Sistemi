@@ -76,7 +76,7 @@
     }
   }
 
-  async function analyze(link) {
+  async function analyzePost(link) {
     if (link.dataset.warextBusy === '1') return;
 
     const postId = Number(link.dataset.postId || 0);
@@ -131,12 +131,74 @@
     }
   }
 
-  document.addEventListener('click', event => {
-    const link = event.target.closest('.js-warextAiManualAnalyze');
-    if (!link) return;
+  async function analyzeThread(link) {
+    if (link.dataset.warextBusy === '1') return;
 
-    event.preventDefault();
-    event.stopPropagation();
-    analyze(link);
+    const threadId = Number(link.dataset.threadId || 0);
+    if (!threadId || !link.href) return;
+
+    if (!window.confirm(`Bu konudaki görünür mesajlar AI analiz kuyruğuna alınacak. Devam edilsin mi?`)) {
+      return;
+    }
+
+    const original = link.textContent;
+    link.dataset.warextBusy = '1';
+    link.textContent = 'Konu AI analizine alınıyor…';
+
+    const body = new URLSearchParams();
+    body.set('thread_id', String(threadId));
+    const token = csrfToken();
+    if (token) body.set('_xfToken', token);
+
+    try {
+      const response = await fetch(link.href, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: body.toString()
+      });
+
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(result?.message || 'Konu analiz isteği başarısız oldu.');
+      }
+
+      if (!result?.queued) {
+        notify('Konu AI analiz kuyruğuna eklenemedi.', true);
+        return;
+      }
+
+      window.dispatchEvent(new CustomEvent('warext-ai-manual-thread-analysis-queued', {detail: result}));
+      notify(`${Number(result.posts || 0)} mesaja kadar konu AI analiz kuyruğuna eklendi.`);
+    } catch (error) {
+      notify(error?.message || 'Konu analizi sırasında bağlantı hatası oluştu.', true);
+    } finally {
+      link.dataset.warextBusy = '0';
+      link.textContent = original;
+    }
+  }
+
+  document.addEventListener('click', event => {
+    const postLink = event.target.closest('.js-warextAiManualAnalyze');
+    if (postLink) {
+      event.preventDefault();
+      event.stopPropagation();
+      analyzePost(postLink);
+      return;
+    }
+
+    const threadLink = event.target.closest('.js-warextAiManualThreadAnalyze');
+    if (threadLink) {
+      event.preventDefault();
+      event.stopPropagation();
+      analyzeThread(threadLink);
+    }
   });
 })();
