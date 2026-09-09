@@ -72,24 +72,15 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          XenForo 2.3+ moderasyon erişimi ve forum seçim arayüzü güncellemesi.
+          XenForo 2.3+ minimum metin eşiği ve moderasyon menüsü uyumluluk güncellemesi.
 
-          Yeni kullanım akışı:
-          - Konu sayfasının üstündeki üç nokta / konu araçları menüsüne `Konuyu AI ile analiz et` eylemi eklendi.
-          - Tek mesaj için `Bu mesajı AI ile analiz et` eylemi mesajın kendi moderatör eylemleri menüsünde korunur.
-          - Her iki manuel eylem yalnız `warextAiReview` veya `warextAiManage` yetkisi bulunan kullanıcılara gösterilir.
-          - Konu analizi görünür mesajları XenForo job kuyruğuna alır ve sayfa isteğini bloklamaz.
-
-          Forum seçimi:
-          - `Analiz edilecek forumlar` alanı eski çoklu select kutusundan checkbox listesine geçirildi.
-          - Her forum `Kategori › Alt kategori › Forum` yolu ile gösterilir; seçili forumlar doğrudan tick ile görülebilir.
-          - Hiçbir checkbox seçilmezse mevcut davranış korunur ve tüm forumlar otomatik analize dahil edilir.
-          - Veritabanında yalnız gerçek forum ID'leri saklanır; kategori/forum ID karışıklığı oluşturulmaz.
-
-          Release güvenliği:
-          - Stable validator özel forum checkbox callback'ini ve konu üst menü entegrasyonunu zorunlu doğrular.
-          - Stable ZIP `Option/Forum.php`, `ManualAnalyze.php` ve `manual-analysis.js` dosyalarını zorunlu runtime dosyaları olarak kontrol eder.
-          - Frontend cache anahtarı `1000370` olarak güncellendi.
+          - `Minimum analiz karakteri` artık 0-50000 arasında yönetici tarafından serbestçe ayarlanabilir. 0 değeri, boş olmayan her içeriğin otomatik analiz için uygun olduğu anlamına gelir.
+          - Analiz motorundaki eski 100 karakter alt sınırı kaldırıldı; ACP'de seçilen değer gerçek çalışma eşiği olarak kullanılır.
+          - Manuel analiz eşiği de düşük ACP değerleriyle uyumlu hale getirildi; kısa içeriklerde güven skoru yine analiz motoru tarafından sınırlı tutulur.
+          - Konu üst üç nokta menüsündeki `Konuyu AI ile analiz et` eylemi için tema/şablon uyumsuzluğuna karşı JavaScript fallback eklendi. Statik template modification eşleşmezse `Moderator actions` satırının yanına yetkili eylem çalışma anında eklenir.
+          - Forum checkbox seçimi ve tek mesaj manuel analiz sistemi korunur.
+          - Stable validator minimum karakter sınırını, runtime PHP eşiğini ve konu menüsü fallback'ini zorunlu doğrular.
+          - Frontend cache anahtarı `1000380` olarak güncellendi.
 
           Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
