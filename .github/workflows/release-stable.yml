@@ -65,8 +65,12 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          cat > RELEASE_NOTES.md <<EOF
-          # Warext Studios | İçerik AI Denetim Sistemi v${VERSION} Stable
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ['VERSION']
+          notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
           XenForo 2.3+ ACP seçenek master-data onarım sürümü.
 
@@ -81,8 +85,10 @@ jobs:
           - Minimum option sayısı, zorunlu option ID'leri ve bütün option → `warextAi` ilişkileri test edilir.
           - Frontend cache anahtarı `1000350` olarak güncellendi.
 
-          Mevcut v1.0.4 kurulumunda eklentiyi kaldırmayın. Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V${VERSION}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
-          EOF
+          Mevcut v1.0.4 kurulumunda eklentiyi kaldırmayın. Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
+          '''
+          Path('RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
+          PY
 
       - name: GitHub Stable Release oluştur
         env:
