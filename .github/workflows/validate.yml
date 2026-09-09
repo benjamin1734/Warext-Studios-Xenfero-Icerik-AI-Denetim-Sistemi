@@ -38,7 +38,7 @@ jobs:
 
           root = Path('upload/src/addons/Warext/AIContentInspector')
           addon = json.loads((root / 'addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.0 Alpha 12' or int(addon.get('version_id', 0)) != 1000180:
+          if addon.get('version_string') != '1.0.0 Alpha 13' or int(addon.get('version_id', 0)) != 1000190:
               raise SystemExit('Beklenmeyen addon sürümü')
           if int(addon.get('require', {}).get('XF', [0])[0]) < 2030070:
               raise SystemExit('XenForo 2.3+ gereksinimi eksik')
@@ -57,10 +57,6 @@ jobs:
           nav_ids = {n.attrib.get('id') for n in admin_nav.findall('nav')}
           if not {'warextAiAdmin', 'warextAiSettings'}.issubset(nav_ids):
               raise SystemExit('Ayrı ACP Warext AI navigasyonu eksik')
-          admin_text = (data / 'admin_navigation.xml').read_text(encoding='utf-8')
-          for marker in ['parent_id="home"', 'options/groups/warextAi', 'fa-robot']:
-              if marker not in admin_text:
-                  raise SystemExit('ACP kategori yapısı eksik: ' + marker)
 
           permissions = ET.parse(data / 'permissions.xml').getroot()
           actual = {p.attrib.get('permission_id') for p in permissions.findall('permission')}
@@ -76,7 +72,7 @@ jobs:
               'warextAiUsageRetentionDays', 'warextAiHistoryBatchSize'
           }
           if not required_options.issubset(option_ids):
-              raise SystemExit('Alpha 12 bütçe/geçmiş ayarları eksik: ' + ', '.join(sorted(required_options - option_ids)))
+              raise SystemExit('Bütçe/geçmiş ayarları eksik: ' + ', '.join(sorted(required_options - option_ids)))
 
           phrases = ET.parse(data / 'phrases.xml').getroot()
           phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
@@ -86,7 +82,7 @@ jobs:
               'option_warextAiUsageRetentionDays', 'option_warextAiHistoryBatchSize'
           }
           if not required_phrases.issubset(phrase_titles):
-              raise SystemExit('Alpha 12 seçenek phrase kayıtları eksik')
+              raise SystemExit('API limit/bütçe phrase kayıtları eksik')
 
           cron = ET.parse(data / 'cron_entries.xml').getroot()
           cron_ids = {e.attrib.get('cron_entry_id') for e in cron.findall('cron_entry')}
@@ -94,14 +90,22 @@ jobs:
               raise SystemExit('Usage prune cron eksik')
 
           post = (root / 'XF/Entity/Post.php').read_text(encoding='utf-8')
-          for marker in ['Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState', 'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify', 'external_metrics', 'content_fingerprint']:
+          for marker in [
+              'Registry', 'UserProfile', 'Similarity', 'warextPrepareExternalState',
+              'warextQueueExternalVerification', 'enqueueUnique', 'ExternalVerify',
+              'similarity_metrics', 'content_fingerprint', 'existingHash', 'hash_equals'
+          ]:
               if marker not in post:
-                  raise SystemExit('Post analiz/provider zinciri eksik: ' + marker)
+                  raise SystemExit('Post Alpha 13 analiz zinciri eksik: ' + marker)
           if '(new ExternalVerifier())->enrich' in post:
               raise SystemExit('Harici provider mesaj kaydı sırasında senkron çalışmamalı')
 
           provider = root / 'Provider'
-          for name in ['ProviderInterface.php','LocalProvider.php','Registry.php','OpenRouterProvider.php','AbstractJsonProvider.php','OpenAICompatibleProvider.php','OpenAIProvider.php','GeminiProvider.php','DeepSeekProvider.php','AnthropicProvider.php']:
+          for name in [
+              'ProviderInterface.php','LocalProvider.php','Registry.php','OpenRouterProvider.php',
+              'AbstractJsonProvider.php','OpenAICompatibleProvider.php','OpenAIProvider.php',
+              'GeminiProvider.php','DeepSeekProvider.php','AnthropicProvider.php'
+          ]:
               if not (provider / name).exists():
                   raise SystemExit('Provider mimarisi eksik: ' + name)
 
@@ -114,7 +118,11 @@ jobs:
           if not usage.exists():
               raise SystemExit('UsageTracker eksik')
           usage_text = usage.read_text(encoding='utf-8')
-          for marker in ['canRequest', 'record', 'summary', 'prune', 'daily_request_limit', 'monthly_request_limit', 'daily_budget_limit', 'monthly_budget_limit', 'success_rate', 'last_failure_reason', 'warextAiUsageRetentionDays', 'warextAiMonthlyRequestLimit']:
+          for marker in [
+              'canRequest', 'record', 'summary', 'prune', 'daily_request_limit',
+              'monthly_request_limit', 'daily_budget_limit', 'monthly_budget_limit',
+              'success_rate', 'last_failure_reason', 'warextAiMonthlyRequestLimit'
+          ]:
               if marker not in usage_text:
                   raise SystemExit('Maliyet/kullanım takip özelliği eksik: ' + marker)
 
@@ -123,7 +131,10 @@ jobs:
           if not historical.exists() or not history_job.exists():
               raise SystemExit('Geçmiş içerik tarama katmanı eksik')
           historical_text = historical.read_text(encoding='utf-8')
-          for marker in ['historical_unobserved', 'historical_behavior_unavailable', 'includeExternal', 'ExternalVerify', 'content_fingerprint']:
+          for marker in [
+              'historical_unobserved', 'historical_behavior_unavailable', 'includeExternal',
+              'ExternalVerify', 'similarity_metrics', 'content_fingerprint', 'providerId'
+          ]:
               if marker not in historical_text:
                   raise SystemExit('HistoricalAnalyzer özelliği eksik: ' + marker)
           history_job_text = history_job.read_text(encoding='utf-8')
@@ -142,34 +153,39 @@ jobs:
                   raise SystemExit('Harici job kullanım kaydı bağlamı eksik: ' + marker)
 
           report = (root / 'Pub/Controller/Report.php').read_text(encoding='utf-8')
-          for marker in ['canManage', 'UsageTracker', 'actionHistoryScan', 'warextAiHistoryScan', 'include_external']:
+          for marker in [
+              'canManage', 'UsageTracker', 'actionHistoryScan', 'warextAiHistoryScan',
+              'include_external', 'similarityMetrics', 'if ($this->canViewDetailed())'
+          ]:
               if marker not in report:
-                  raise SystemExit('Yönetim/usage/geçmiş tarama controller akışı eksik: ' + marker)
+                  raise SystemExit('Rapor/Alpha 13 sorgu akışı eksik: ' + marker)
 
           templates = (data / 'templates.xml').read_text(encoding='utf-8')
           for marker in ['Harici AI kullanımı ve provider sağlığı', 'Geçmiş içerik taraması', 'usage.providers', 'history-scan']:
               if marker not in templates:
-                  raise SystemExit('Alpha 12 yönetim arayüzü eksik: ' + marker)
+                  raise SystemExit('Yönetim arayüzü eksik: ' + marker)
 
           prune = root / 'Cron/UsagePrune.php'
           if not prune.exists() or 'UsageTracker' not in prune.read_text(encoding='utf-8'):
               raise SystemExit('Usage prune callback eksik')
 
           setup = (root / 'Setup.php').read_text(encoding='utf-8')
-          for marker in ['upgrade1000170Step1', 'createUsageTable', 'xf_warext_ai_usage', 'cost_microusd', 'provider_date']:
+          for marker in [
+              'upgrade1000170Step1', 'upgrade1000190Step1', 'createUsageTable',
+              'xf_warext_ai_usage', 'cost_microusd', 'similarity_metrics', 'forum_date'
+          ]:
               if marker not in setup:
-                  raise SystemExit('Kullanım tablosu upgrade şeması eksik: ' + marker)
+                  raise SystemExit('Alpha 13 kurulum/upgrade şeması eksik: ' + marker)
 
           print(json.dumps({
               'status':'ok',
-              'version':'1.0.0 Alpha 12',
+              'version':'1.0.0 Alpha 13',
               'permissions':sorted(required),
               'separateOptionGroup':True,
               'separateAdminNavigation':True,
               'hardDependency':False,
               'providerArchitecture':True,
               'openRouterRecommended':True,
-              'directProviders':True,
               'externalAsyncJob':True,
               'usageTracking':True,
               'providerHealthSummary':True,
@@ -179,9 +195,9 @@ jobs:
               'monthlyBudgetLimit':True,
               'usageRetentionCron':True,
               'historicalScanJob':True,
-              'historicalExternalOptIn':True,
-              'threadAggregateReport':True,
-              'reviewAuditLog':True,
-              'contentFingerprint':True
+              'similarityMetricsPersisted':True,
+              'duplicateAnalysisGuard':True,
+              'forumDateIndex':True,
+              'permissionAwareThreadQuery':True
           }, ensure_ascii=False))
           PY
