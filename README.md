@@ -1,35 +1,59 @@
 # Warext Studios | XenForo İçerik AI Denetim Sistemi
 
-XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ ile üretilmiş veya yapay zekâ yardımıyla düzenlenmiş olma ihtimalini tek bir işarete dayanarak değil; metin yapısı, editör davranışı, Writing Checker kullanımı, kullanıcının önceki yazım profili, içerik benzerliği ve isteğe bağlı harici model ikinci görüşünü birlikte değerlendirerek raporlar.
+XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ ile üretilmiş veya yapay zekâ yardımıyla düzenlenmiş olma ihtimalini tek bir işarete dayanarak değil; metin yapısı, editör davranışı, opsiyonel Writing Checker verisi, kullanıcının önceki yazım profili, içerik benzerliği ve isteğe bağlı harici model ikinci görüşünü birlikte değerlendirerek raporlar.
 
 > Sistem otomatik ceza vermez ve sonuçları kesin AI tespiti olarak kabul etmez. Üretilen risk/güven puanları moderasyon kararını desteklemek için kullanılır.
 
 ## Güncel sürüm
 
-**1.0.0 Alpha 12 — yapım aşamasında**
+**1.0.0 Alpha 13 — yapım aşamasında**
 
-Alpha 12 ile maliyet/bütçe ve geçmiş tarama katmanı gerçek yönetim sistemine dönüştürüldü. Günlük istek limiti, günlük/aylık USD bütçesi, provider bazlı başarı/sağlık görünümü, token/maliyet özeti, kullanım geçmişi retention temizliği ve XenForo job kuyruğunda kontrollü geçmiş içerik taraması eklendi.
+Alpha 13, Alpha 12'de tamamlanan maliyet/geçmiş tarama katmanını performans ve veri tutarlılığı açısından güçlendirir:
 
-Ayrıca ACP'de **Warext AI İçerik Denetimi** kendi ayrı üst navigasyon kategorisine ve kendi XenForo option group'una sahiptir. Ayarlar genel Setup/Add-ons içerisine dağılmaz.
+- içerik benzerliği artık `similarity_metrics` alanında ayrıca saklanır,
+- aynı forumdaki son analizler için `forum_id + analyzed_date` indeksi kullanılır,
+- mesaj içeriğinin SHA-256 hash'i değişmemişse aynı içerik yeniden analiz edilmez,
+- benzerlik sorgularında mevcut mesaj açıkça dışlanır,
+- geçmiş taramadaki harici doğrulama job kimliği provider + mesaj + içerik hash'i ile ayrıştırılır,
+- detay yetkisi olmayan kullanıcılarda konu özeti için gereksiz en-riskli-mesajlar sorgusu çalıştırılmaz,
+- detaylı rapor `similarityMetrics` verisini ayrı olarak döndürür.
+
+## Temel çalışma mantığı
+
+Warext Local Engine her zaman temel analiz katmanıdır. Harici AI sağlayıcısı tamamen opsiyoneldir. Harici API kapalı, yapılandırılmamış, kota/bütçe sınırına ulaşmış veya erişilemez durumda olsa bile yerel analiz çalışmaya devam eder.
+
+Harici doğrulama mesaj kaydı sırasında senkron çalıştırılmaz. Yerel sonuç önce kaydedilir; gerekli görülürse XenForo job kuyruğuna güvenli bir doğrulama işi eklenir. İçerik job çalışmadan önce değişirse eski içerik hash'ine ait sonuç yeni mesajın üzerine yazılamaz.
 
 ## Yetki sistemi
 
 Eklenti dört ayrı XenForo yetkisi kullanır:
 
 - `warextAiViewSimple` — konu üstündeki düz raporu ve AI denetim merkezini görüntüleme.
-- `warextAiViewDetailed` — ayrıntılı metin, davranış, Writing Checker, kullanıcı profili ve harici doğrulama verilerini görüntüleme.
-- `warextAiReview` — sonucu bekleyen / temizlendi / şüpheli / onaylandı durumlarından biriyle inceleme ve not ekleme.
-- `warextAiManage` — API kullanımı, provider sağlığı ve geçmiş tarama gibi yönetim bölümlerine erişim.
+- `warextAiViewDetailed` — ayrıntılı metin, davranış, Writing Checker, profil, benzerlik ve harici doğrulama verilerini görüntüleme.
+- `warextAiReview` — sonucu `pending`, `cleared`, `suspicious` veya `confirmed` durumlarından biriyle inceleme ve not ekleme.
+- `warextAiManage` — API kullanımı/provider sağlığı ve geçmiş tarama gibi yönetim özelliklerine erişme.
 
-## Konu üstü raporlama
+## Raporlama
 
-Yetkili kullanıcılar analiz edilmiş mesajlarda doğrudan konu içinde kısa bir rapor görür. AI risk puanı, güven puanı, sınıflandırma ve moderasyon inceleme durumu özetlenir. Konu genelinde analiz edilen mesaj sayısı, ortalama/en yüksek risk, yüksek riskli mesaj sayısı ve moderasyon durum dağılımı gösterilir.
+Yetkili kullanıcılar analiz edilmiş mesajlarda doğrudan konu içinde kısa bir rapor görür. Risk puanı, güven puanı, sınıflandırma ve moderasyon durumu özetlenir.
 
-Detaylı rapor yetkisi bulunan kullanıcılar metin ölçümleri, editörde yazılan/yapıştırılan karakterler, Writing Checker düzeltmeleri, kullanıcı geçmişine göre profil sapması, analiz sinyalleri, harici provider ikinci görüşü ve son moderasyon kararlarını görebilir.
+Konu genelinde analiz edilen mesaj sayısı, ortalama/en yüksek risk, yüksek riskli mesaj sayısı ve moderasyon durum dağılımı gösterilir. En riskli mesajların ayrıntılı listesi yalnız `warextAiViewDetailed` yetkisi varsa sorgulanır.
+
+Detaylı raporda şunlar ayrı alanlar olarak bulunur:
+
+- metin ölçümleri,
+- editör davranış ölçümleri,
+- Writing Checker ölçümleri,
+- kullanıcı yazım profili,
+- içerik benzerliği ölçümleri,
+- harici provider ikinci görüşü,
+- sinyaller ve moderasyon inceleme geçmişi.
+
+`/warext-ai/` altında yetki kontrollü moderasyon merkezi bulunur. Minimum risk, forum, kullanıcı ve inceleme durumu filtreleri desteklenir.
 
 ## Harici provider sistemi
 
-Harici API kullanımı **zorunlu değildir**. Yerel motor her zaman temel analiz katmanıdır. ACP'deki `Harici AI doğrulama sağlayıcısı` alanından şu providerlar seçilebilir:
+ACP'deki **Harici AI doğrulama sağlayıcısı** alanından şu seçenekler kullanılabilir:
 
 - OpenRouter — önerilen varsayılan bulut katmanı
 - OpenAI / GPT
@@ -45,56 +69,59 @@ Harici API kullanımı **zorunlu değildir**. Yerel motor her zaman temel analiz
 
 OpenRouter tarafında model fallback zinciri, ZDR yönlendirmesi, veri toplama reddi, fiyat/gecikme/throughput sıralaması ve opsiyonel yanıt cache seçeneği bulunur.
 
-Doğrudan providerlarda minimum yerel risk, maksimum ağırlık, gönderilecek maksimum karakter ve timeout ortak ayarlardır. Provider yapılandırılmamışsa gereksiz harici job kuyruğa eklenmez.
+Doğrudan providerlarda minimum yerel risk, maksimum ağırlık, gönderilecek maksimum karakter ve timeout ortak ayarlardır. Provider yapılandırılmamışsa gereksiz dış istek yapılmaz.
 
-Varsayılan doğrudan model değerleri ACP'den değiştirilebilir; model değişimi eklenti kodu değişikliği gerektirmez.
+Varsayılan model kimlikleri ACP'den değiştirilebilir. Qwen base URL alanı bölge/workspace adresine göre değiştirilebilir. Ollama ve özel OpenAI-compatible servislerde base URL ACP'den yönetilir.
 
-Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıya ait olmayan içerik gönderilmez. URL ve BBCode kalıntıları temizlenir. API anahtarları analiz kayıtlarına veya rapor verisine yazılmaz.
+Özel OpenAI-compatible base URL yalnızca HTTP/HTTPS kabul eder ve URL içine gömülü kullanıcı adı/şifre reddedilir.
 
-## API kullanım, bütçe ve provider sağlık sistemi
+## Güvenli metin hazırlama
 
-`xf_warext_ai_usage` tablosu her harici isteğin provider/model, post ID, token, gerçek maliyet bilgisi mevcutsa maliyet, başarı/hata ve tarih bilgisini tutar. API anahtarı hiçbir kullanım kaydına yazılmaz.
+Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıya ait olmayan içerik gönderilmez. URL ve BBCode kalıntıları temizlenir. API anahtarları analiz kayıtlarına veya moderasyon raporlarına yazılmaz.
+
+## API kullanım, maliyet ve provider sağlığı
+
+`xf_warext_ai_usage` tablosu harici doğrulamalarda mümkün olduğunda şu verileri tutar:
+
+- provider ve model,
+- ilgili mesaj,
+- prompt/input token,
+- completion/output token,
+- toplam token,
+- provider tarafından bildirilen gerçek maliyet,
+- başarılı/başarısız durum,
+- başarısızlık nedeni,
+- tarih.
 
 ACP'den yönetilebilen sınırlar:
 
 - günlük maksimum harici AI isteği,
+- aylık maksimum harici AI isteği,
 - günlük maksimum USD bütçesi,
 - aylık maksimum USD bütçesi,
 - kullanım kaydı saklama süresi,
 - geçmiş tarama job paket boyutu.
 
-`0` olan istek/bütçe limitleri sınırsız kabul edilir. Bir limit dolduğunda yalnızca harici doğrulama durur; Local Engine çalışmaya devam eder.
+`0` olan çağrı/bütçe limitleri sınırsız kabul edilir. Limit dolduğunda yalnızca harici doğrulama durur; Warext Local Engine çalışmaya devam eder.
 
-AI Denetim Merkezi'nde `warextAiManage` yetkisi bulunan kullanıcılar günlük ve aylık istek/token/maliyet özetini, provider başına başarı oranını, aktif/son modeli, son hata nedenini ve provider sağlık durumunu görebilir.
+`warextAiManage` yetkisine sahip kullanıcılar günlük/aylık istek, token ve maliyet toplamlarını; provider başarı oranını, son kullanılan modeli, provider sağlık durumunu ve son hata nedenini görebilir.
 
 Kullanım kayıtları retention süresine göre günlük cron ile otomatik temizlenir.
 
 ## Geçmiş içerik taraması
 
-Daha önce analiz edilmemiş eski mesajlar `Warext\AIContentInspector:HistoricalScan` XenForo jobı ile arka planda taranabilir.
+Daha önce analiz edilmemiş eski mesajlar `Warext\AIContentInspector:HistoricalScan` XenForo jobı ile kontrollü biçimde arka planda taranabilir.
 
-Geçmiş mesajlarda tarayıcı editör oturumu bulunmadığı için typed/paste/Writing Checker davranışı uydurulmaz. Bu veriler `historical_unobserved` olarak işaretlenir ve detaylı raporda bağlam sinyali olarak görünür.
+Tarama sırasında:
 
-Tarama seçenekleri:
-
-- maksimum işlenecek mesaj sayısı,
-- son N gün veya tüm tarih,
-- yalnızca Local Engine,
-- risk eşiğini geçen içeriklerde opsiyonel harici provider doğrulaması.
-
-Harici doğrulama seçilse bile günlük/aylık API bütçe sınırları geçerlidir. Daha önce analiz edilmiş mesajlar varsayılan geçmiş taramada tekrar işlenmez.
-
-## Asenkron doğrulama
-
-Harici provider çağrısı mesaj kaydı sırasında yapılmaz. Yerel sonuç önce kaydedilir ve gerekli görülürse `Warext\AIContentInspector:ExternalVerify` XenForo jobı sıraya alınır. Job benzersiz post + içerik hash'i ile oluşturulur. Mesaj job çalışmadan önce değişirse eski job yeni içeriğin sonucunu güncelleyemez.
-
-Harici sonuç tek başına moderasyon kararı oluşturmaz; provider güven puanına göre sınırlı ağırlıkla yerel risk skoruna eklenir.
-
-## Provider mimarisi
-
-`ProviderInterface` ve merkezi `Registry` kullanılır. `AbstractJsonProvider` güvenli metin temizleme, JSON ayrıştırma, ortak sonuç normalizasyonu, token kullanım alanları ve hata fallback mantığını paylaşır.
-
-`OpenAICompatibleProvider` Grok, Mistral, Qwen, Ollama ve özel endpointler için ortak chat-completions istemcisidir. OpenRouter ise önerilen provider olarak ayrı gelişmiş routing/fallback özelliklerini korur.
+- maksimum taranacak mesaj sayısı belirlenebilir,
+- son N gün ile tarih sınırı verilebilir,
+- ACP'de seçilmiş forumlar dikkate alınır,
+- tek job turundaki mesaj sayısı `warextAiHistoryBatchSize` ile sınırlandırılır,
+- geçmiş editör davranışı bilinmediği için typed/paste/Writing Checker verisi uydurulmaz ve `historical_unobserved` olarak işaretlenir,
+- istenirse yalnız risk eşiğini geçen mesajlar seçili harici provider ile ayrıca doğrulanır,
+- günlük/aylık çağrı ve bütçe limitleri geçmiş taramada da uygulanır,
+- daha önce analiz edilmiş mesajlar varsayılan taramada tekrar işlenmez.
 
 ## Kullanıcı yazım profili
 
@@ -102,36 +129,53 @@ Bir kullanıcının en az üç önceki analiz kaydı varsa sistem son 25 uygun �
 
 ## İçerik benzerliği
 
-Metinler için yerel 64-bit fingerprint üretilir. Aynı forumdaki yakın geçmiş analizlerle karşılaştırma yapılabilir. Yüksek benzerlik AI kullanımı olarak değerlendirilmez; kopya/yeniden paylaşım bağlamı için ayrı moderasyon sinyalidir.
+Metinler için yerel 64-bit fingerprint üretilir. Aynı forumdaki yakın geçmiş analizlerle karşılaştırma yapılır. Yüksek benzerlik AI kullanımı olarak değerlendirilmez; kopya/yeniden paylaşım bağlamı için ayrı moderasyon sinyalidir.
 
-## Moderasyon merkezi
+Alpha 13 ile fingerprint yanında hesaplanan benzerlik sonucu ve eşleşme bağlamı `similarity_metrics` içinde ayrıca saklanır; böylece detay raporu sinyal özetini yeniden yorumlamak zorunda kalmaz.
 
-`/warext-ai/` altında yetki kontrollü denetim merkezi bulunur. Minimum risk, forum, kullanıcı ve durum filtreleri; konu/mesaj bağlantıları; risk, güven, profil sapması ve inceleme durumları bulunur.
+## Moderasyon inceleme kaydı
 
-Bir moderatör sonucu durumlandırdığında değişiklik `xf_warext_ai_review_log` tablosunda eski durum, yeni durum, moderatör, tarih ve isteğe bağlı not ile kaydedilir. Mesaj daha sonra düzenlenirse önceki inceleme kararı otomatik olarak `pending` durumuna döner.
+Bir moderatör sonucu durumlandırdığında değişiklik `xf_warext_ai_review_log` tablosunda eski durum, yeni durum, moderatör, tarih ve isteğe bağlı not ile kaydedilir. Mesaj daha sonra gerçekten değişirse önceki inceleme kararı otomatik olarak `pending` durumuna döner.
 
 ## Warext Türkçe Yazım Denetimi entegrasyonu
 
-Warext Türkçe Yazım Denetimi **zorunlu bağımlılık değildir**. Her iki eklenti kuruluysa tarayıcıdaki entegrasyon köprüsü otomatik algılanır. Tam mesaj kopyalanmaz; yalnızca düzeltme ölçümleri aktarılır ve başlık ile mesaj gövdesi ayrı tutulur.
+Warext Türkçe Yazım Denetimi **zorunlu bağımlılık değildir**. Her iki eklenti kuruluysa tarayıcıdaki entegrasyon köprüsü otomatik algılanır. Tam mesaj kopyalanmaz; yalnızca gerekli düzeltme ölçümleri aktarılır ve başlık ile mesaj gövdesi ayrı tutulur.
 
-Writing Checker kurulu değilse AI Content Inspector eksiksiz biçimde kendi başına çalışmaya devam eder.
+Writing Checker kurulu değilse AI Content Inspector kendi başına eksiksiz çalışmaya devam eder. İki eklenti için üçüncü bir entegrasyon paketi gerekmez.
+
+## Provider mimarisi
+
+`ProviderInterface` ve merkezi `Registry` kullanılır. `AbstractJsonProvider` güvenli metin temizleme, JSON ayrıştırma, ortak sonuç normalizasyonu, token kullanım alanları ve hata fallback mantığını paylaşır.
+
+`OpenAICompatibleProvider` Grok, Mistral, Qwen, Ollama ve özel endpointler için ortak chat-completions istemcisidir. OpenRouter gelişmiş routing/fallback özelliklerini ayrı adapterda korur.
 
 ## Otomatik doğrulama ve paketleme
 
-GitHub Actions; PHP/JavaScript sözdizimini, yerel false-positive regresyonlarını, provider adapterlarını, Writing Checker hard-dependency bulunmadığını, harici çağrıların asenkron olduğunu, içerik hash korumasını, ayrı ACP navigasyonunu, bütçe seçeneklerini, kullanım retention cronunu, geçmiş tarama jobını, XenForo XML/provider mimarisini ve kurulum ZIP bütünlüğünü doğrular.
+GitHub Actions şu alanları otomatik kontrol eder:
+
+- PHP ve JavaScript sözdizimi,
+- yerel false-positive regresyonları,
+- provider adapterları,
+- Writing Checker hard dependency bulunmaması,
+- harici doğrulamanın asenkron çalışması,
+- içerik hash koruması,
+- günlük/aylık çağrı ve bütçe ayarları,
+- provider sağlık/kullanım katmanı,
+- geçmiş tarama job mimarisi,
+- kullanım geçmişi prune cron'u,
+- benzerlik metriği şeması ve forum+tarih indeksi,
+- XenForo XML ve kurulum ZIP bütünlüğü.
 
 ## Geliştirme durumu
 
-9 ana adımın ilk 8'i tamamlandı. Son ana adımın provider, maliyet ve geçmiş tarama bölümleri Alpha 9–12 ile tamamlandı.
+Başlangıçtaki **9 ana adımın ilk 8'i tamamlandı**. Son ana adımın büyük geliştirme bölümleri de Alpha 9–13 arasında tamamlandı:
 
-**Tamamlanan Alpha 9:** OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan adapterları.
+- **Alpha 9:** OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan adapterları.
+- **Alpha 10:** xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint.
+- **Alpha 11:** provider kullanım/token/maliyet kayıt çekirdeği ve bütçe kontrol altyapısı.
+- **Alpha 12:** ayrı ACP navigasyonu, günlük/aylık çağrı ve bütçe kontrolleri, provider sağlık görünümü, retention temizliği ve kontrollü geçmiş içerik taraması.
+- **Alpha 13:** benzerlik verisinin kalıcılaştırılması, duplicate-analysis engeli ve rapor/benzerlik sorgu optimizasyonları.
 
-**Tamamlanan Alpha 10:** xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint; ortak OpenAI-compatible çekirdek.
+### Kalan 1 ana geliştirme grubu
 
-**Tamamlanan Alpha 11:** provider kullanım/token/maliyet kaydı ve bütçe kontrol çekirdeği.
-
-**Tamamlanan Alpha 12:** ayrı ACP kategorisi, gerçek bütçe ayarları, provider sağlık/maliyet görünümü, retention cron ve kontrollü geçmiş içerik taraması.
-
-**Kalan ana geliştirme grubu:**
-
-1. **Final ACP + rapor + performans + 1.0.0 Stable:** düz/detaylı rapor son arayüz ayrıştırması; sorgu/cache optimizasyonu ve büyük forum testleri; install/upgrade/uninstall kontrolleri; final ZIP, GitHub Release ve dokümantasyon.
+**Final stabilizasyon + 1.0.0 Stable:** provider maliyet verisi dönmeyen servisler için güvenli tahmini maliyet fallback'i; fayda sağlayan providerlarda batch/queue optimizasyonu; rapor/ACP son düzenlemeleri; sorgu/cache ve büyük forum yük testleri; install/upgrade/uninstall kontrolleri; XenForo 2.3 canlı kurulum senaryoları; final ZIP, GitHub Release ve son dokümantasyon.
