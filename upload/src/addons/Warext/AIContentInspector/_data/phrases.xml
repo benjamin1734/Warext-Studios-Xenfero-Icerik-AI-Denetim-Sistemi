@@ -94,6 +94,8 @@
 
   <phrase title="option_warextAiDailyRequestLimit" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Günlük maksimum harici AI isteği]]></phrase>
   <phrase title="option_warextAiDailyRequestLimit_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[0 sınırsızdır. Limit dolduğunda harici API çağrıları durur, yerel analiz çalışmaya devam eder.]]></phrase>
+  <phrase title="option_warextAiMonthlyRequestLimit" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Aylık maksimum harici AI isteği]]></phrase>
+  <phrase title="option_warextAiMonthlyRequestLimit_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[0 sınırsızdır. Aylık çağrı limiti dolduğunda harici API çağrıları durur; Warext Local Engine analiz üretmeye devam eder.]]></phrase>
   <phrase title="option_warextAiDailyBudgetUsd" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Günlük harici AI bütçesi (USD)]]></phrase>
   <phrase title="option_warextAiDailyBudgetUsd_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[0 sınırsızdır. Provider gerçek maliyet bilgisi döndürüyorsa günlük toplam bu değere ulaştığında yeni harici çağrılar durur.]]></phrase>
   <phrase title="option_warextAiMonthlyBudgetUsd" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Aylık harici AI bütçesi (USD)]]></phrase>
