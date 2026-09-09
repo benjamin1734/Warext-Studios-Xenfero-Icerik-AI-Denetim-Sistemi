@@ -12,57 +12,45 @@ class UsageTracker
         $dailyBudget = max(0.0, (float)($options->warextAiDailyBudgetUsd ?? 0));
         $monthlyBudget = max(0.0, (float)($options->warextAiMonthlyBudgetUsd ?? 0));
 
+        if ($dailyRequests <= 0 && $monthlyRequests <= 0 && $dailyBudget <= 0 && $monthlyBudget <= 0)
+        {
+            return ['allowed' => true, 'reason' => 'ok', 'provider' => $providerId];
+        }
+
         $now = time();
         $dayStart = strtotime('today', $now);
         $monthStart = strtotime(date('Y-m-01 00:00:00', $now));
-        $db = \XF::db();
 
-        if ($dailyRequests > 0)
+        $stats = \XF::db()->fetchRow(
+            'SELECT COUNT(*) AS monthly_requests,
+                    COALESCE(SUM(created_date >= ?), 0) AS daily_requests,
+                    COALESCE(SUM(IF(created_date >= ?, cost_microusd, 0)), 0) AS daily_cost,
+                    COALESCE(SUM(cost_microusd), 0) AS monthly_cost
+             FROM xf_warext_ai_usage
+             WHERE created_date >= ?',
+            [$dayStart, $dayStart, $monthStart]
+        ) ?: [];
+
+        $currentDailyRequests = (int)($stats['daily_requests'] ?? 0);
+        $currentMonthlyRequests = (int)($stats['monthly_requests'] ?? 0);
+        $currentDailyCost = ((int)($stats['daily_cost'] ?? 0)) / 1000000;
+        $currentMonthlyCost = ((int)($stats['monthly_cost'] ?? 0)) / 1000000;
+
+        if ($dailyRequests > 0 && $currentDailyRequests >= $dailyRequests)
         {
-            $count = (int)$db->fetchOne(
-                'SELECT COUNT(*) FROM xf_warext_ai_usage WHERE created_date >= ?',
-                $dayStart
-            );
-            if ($count >= $dailyRequests)
-            {
-                return ['allowed' => false, 'reason' => 'daily_request_limit', 'current' => $count, 'limit' => $dailyRequests, 'provider' => $providerId];
-            }
+            return ['allowed' => false, 'reason' => 'daily_request_limit', 'current' => $currentDailyRequests, 'limit' => $dailyRequests, 'provider' => $providerId];
         }
-
-        if ($monthlyRequests > 0)
+        if ($monthlyRequests > 0 && $currentMonthlyRequests >= $monthlyRequests)
         {
-            $count = (int)$db->fetchOne(
-                'SELECT COUNT(*) FROM xf_warext_ai_usage WHERE created_date >= ?',
-                $monthStart
-            );
-            if ($count >= $monthlyRequests)
-            {
-                return ['allowed' => false, 'reason' => 'monthly_request_limit', 'current' => $count, 'limit' => $monthlyRequests, 'provider' => $providerId];
-            }
+            return ['allowed' => false, 'reason' => 'monthly_request_limit', 'current' => $currentMonthlyRequests, 'limit' => $monthlyRequests, 'provider' => $providerId];
         }
-
-        if ($dailyBudget > 0)
+        if ($dailyBudget > 0 && $currentDailyCost >= $dailyBudget)
         {
-            $micro = (int)$db->fetchOne(
-                'SELECT COALESCE(SUM(cost_microusd), 0) FROM xf_warext_ai_usage WHERE created_date >= ?',
-                $dayStart
-            );
-            if (($micro / 1000000) >= $dailyBudget)
-            {
-                return ['allowed' => false, 'reason' => 'daily_budget_limit', 'current' => $micro / 1000000, 'limit' => $dailyBudget, 'provider' => $providerId];
-            }
+            return ['allowed' => false, 'reason' => 'daily_budget_limit', 'current' => $currentDailyCost, 'limit' => $dailyBudget, 'provider' => $providerId];
         }
-
-        if ($monthlyBudget > 0)
+        if ($monthlyBudget > 0 && $currentMonthlyCost >= $monthlyBudget)
         {
-            $micro = (int)$db->fetchOne(
-                'SELECT COALESCE(SUM(cost_microusd), 0) FROM xf_warext_ai_usage WHERE created_date >= ?',
-                $monthStart
-            );
-            if (($micro / 1000000) >= $monthlyBudget)
-            {
-                return ['allowed' => false, 'reason' => 'monthly_budget_limit', 'current' => $micro / 1000000, 'limit' => $monthlyBudget, 'provider' => $providerId];
-            }
+            return ['allowed' => false, 'reason' => 'monthly_budget_limit', 'current' => $currentMonthlyCost, 'limit' => $monthlyBudget, 'provider' => $providerId];
         }
 
         return ['allowed' => true, 'reason' => 'ok', 'provider' => $providerId];
@@ -125,22 +113,40 @@ class UsageTracker
         $monthStart = strtotime(date('Y-m-01 00:00:00', $now));
         $db = \XF::db();
 
-        $daily = $db->fetchRow(
-            "SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
-                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost,
-                    COALESCE(SUM(cost_source = 'actual'),0) AS actual_cost_records,
-                    COALESCE(SUM(cost_source = 'estimated'),0) AS estimated_cost_records
-             FROM xf_warext_ai_usage WHERE created_date >= ?",
-            $dayStart
+        $period = $db->fetchRow(
+            "SELECT COUNT(*) AS monthly_requests,
+                    COALESCE(SUM(success),0) AS monthly_successes,
+                    COALESCE(SUM(total_tokens),0) AS monthly_tokens,
+                    COALESCE(SUM(cost_microusd),0) AS monthly_cost,
+                    COALESCE(SUM(cost_source = 'actual'),0) AS monthly_actual_cost_records,
+                    COALESCE(SUM(cost_source = 'estimated'),0) AS monthly_estimated_cost_records,
+                    COALESCE(SUM(created_date >= ?),0) AS daily_requests,
+                    COALESCE(SUM(IF(created_date >= ?, success, 0)),0) AS daily_successes,
+                    COALESCE(SUM(IF(created_date >= ?, total_tokens, 0)),0) AS daily_tokens,
+                    COALESCE(SUM(IF(created_date >= ?, cost_microusd, 0)),0) AS daily_cost,
+                    COALESCE(SUM(IF(created_date >= ? AND cost_source = 'actual', 1, 0)),0) AS daily_actual_cost_records,
+                    COALESCE(SUM(IF(created_date >= ? AND cost_source = 'estimated', 1, 0)),0) AS daily_estimated_cost_records
+             FROM xf_warext_ai_usage
+             WHERE created_date >= ?",
+            [$dayStart, $dayStart, $dayStart, $dayStart, $dayStart, $dayStart, $monthStart]
         ) ?: [];
-        $monthly = $db->fetchRow(
-            "SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
-                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost,
-                    COALESCE(SUM(cost_source = 'actual'),0) AS actual_cost_records,
-                    COALESCE(SUM(cost_source = 'estimated'),0) AS estimated_cost_records
-             FROM xf_warext_ai_usage WHERE created_date >= ?",
-            $monthStart
-        ) ?: [];
+
+        $daily = [
+            'requests' => (int)($period['daily_requests'] ?? 0),
+            'successes' => (int)($period['daily_successes'] ?? 0),
+            'tokens' => (int)($period['daily_tokens'] ?? 0),
+            'cost' => (int)($period['daily_cost'] ?? 0),
+            'actual_cost_records' => (int)($period['daily_actual_cost_records'] ?? 0),
+            'estimated_cost_records' => (int)($period['daily_estimated_cost_records'] ?? 0)
+        ];
+        $monthly = [
+            'requests' => (int)($period['monthly_requests'] ?? 0),
+            'successes' => (int)($period['monthly_successes'] ?? 0),
+            'tokens' => (int)($period['monthly_tokens'] ?? 0),
+            'cost' => (int)($period['monthly_cost'] ?? 0),
+            'actual_cost_records' => (int)($period['monthly_actual_cost_records'] ?? 0),
+            'estimated_cost_records' => (int)($period['monthly_estimated_cost_records'] ?? 0)
+        ];
 
         $providerRows = $db->fetchAll(
             "SELECT provider_id, COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
