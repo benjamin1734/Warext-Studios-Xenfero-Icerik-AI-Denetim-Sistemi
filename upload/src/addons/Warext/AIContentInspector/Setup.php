@@ -48,6 +48,7 @@ class Setup extends AbstractSetup
         });
 
         $this->createReviewLogTable();
+        $this->createUsageTable();
     }
 
     public function upgrade1000080Step1(): void
@@ -78,6 +79,11 @@ class Setup extends AbstractSetup
         });
     }
 
+    public function upgrade1000170Step1(): void
+    {
+        $this->createUsageTable();
+    }
+
     protected function createReviewLogTable(): void
     {
         $this->schemaManager()->createTable('xf_warext_ai_review_log', function (Create $table)
@@ -97,8 +103,32 @@ class Setup extends AbstractSetup
         });
     }
 
+    protected function createUsageTable(): void
+    {
+        $this->schemaManager()->createTable('xf_warext_ai_usage', function (Create $table)
+        {
+            $table->checkExists(true);
+            $table->addColumn('usage_id', 'int')->unsigned()->autoIncrement();
+            $table->addColumn('post_id', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('provider_id', 'varchar', 32)->setDefault('');
+            $table->addColumn('model', 'varchar', 191)->setDefault('');
+            $table->addColumn('prompt_tokens', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('completion_tokens', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('total_tokens', 'int')->unsigned()->setDefault(0);
+            $table->addColumn('cost_microusd', 'bigint')->unsigned()->setDefault(0);
+            $table->addColumn('success', 'tinyint')->unsigned()->setDefault(0);
+            $table->addColumn('failure_reason', 'varchar', 80)->setDefault('');
+            $table->addColumn('created_date', 'int')->unsigned()->setDefault(0);
+            $table->addPrimaryKey('usage_id');
+            $table->addKey(['provider_id', 'created_date'], 'provider_date');
+            $table->addKey(['post_id', 'created_date'], 'post_date');
+            $table->addKey('created_date');
+        });
+    }
+
     public function uninstallStep1(): void
     {
+        $this->schemaManager()->dropTable('xf_warext_ai_usage');
         $this->schemaManager()->dropTable('xf_warext_ai_review_log');
         $this->schemaManager()->dropTable('xf_warext_ai_analysis');
     }
