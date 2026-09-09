@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates>
-  <template type="public" title="warext_ai_center" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[<xf:title>AI İçerik Denetim Merkezi</xf:title>
+  <template type="public" title="warext_ai_center" version_id="1000320" version_string="1.0.2"><![CDATA[<xf:title>AI İçerik Denetim Merkezi</xf:title>
 <xf:css src="warext_ai_center.less" />
 
 <div class="blockMessage blockMessage--important">
@@ -8,10 +8,10 @@
 </div>
 
 <div class="warextAiCenter-stats">
-    <a class="warextAiCenter-stat" href="{{ link('warext-ai', null, {'state':'pending'}) }}"><b>{$counts.pending}</b><span>Bekleyen</span></a>
-    <a class="warextAiCenter-stat warextAiCenter-stat--warn" href="{{ link('warext-ai', null, {'state':'suspicious'}) }}"><b>{$counts.suspicious}</b><span>Şüpheli</span></a>
-    <a class="warextAiCenter-stat warextAiCenter-stat--danger" href="{{ link('warext-ai', null, {'state':'confirmed'}) }}"><b>{$counts.confirmed}</b><span>Onaylanan</span></a>
-    <a class="warextAiCenter-stat warextAiCenter-stat--ok" href="{{ link('warext-ai', null, {'state':'cleared'}) }}"><b>{$counts.cleared}</b><span>Temizlenen</span></a>
+    <a class="warextAiCenter-stat" href="{{ link('warext-ai', null, {'state': 'pending'}) }}"><b>{$counts.pending}</b><span>Bekleyen</span></a>
+    <a class="warextAiCenter-stat warextAiCenter-stat--warn" href="{{ link('warext-ai', null, {'state': 'suspicious'}) }}"><b>{$counts.suspicious}</b><span>Şüpheli</span></a>
+    <a class="warextAiCenter-stat warextAiCenter-stat--danger" href="{{ link('warext-ai', null, {'state': 'confirmed'}) }}"><b>{$counts.confirmed}</b><span>Onaylanan</span></a>
+    <a class="warextAiCenter-stat warextAiCenter-stat--ok" href="{{ link('warext-ai', null, {'state': 'cleared'}) }}"><b>{$counts.cleared}</b><span>Temizlenen</span></a>
 </div>
 
 <xf:if is="$canManage">
@@ -23,23 +23,23 @@
                     <div class="warextAiCenter-usageCard">
                         <span>Bugün</span>
                         <b>{$usage.daily.requests} istek</b>
-                        <small>{$usage.daily.tokens} token · ${$usage.daily.cost_usd}</small>
+                        <small>{$usage.daily.tokens} token · USD {$usage.daily.cost_usd}</small>
                         <small>Başarı: %{$usage.daily.success_rate}</small>
                     </div>
                     <div class="warextAiCenter-usageCard">
                         <span>Bu ay</span>
                         <b>{$usage.monthly.requests} istek</b>
-                        <small>{$usage.monthly.tokens} token · ${$usage.monthly.cost_usd}</small>
+                        <small>{$usage.monthly.tokens} token · USD {$usage.monthly.cost_usd}</small>
                         <small>Başarı: %{$usage.monthly.success_rate}</small>
                     </div>
                     <div class="warextAiCenter-usageCard">
                         <span>Günlük limit</span>
                         <b>{{ $usage.limits.daily_requests ? $usage.limits.daily_requests : 'Sınırsız' }}</b>
-                        <small>Bütçe: {{ $usage.limits.daily_budget_usd ? ('$' . $usage.limits.daily_budget_usd) : 'Sınırsız' }}</small>
+                        <small>Bütçe: {{ $usage.limits.daily_budget_usd ? ('USD ' . $usage.limits.daily_budget_usd) : 'Sınırsız' }}</small>
                     </div>
                     <div class="warextAiCenter-usageCard">
                         <span>Aylık bütçe</span>
-                        <b>{{ $usage.limits.monthly_budget_usd ? ('$' . $usage.limits.monthly_budget_usd) : 'Sınırsız' }}</b>
+                        <b>{{ $usage.limits.monthly_budget_usd ? ('USD ' . $usage.limits.monthly_budget_usd) : 'Sınırsız' }}</b>
                         <small>Maliyet verisi provider tarafından bildirildiğinde uygulanır.</small>
                     </div>
                 </div>
@@ -50,14 +50,14 @@
                             <div class="warextAiCenter-provider">
                                 <div>
                                     <strong>{$provider.provider}</strong>
-                                    <span>{$provider.model ?: 'Model bilgisi yok'}</span>
+                                    <span><xf:if is="$provider.model">{$provider.model}<xf:else />Model bilgisi yok</xf:if></span>
                                 </div>
                                 <div class="warextAiCenter-providerMeta">
                                     <span class="warextAiCenter-health warextAiCenter-health--{$provider.status}">{$provider.status}</span>
                                     <span>{$provider.requests} istek</span>
                                     <span>%{$provider.success_rate} başarılı</span>
                                     <span>{$provider.tokens} token</span>
-                                    <span>${$provider.cost_usd}</span>
+                                    <span>USD {$provider.cost_usd}</span>
                                 </div>
                                 <xf:if is="$provider.last_failure_reason">
                                     <div class="warextAiCenter-providerError">Son hata: {$provider.last_failure_reason}<xf:if is="$provider.last_failure_date"> · <xf:date time="$provider.last_failure_date" /></xf:if></div>
@@ -95,13 +95,16 @@
         <h2 class="block-header">Filtreler</h2>
         <div class="block-body warextAiCenter-filterBody">
             <form action="{{ link('warext-ai') }}" method="get" class="warextAiCenter-filter">
-                <label><span>İnceleme durumu</span><select class="input" name="state">
-                    <option value="">Tümü</option>
-                    <option value="pending" {{ $filters.state == 'pending' ? 'selected' : '' }}>Bekleyen</option>
-                    <option value="suspicious" {{ $filters.state == 'suspicious' ? 'selected' : '' }}>Şüpheli</option>
-                    <option value="confirmed" {{ $filters.state == 'confirmed' ? 'selected' : '' }}>Onaylanan</option>
-                    <option value="cleared" {{ $filters.state == 'cleared' ? 'selected' : '' }}>Temizlenen</option>
-                </select></label>
+                <label>
+                    <span>İnceleme durumu</span>
+                    <xf:select name="state" value="{$filters.state}" class="input">
+                        <xf:option value="">Tümü</xf:option>
+                        <xf:option value="pending">Bekleyen</xf:option>
+                        <xf:option value="suspicious">Şüpheli</xf:option>
+                        <xf:option value="confirmed">Onaylanan</xf:option>
+                        <xf:option value="cleared">Temizlenen</xf:option>
+                    </xf:select>
+                </label>
                 <label><span>Minimum risk</span><input class="input" type="number" min="0" max="100" name="risk_min" value="{$filters.risk_min}" /></label>
                 <label><span>Forum ID</span><input class="input" type="number" min="0" name="forum_id" value="{$filters.forum_id}" /></label>
                 <label><span>Kullanıcı ID</span><input class="input" type="number" min="0" name="user_id" value="{$filters.user_id}" /></label>
@@ -118,14 +121,22 @@
             <xf:if is="$rows">
                 <div class="warextAiCenter-list">
                     <xf:foreach loop="$rows" value="$row">
+                        <xf:set var="$riskClass" value="low" />
+                        <xf:if is="$row.risk_score >= 85">
+                            <xf:set var="$riskClass" value="critical" />
+                        <xf:elseif is="$row.risk_score >= 70" />
+                            <xf:set var="$riskClass" value="high" />
+                        <xf:elseif is="$row.risk_score >= 50" />
+                            <xf:set var="$riskClass" value="medium" />
+                        </xf:if>
                         <div class="warextAiCenter-row">
                             <div class="warextAiCenter-main">
                                 <div class="warextAiCenter-title">
                                     <strong>#{$row.post_id}</strong>
-                                    <span>{$row.thread_title ?: 'Silinmiş veya erişilemeyen konu'}</span>
+                                    <span><xf:if is="$row.thread_title">{$row.thread_title}<xf:else />Silinmiş veya erişilemeyen konu</xf:if></span>
                                 </div>
                                 <div class="warextAiCenter-meta">
-                                    <span>Kullanıcı: {$row.username ?: ('#' . $row.user_id)}</span>
+                                    <span>Kullanıcı: <xf:if is="$row.username">{$row.username}<xf:else />#{$row.user_id}</xf:if></span>
                                     <span>Forum: #{$row.forum_id}</span>
                                     <span>Güven: {$row.confidence}/100</span>
                                     <xf:if is="$row.profile_samples >= 3"><span>Profil sapması: {$row.profile_deviation}/100 ({$row.profile_samples} örnek)</span></xf:if>
@@ -133,9 +144,9 @@
                                 </div>
                             </div>
                             <div class="warextAiCenter-side">
-                                <span class="warextAiCenter-risk warextAiCenter-risk--{{ $row.risk_score >= 85 ? 'critical' : ($row.risk_score >= 70 ? 'high' : ($row.risk_score >= 50 ? 'medium' : 'low')) }}">{$row.risk_score}/100</span>
+                                <span class="warextAiCenter-risk warextAiCenter-risk--{$riskClass}">{$row.risk_score}/100</span>
                                 <span class="warextAiCenter-state">{$row.review_state}</span>
-                                <xf:if is="$row.thread_id"><a class="button button--link" href="{{ link('threads', {'thread_id':$row.thread_id, 'title':$row.thread_title}) }}#post-{$row.post_id}">Mesaja git</a></xf:if>
+                                <xf:if is="$row.thread_id"><a class="button button--link" href="{{ link('threads', {'thread_id': $row.thread_id, 'title': $row.thread_title}) }}#post-{$row.post_id}">Mesaja git</a></xf:if>
                             </div>
                         </div>
                     </xf:foreach>
@@ -149,5 +160,5 @@
 
 <xf:pagenav page="$page" perpage="$perPage" total="$total" link="warext-ai" params="$linkParams" />]]></template>
 
-  <template type="public" title="warext_ai_center.less" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[.warextAiCenter-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}.warextAiCenter-stat{display:flex;flex-direction:column;gap:3px;padding:14px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;background:@xf-contentBg;color:inherit;text-decoration:none}.warextAiCenter-stat b{font-size:22px}.warextAiCenter-stat span{font-size:12px;color:@xf-textColorMuted}.warextAiCenter-stat--warn{border-left:4px solid #c8922d}.warextAiCenter-stat--danger{border-left:4px solid #c94b4b}.warextAiCenter-stat--ok{border-left:4px solid #4c9b63}.warextAiCenter-manageBody{padding:12px}.warextAiCenter-usageGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.warextAiCenter-usageCard{display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;background:mix(@xf-contentBg,@xf-textColor,97%)}.warextAiCenter-usageCard span,.warextAiCenter-usageCard small{color:@xf-textColorMuted}.warextAiCenter-usageCard b{font-size:18px}.warextAiCenter-providerList{display:flex;flex-direction:column;margin-top:12px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;overflow:hidden}.warextAiCenter-provider{padding:11px 12px;border-bottom:1px solid @xf-borderColor}.warextAiCenter-provider:last-child{border-bottom:0}.warextAiCenter-provider>div:first-child{display:flex;gap:8px;align-items:baseline}.warextAiCenter-provider>div:first-child span{color:@xf-textColorMuted;font-size:12px}.warextAiCenter-providerMeta{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:5px;font-size:12px;color:@xf-textColorMuted}.warextAiCenter-providerError{margin-top:5px;font-size:12px;color:#c94b4b}.warextAiCenter-health{font-weight:700}.warextAiCenter-health--healthy{color:#4c9b63}.warextAiCenter-health--degraded{color:#c8922d}.warextAiCenter-health--error{color:#c94b4b}.warextAiCenter-historyForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.warextAiCenter-historyForm label{display:flex;flex-direction:column;gap:5px}.warextAiCenter-historyForm label small{color:@xf-textColorMuted}.warextAiCenter-historyForm .warextAiCenter-check{grid-column:1/-1;flex-direction:row;align-items:center}.warextAiCenter-historyForm .blockMessage,.warextAiCenter-historyForm button{grid-column:1/-1}.warextAiCenter-filterBody{padding:12px}.warextAiCenter-filter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.warextAiCenter-filter label{display:flex;flex-direction:column;gap:5px;font-size:12px}.warextAiCenter-filterActions{display:flex;gap:8px;grid-column:1/-1}.warextAiCenter-list{display:flex;flex-direction:column}.warextAiCenter-row{display:flex;justify-content:space-between;gap:16px;padding:13px 14px;border-bottom:1px solid @xf-borderColor}.warextAiCenter-row:last-child{border-bottom:0}.warextAiCenter-main{min-width:0}.warextAiCenter-title{display:flex;gap:8px;align-items:center;min-width:0}.warextAiCenter-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.warextAiCenter-meta{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;font-size:12px;color:@xf-textColorMuted}.warextAiCenter-side{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.warextAiCenter-risk,.warextAiCenter-state{padding:4px 8px;border-radius:999px;background:mix(@xf-contentBg,@xf-textColor,92%);font-size:12px;font-weight:600}.warextAiCenter-risk--medium{background:#c8922d22}.warextAiCenter-risk--high{background:#d06f2d25}.warextAiCenter-risk--critical{background:#c94b4b25}@media(max-width:900px){.warextAiCenter-usageGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:800px){.warextAiCenter-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.warextAiCenter-filter{grid-template-columns:repeat(2,minmax(0,1fr))}.warextAiCenter-row{flex-direction:column}.warextAiCenter-side{justify-content:flex-start}.warextAiCenter-historyForm{grid-template-columns:1fr}}@media(max-width:480px){.warextAiCenter-filter,.warextAiCenter-usageGrid{grid-template-columns:1fr}}]]></template>
+  <template type="public" title="warext_ai_center.less" version_id="1000320" version_string="1.0.2"><![CDATA[.warextAiCenter-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}.warextAiCenter-stat{display:flex;flex-direction:column;gap:3px;padding:14px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;background:@xf-contentBg;color:inherit;text-decoration:none}.warextAiCenter-stat b{font-size:22px}.warextAiCenter-stat span{font-size:12px;color:@xf-textColorMuted}.warextAiCenter-stat--warn{border-left:4px solid #c8922d}.warextAiCenter-stat--danger{border-left:4px solid #c94b4b}.warextAiCenter-stat--ok{border-left:4px solid #4c9b63}.warextAiCenter-manageBody{padding:12px}.warextAiCenter-usageGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.warextAiCenter-usageCard{display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;background:mix(@xf-contentBg,@xf-textColor,97%)}.warextAiCenter-usageCard span,.warextAiCenter-usageCard small{color:@xf-textColorMuted}.warextAiCenter-usageCard b{font-size:18px}.warextAiCenter-providerList{display:flex;flex-direction:column;margin-top:12px;border:1px solid @xf-borderColor;border-radius:@xf-borderRadiusMedium;overflow:hidden}.warextAiCenter-provider{padding:11px 12px;border-bottom:1px solid @xf-borderColor}.warextAiCenter-provider:last-child{border-bottom:0}.warextAiCenter-provider>div:first-child{display:flex;gap:8px;align-items:baseline}.warextAiCenter-provider>div:first-child span{color:@xf-textColorMuted;font-size:12px}.warextAiCenter-providerMeta{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:5px;font-size:12px;color:@xf-textColorMuted}.warextAiCenter-providerError{margin-top:5px;font-size:12px;color:#c94b4b}.warextAiCenter-health{font-weight:700}.warextAiCenter-health--healthy{color:#4c9b63}.warextAiCenter-health--degraded{color:#c8922d}.warextAiCenter-health--error{color:#c94b4b}.warextAiCenter-historyForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.warextAiCenter-historyForm label{display:flex;flex-direction:column;gap:5px}.warextAiCenter-historyForm label small{color:@xf-textColorMuted}.warextAiCenter-historyForm .warextAiCenter-check{grid-column:1/-1;flex-direction:row;align-items:center}.warextAiCenter-historyForm .blockMessage,.warextAiCenter-historyForm button{grid-column:1/-1}.warextAiCenter-filterBody{padding:12px}.warextAiCenter-filter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.warextAiCenter-filter label{display:flex;flex-direction:column;gap:5px;font-size:12px}.warextAiCenter-filterActions{display:flex;gap:8px;grid-column:1/-1}.warextAiCenter-list{display:flex;flex-direction:column}.warextAiCenter-row{display:flex;justify-content:space-between;gap:16px;padding:13px 14px;border-bottom:1px solid @xf-borderColor}.warextAiCenter-row:last-child{border-bottom:0}.warextAiCenter-main{min-width:0}.warextAiCenter-title{display:flex;gap:8px;align-items:center;min-width:0}.warextAiCenter-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.warextAiCenter-meta{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;font-size:12px;color:@xf-textColorMuted}.warextAiCenter-side{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.warextAiCenter-risk,.warextAiCenter-state{padding:4px 8px;border-radius:999px;background:mix(@xf-contentBg,@xf-textColor,92%);font-size:12px;font-weight:600}.warextAiCenter-risk--medium{background:#c8922d22}.warextAiCenter-risk--high{background:#d06f2d25}.warextAiCenter-risk--critical{background:#c94b4b25}@media(max-width:900px){.warextAiCenter-usageGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:800px){.warextAiCenter-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.warextAiCenter-filter{grid-template-columns:repeat(2,minmax(0,1fr))}.warextAiCenter-row{flex-direction:column}.warextAiCenter-side{justify-content:flex-start}.warextAiCenter-historyForm{grid-template-columns:1fr}}@media(max-width:480px){.warextAiCenter-filter,.warextAiCenter-usageGrid{grid-template-columns:1fr}}]]></template>
 </templates>
