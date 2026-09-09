@@ -17,14 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Stable sürüm kimliğini doğrula
+      - name: Stable sürüm kimliğini oku ve doğrula
+        id: version
         run: |
-          python3 - <<'PY'
-          import json
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re
           from pathlib import Path
           addon = json.loads(Path('upload/src/addons/Warext/AIContentInspector/addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.2' or int(addon.get('version_id', 0)) != 1000320:
-              raise SystemExit('Bu workflow yalnız v1.0.2 Stable için çalışır.')
+          version = str(addon.get('version_string', '')).strip()
+          version_id = int(addon.get('version_id', 0))
+          if not re.fullmatch(r'\d+\.\d+\.\d+', version) or version_id <= 0:
+              raise SystemExit('Stable sürüm kimliği geçersiz')
+          print(f'version={version}')
+          print(f'version_id={version_id}')
+          print(f'tag=v{version}')
           PY
 
       - name: PHP sözdizimini doğrula
@@ -33,7 +39,14 @@ jobs:
       - name: JavaScript sözdizimini doğrula
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
-      - name: XenForo master-data ve template uyumluluğunu doğrula
+      - name: Provider regresyonlarını çalıştır
+        run: |
+          php tests/analyzer_regression.php
+          php tests/openrouter_provider_regression.php
+          php tests/direct_provider_regression.php
+          php tests/openai_compatible_provider_regression.php
+
+      - name: XenForo master-data, template ve kurulum uyumluluğunu doğrula
         run: python3 tools/validate_xenforo_master.py
 
       - name: Stable XenForo ZIP paketini üret ve doğrula
@@ -48,48 +61,49 @@ jobs:
           sha256sum "$PACKAGE"
 
       - name: Release notlarını hazırla
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          cat > RELEASE_NOTES.md <<'EOF'
-          # Warext Studios | İçerik AI Denetim Sistemi v1.0.2 Stable
+          cat > RELEASE_NOTES.md <<EOF
+          # Warext Studios | İçerik AI Denetim Sistemi v${VERSION} Stable
 
-          XenForo 2.3+ template derleme ve ACP menü yerleşimi düzeltme sürümü. **v1.0.0 ve v1.0.1 yerine bu sürümü kullanın.**
+          XenForo 2.3+ ayar grubu erişimi ve konu üstü yetkili AI analizi geliştirme sürümü.
 
-          Kritik düzeltmeler:
-          - `public:warext_ai_center` şablonunda kurulum sırasında oluşan `Line 51: Syntax error` giderildi.
-          - PHP-benzeri kısa ternary/Elvis ifadelerinin `{$...}` doğrudan çıktı interpolasyonu içinde kullanılmasına son verildi.
-          - Provider model, konu başlığı ve kullanıcı adı fallback'leri kanonik `<xf:if>` yapısına geçirildi.
-          - Durum filtresi raw HTML option/attribute üretmek yerine XenForo'nun `<xf:select>` / `<xf:option>` bileşenine geçirildi.
-          - Risk sınıfı üretimi açık XenForo koşullarıyla güvenli hale getirildi.
+          Kritik düzeltme:
+          - Bazı kurulum/yükseltmelerde ACP kategorisi görünmesine rağmen `options/groups/warextAi/` sayfasının 404 vermesine karşı option-group self-heal eklendi.
+          - Kurulum ve yükseltme sırasında `warextAi` ayar grubu eksikse otomatik olarak yeniden oluşturulur; manuel SQL gerekmez.
 
-          ACP düzeni:
-          - `Warext AI İçerik Denetimi` kök kategorisinin `display_order` değeri 95'ten 9000'e taşındı.
-          - Böylece eklenti ayar grubu Setup / Add-ons gibi XenForo çekirdek kategorilerinin üstünde görünmez.
+          Konu üstü yetkili deneyimi:
+          - Yetkili kullanıcı konu başlığında doğrudan `AI Analizi` butonunu görür.
+          - Analizli mesajlarda kısa AI risk kartı otomatik görünür.
+          - Detay yetkisi olan kullanıcı `Detaylı rapor` ile yerel sinyal, yazım davranışı, Writing Checker, kullanıcı profili, benzerlik ve harici provider sonuçlarını görebilir.
+          - Eski/analiz edilmemiş konularda inceleme yetkisi olan kullanıcı `Konuyu analiz et` ile eksik mesajları XenForo job kuyruğuna alabilir.
+          - Konu taraması yalnız yerel analizle başlar; bu işlem kendi başına harici API maliyeti üretmez.
 
-          Release güvenliği:
-          - Yeni `tools/validate_xenforo_master.py` master-data, option formatları, phrase/nav yapıları ve template markup dengesini doğrular.
-          - `{$x ?: y}` / `{$x ? y : z}` gibi XenForo template compiler'ını bozabilecek ifadeli basit interpolasyonlar CI tarafından bloklanır.
-          - Template sürüm kimlikleri add-on sürümüyle eşleşmek zorundadır.
-          - ACP kategori sırasının tekrar core menülerin üstüne çıkması CI tarafından engellenir.
-          - Paketleme ve Release aşamalarında aynı sıkı doğrulama yeniden çalışır.
+          Güvenlik ve performans:
+          - Konu taraması yalnız görünür mesajları işler ve daha önce analiz edilmiş mesajları tekrar analiz etmez.
+          - Thread bazlı job filtresi eklendi.
+          - Yeni konu kontrol endpoint'i yetki ve CSRF kontrolüyle korunur.
+          - Release öncesi validator option-group self-heal ve konu analiz kontrol dosyalarını zorunlu olarak denetler.
 
-          Eklentinin AI analiz, moderasyon, opsiyonel provider, bütçe/maliyet, geçmiş tarama ve Writing Checker entegrasyon özellikleri korunur.
-
-          Kurulum için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V1.0.2.zip` dosyasını kullanın.
+          Kurulum için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V${VERSION}.zip` dosyasını kullanın.
           EOF
 
-      - name: GitHub v1.0.2 Release oluştur
+      - name: GitHub Stable Release oluştur
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE: ${{ steps.build.outputs.package }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          if gh release view v1.0.2 >/dev/null 2>&1; then
-            echo 'v1.0.2 Release zaten mevcut; yeniden oluşturulmadı.'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG Release zaten mevcut; yeniden oluşturulmadı."
             exit 0
           fi
-          gh release create v1.0.2 \
+          gh release create "$TAG" \
             "$PACKAGE#XenForo 2.3+ kurulum ZIP" \
             --target "$GITHUB_SHA" \
-            --title "Warext AI Content Inspector v1.0.2 Stable" \
+            --title "Warext AI Content Inspector v${VERSION} Stable" \
             --notes-file RELEASE_NOTES.md \
             --latest
