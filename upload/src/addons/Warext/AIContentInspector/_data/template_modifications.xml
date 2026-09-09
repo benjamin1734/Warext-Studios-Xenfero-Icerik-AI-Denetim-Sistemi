@@ -4,7 +4,7 @@
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
 <xf:if is="$xf.options.warextAiEnabled">
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000340"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000350"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
 <div id="warext-ai-config" hidden
@@ -16,9 +16,9 @@
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
 <div id="warext-ai-review-capability" hidden></div>
 </xf:if>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000340"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000340"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-controls.js') }}?wai=1000340"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000350"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000350"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-controls.js') }}?wai=1000350"></script>
 </xf:if>
 $0]]></replace>
   </modification>
