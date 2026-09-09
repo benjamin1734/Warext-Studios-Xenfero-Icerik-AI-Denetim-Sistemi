@@ -2,4 +2,5 @@
 <routes>
   <route route_type="public" route_prefix="warext-ai" controller="Warext\AIContentInspector:Report" context="warextAi" />
   <route route_type="public" route_prefix="warext-ai-thread" controller="Warext\AIContentInspector:ThreadAnalyze" context="warextAi" />
+  <route route_type="admin" route_prefix="warext-ai-high-risk" controller="Warext\AIContentInspector:HighRisk" context="warextAiAdmin" />
 </routes>
