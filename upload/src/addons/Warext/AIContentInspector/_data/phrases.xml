@@ -6,7 +6,7 @@
   <phrase title="permission_general_warextAiReview" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sonuçlarını inceleyebilir ve durumlandırabilir]]></phrase>
   <phrase title="permission_general_warextAiManage" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI denetim sistemini yönetebilir]]></phrase>
   <phrase title="option_group_warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
-  <phrase title="option_group_warextAi_description" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır. OpenRouter önerilen bulut sağlayıcısıdır; OpenAI/GPT, Gemini, DeepSeek, Claude, Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible servisler opsiyonel ikinci görüş olarak kullanılabilir. Harici API zorunlu değildir.]]></phrase>
+  <phrase title="option_group_warextAi_description" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Seçilen forumlarda yerel analiz çalıştırır. OpenRouter önerilen bulut sağlayıcısıdır; OpenAI/GPT, Gemini, DeepSeek, Claude, Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible servisler opsiyonel ikinci görüş olarak kullanılabilir. Harici API zorunlu değildir. Bütçe, kullanım ve geçmiş tarama kontrolleri aynı ayar grubundan yönetilir.]]></phrase>
   <phrase title="option_warextAiEnabled" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
   <phrase title="option_warextAiEnabled_explain" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir. Harici sağlayıcı kapalı olsa da sistem çalışır.]]></phrase>
   <phrase title="option_warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Minimum analiz karakteri]]></phrase>
@@ -92,5 +92,18 @@
   <phrase title="option_warextAiDirectTimeout" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan provider zaman aşımı (saniye)]]></phrase>
   <phrase title="option_warextAiDirectTimeout_explain" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Doğrudan harici provider yanıt vermezse bu süreden sonra yerel sonuç korunur.]]></phrase>
 
+  <phrase title="option_warextAiDailyRequestLimit" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Günlük maksimum harici AI isteği]]></phrase>
+  <phrase title="option_warextAiDailyRequestLimit_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[0 sınırsızdır. Limit dolduğunda harici API çağrıları durur, yerel analiz çalışmaya devam eder.]]></phrase>
+  <phrase title="option_warextAiDailyBudgetUsd" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Günlük harici AI bütçesi (USD)]]></phrase>
+  <phrase title="option_warextAiDailyBudgetUsd_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[0 sınırsızdır. Provider gerçek maliyet bilgisi döndürüyorsa günlük toplam bu değere ulaştığında yeni harici çağrılar durur.]]></phrase>
+  <phrase title="option_warextAiMonthlyBudgetUsd" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Aylık harici AI bütçesi (USD)]]></phrase>
+  <phrase title="option_warextAiMonthlyBudgetUsd_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[0 sınırsızdır. Provider maliyet verisi döndürüyorsa aylık toplam bütçe sınırına ulaşıldığında harici çağrı yapılmaz.]]></phrase>
+  <phrase title="option_warextAiUsageRetentionDays" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[API kullanım kayıtlarını saklama süresi (gün)]]></phrase>
+  <phrase title="option_warextAiUsageRetentionDays_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Token, maliyet ve hata geçmişinin ne kadar süre tutulacağını belirler. Varsayılan 90 gündür.]]></phrase>
+  <phrase title="option_warextAiHistoryBatchSize" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Geçmiş tarama job paket boyutu]]></phrase>
+  <phrase title="option_warextAiHistoryBatchSize_explain" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Geçmiş içerik taramasında tek job turunda ele alınacak maksimum mesaj sayısı. Büyük forumlarda 25-100 arası değerler uygundur.]]></phrase>
+
+  <phrase title="admin_navigation.warextAiAdmin" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Warext AI İçerik Denetimi]]></phrase>
+  <phrase title="admin_navigation.warextAiSettings" version_id="1000180" version_string="1.0.0 Alpha 12"><![CDATA[Ayarlar]]></phrase>
   <phrase title="nav.warextAi" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI Denetimi]]></phrase>
 </phrases>
