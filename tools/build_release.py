@@ -27,6 +27,7 @@ output = ROOT / package_name
 required = {
     'upload/src/addons/Warext/AIContentInspector/addon.json',
     'upload/src/addons/Warext/AIContentInspector/Setup.php',
+    'upload/src/addons/Warext/AIContentInspector/Admin/Controller/HighRisk.php',
     'upload/src/addons/Warext/AIContentInspector/Job/ExternalVerify.php',
     'upload/src/addons/Warext/AIContentInspector/Job/HistoricalScan.php',
     'upload/src/addons/Warext/AIContentInspector/Cron/UsagePrune.php',
@@ -43,6 +44,7 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/Service/HistoricalAnalyzer.php',
     'upload/src/addons/Warext/AIContentInspector/Service/UsageTracker.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/Report.php',
+    'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ThreadAnalyze.php',
     'upload/src/addons/Warext/AIContentInspector/XF/Entity/Post.php',
     'upload/src/addons/Warext/AIContentInspector/_data/admin_navigation.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/cron_entries.xml',
@@ -55,7 +57,8 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/_data/templates.xml',
     'upload/js/warext/ai-content-inspector/tracker.js',
     'upload/js/warext/ai-content-inspector/report-ui.js',
-    'upload/js/warext/ai-content-inspector/thread-report.js'
+    'upload/js/warext/ai-content-inspector/thread-report.js',
+    'upload/js/warext/ai-content-inspector/thread-controls.js'
 }
 
 with tempfile.TemporaryDirectory(prefix='warext-ai-release-') as temp_dir:
