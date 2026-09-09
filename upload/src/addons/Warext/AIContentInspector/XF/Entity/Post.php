@@ -33,7 +33,7 @@ class Post extends XFCP_Post
             $message = (string)$this->message;
             $analyzer = new Analyzer();
             $authoredChars = $analyzer->authoredTextLength($message);
-            $minChars = max(100, (int)($options->warextAiMinChars ?? 350));
+            $minChars = max(0, min(50000, (int)($options->warextAiMinChars ?? 350)));
 
             if ($authoredChars <= 0)
             {
@@ -41,15 +41,17 @@ class Post extends XFCP_Post
             }
             if ($force)
             {
-                // Manual moderation must be able to bypass the ACP automatic-scan threshold,
-                // but tiny fragments cannot produce a responsible AI-origin assessment.
-                if ($authoredChars < 80)
+                // Manuel moderasyon otomatik eşiği aşabilir; yönetici otomatik eşiği
+                // 80'in altına indirdiyse aynı düşük sınır manuel analizde de geçerlidir.
+                // 0 ayarında yalnızca gerçekten boş içerik reddedilir.
+                $manualMinChars = max(1, min(80, $minChars > 0 ? $minChars : 1));
+                if ($authoredChars < $manualMinChars)
                 {
                     return [
                         'success' => false,
                         'reason' => 'insufficient_text',
                         'chars' => $authoredChars,
-                        'minimum_chars' => 80
+                        'minimum_chars' => $manualMinChars
                     ];
                 }
             }

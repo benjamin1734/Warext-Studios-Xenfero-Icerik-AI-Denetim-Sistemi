@@ -10,7 +10,7 @@
   <phrase title="option.warextAiEnabled" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetimini etkinleştir]]></phrase>
   <phrase title="option_explain.warextAiEnabled" version_id="1000110" version_string="1.0.0 Alpha 5"><![CDATA[Seçilen forumlarda yeni ve düzenlenen mesajların yerel AI risk analizini etkinleştirir. Harici sağlayıcı kapalı olsa da sistem çalışır.]]></phrase>
   <phrase title="option.warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Minimum analiz karakteri]]></phrase>
-  <phrase title="option_explain.warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Bu karakter sayısının altındaki içerikler yetersiz veri nedeniyle analiz edilmez.]]></phrase>
+  <phrase title="option_explain.warextAiMinChars" version_id="1000380" version_string="1.0.8"><![CDATA[Otomatik analiz için gereken minimum kullanıcı metni uzunluğu. 0-50000 arasında istediğiniz değeri kullanabilirsiniz. 0 seçilirse boş olmayan tüm içerikler analiz için uygun kabul edilir; çok kısa metinlerde güven skoru doğal olarak daha düşük olabilir.]]></phrase>
   <phrase title="option.warextAiForums" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Analiz edilecek forumlar]]></phrase>
   <phrase title="option_explain.warextAiForums" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[AI içerik denetiminin çalışacağı forumları seçin. Hiçbir forum seçilmezse tüm forumlar analiz edilir.]]></phrase>
   <phrase title="option.warextAiExternalProvider" version_id="1000160" version_string="1.0.0 Alpha 10"><![CDATA[Harici AI doğrulama sağlayıcısı]]></phrase>

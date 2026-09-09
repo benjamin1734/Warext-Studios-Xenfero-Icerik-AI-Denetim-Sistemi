@@ -20,6 +20,60 @@
     confirmed: 'Onaylandı'
   };
 
+  const reviewCapability = document.getElementById('warext-ai-review-capability');
+  const threadAnalyzeEndpoint = reviewCapability?.dataset.threadAnalyzeEndpoint || '';
+
+  function resolveThreadId() {
+    const source = `${location.pathname}${location.search}`;
+    const match = source.match(/threads\/(?:[^/?#]*\.)?(\d+)/i);
+    return match ? Number(match[1]) : 0;
+  }
+
+  function makeThreadAnalyzeUrl(threadId) {
+    if (!threadAnalyzeEndpoint) return '';
+    const url = new URL(threadAnalyzeEndpoint, location.href);
+    url.searchParams.set('thread_id', String(threadId));
+    return url.toString();
+  }
+
+  function installThreadMenuFallback(root = document) {
+    if (!reviewCapability || !threadAnalyzeEndpoint) return false;
+    if (document.querySelector('.js-warextAiManualThreadAnalyze')) return true;
+
+    const threadId = resolveThreadId();
+    if (!threadId) return false;
+
+    const links = root.querySelectorAll ? root.querySelectorAll('a.menu-linkRow[href]') : [];
+    let moderatorAction = null;
+    for (const candidate of links) {
+      const href = candidate.getAttribute('href') || '';
+      if (/moderator-actions(?:[/?#]|$)/i.test(href)) {
+        moderatorAction = candidate;
+        break;
+      }
+    }
+    if (!moderatorAction) return false;
+
+    const link = document.createElement('a');
+    link.href = makeThreadAnalyzeUrl(threadId);
+    link.className = 'menu-linkRow js-warextAiManualThreadAnalyze';
+    link.dataset.threadId = String(threadId);
+    link.textContent = 'Konuyu AI ile analiz et';
+    moderatorAction.insertAdjacentElement('afterend', link);
+    return true;
+  }
+
+  function bootThreadMenuFallback() {
+    if (installThreadMenuFallback()) return;
+    if (!document.body) return;
+
+    const observer = new MutationObserver(() => {
+      if (installThreadMenuFallback()) observer.disconnect();
+    });
+    observer.observe(document.body, {childList: true, subtree: true});
+    window.setTimeout(() => observer.disconnect(), 15000);
+  }
+
   function csrfToken() {
     return document.querySelector('input[name="_xfToken"]')?.value || window.XF?.config?.csrf || '';
   }
@@ -183,6 +237,12 @@
       link.dataset.warextBusy = '0';
       link.textContent = original;
     }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootThreadMenuFallback, {once: true});
+  } else {
+    bootThreadMenuFallback();
   }
 
   document.addEventListener('click', event => {

@@ -1,5 +1,14 @@
 # Değişiklik Günlüğü
 
+## v1.0.8 Stable
+
+- `Minimum analiz karakteri` alt sınırı 100'den 0'a indirildi; yönetici 0-50000 arasında istediği değeri kullanabilir.
+- Runtime analiz motorundaki sabit 100 karakter clamp'i kaldırıldı.
+- Manuel analiz düşük ACP eşikleriyle uyumlu hale getirildi; 0 ayarında yalnızca boş içerik reddedilir.
+- Konu üst üç nokta menüsü için tema uyumlu JS fallback eklendi; template hook eşleşmezse `Moderator actions` satırının yanına `Konuyu AI ile analiz et` eklenir.
+- Stable validator minimum karakter aralığını ve konu menüsü fallback'ini zorunlu doğrular.
+- Frontend cache anahtarı `1000380` olarak güncellendi.
+
 ## v1.0.7 Stable
 
 - Konu sayfasının üst üç nokta / konu araçları menüsüne `Konuyu AI ile analiz et` eylemi eklendi.

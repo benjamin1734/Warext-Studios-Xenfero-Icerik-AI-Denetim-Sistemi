@@ -67,6 +67,11 @@ def main() -> None:
     if fallback is None or fallback.attrib.get('edit_format') != 'textbox' or 'rows=4' not in (fallback.findtext('edit_format_params') or ''):
         fail('OpenRouter fallback listesi textbox + rows=4 olmalı')
 
+    min_chars_option = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiMinChars'), None)
+    min_chars_params = (min_chars_option.findtext('edit_format_params') or '') if min_chars_option is not None else ''
+    if min_chars_option is None or 'min=0' not in min_chars_params or 'max=50000' not in min_chars_params:
+        fail('Minimum analiz karakteri 0-50000 aralığında serbest olmalı')
+
     forum_option = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiForums'), None)
     if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'Warext\AIContentInspector\Option\Forum::renderCheckboxList':
         fail('Forum selector özel checkbox callback biçiminde değil')
@@ -155,7 +160,7 @@ def main() -> None:
     cache_key = f'?wai={version_id}'
     if cache_key not in modifications:
         fail(f'{version} JS cache anahtarı eksik: {cache_key}')
-    for marker in ['data-thread-analyze-endpoint', 'thread-controls.js', 'warext-ai-review-capability']:
+    for marker in ['data-thread-analyze-endpoint', 'thread-controls.js', 'warext-ai-review-capability', 'data-thread-analyze-endpoint="{{ link(\'warext-ai-thread/run\') }}"']:
         if marker not in modifications:
             fail('Konu AI kontrol arayüzü eksik: ' + marker)
     for marker in [
@@ -229,7 +234,7 @@ def main() -> None:
         if marker not in manual_code:
             fail('Manuel analiz controller eksik: ' + marker)
     manual_js = manual_ui.read_text(encoding='utf-8')
-    for marker in ['js-warextAiManualAnalyze', 'js-warextAiManualThreadAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'warext-ai-manual-thread-analysis-queued', 'ensureReportBox']:
+    for marker in ['js-warextAiManualAnalyze', 'js-warextAiManualThreadAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'warext-ai-manual-thread-analysis-queued', 'ensureReportBox', 'installThreadMenuFallback', 'moderator-actions', 'MutationObserver']:
         if marker not in manual_js:
             fail('Manuel analiz tarayıcı entegrasyonu eksik: ' + marker)
 
@@ -239,7 +244,8 @@ def main() -> None:
             fail('Post analiz zinciri eksik: ' + marker)
     for marker in [
         'public function warextRunAiAnalysis(bool $force = false, bool $manual = false): array',
-        'if (!$force &&', 'manual_analysis', 'manual_reanalysis_unobserved', "'minimum_chars' => 80"
+        '$minChars = max(0, min(50000', '$manualMinChars = max(1, min(80',
+        'if (!$force &&', 'manual_analysis', 'manual_reanalysis_unobserved', "'minimum_chars' => $manualMinChars"
     ]:
         if marker not in post:
             fail('Zorunlu manuel post yeniden analiz desteği eksik: ' + marker)
