@@ -34,25 +34,53 @@ def main() -> None:
         'select', 'checkbox', 'template', 'callback', 'username'
     }
     options = parsed['options.xml']
+    option_nodes = options.findall('option')
+    if len(option_nodes) < 20:
+        fail(f'Warext AI seçenek master-data eksik: yalnız {len(option_nodes)} option bulundu')
+
     invalid_formats = {
         o.attrib.get('option_id'): o.attrib.get('edit_format')
-        for o in options.findall('option')
+        for o in option_nodes
         if o.attrib.get('edit_format') not in allowed_formats
     }
     if invalid_formats:
         fail('Geçersiz XenForo option edit formatı: ' + repr(invalid_formats))
 
-    fallback = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiOpenRouterFallbackModels'), None)
+    required_option_ids = {
+        'warextAiEnabled', 'warextAiMinChars', 'warextAiForums', 'warextAiExternalProvider',
+        'warextAiOpenRouterKey', 'warextAiOpenRouterModel', 'warextAiDailyRequestLimit',
+        'warextAiMonthlyRequestLimit', 'warextAiHistoryBatchSize'
+    }
+    actual_option_ids = {o.attrib.get('option_id') for o in option_nodes}
+    missing_option_ids = sorted(required_option_ids - actual_option_ids)
+    if missing_option_ids:
+        fail('Zorunlu Warext AI seçenekleri eksik: ' + ', '.join(missing_option_ids))
+
+    for option in option_nodes:
+        relations = option.findall('relation')
+        if not relations:
+            fail(f"Option grup ilişkisi eksik: {option.attrib.get('option_id')}")
+        if not any(r.attrib.get('group_id') == 'warextAi' for r in relations):
+            fail(f"Option warextAi grubuna bağlı değil: {option.attrib.get('option_id')}")
+
+    fallback = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiOpenRouterFallbackModels'), None)
     if fallback is None or fallback.attrib.get('edit_format') != 'textbox' or 'rows=4' not in (fallback.findtext('edit_format_params') or ''):
         fail('OpenRouter fallback listesi textbox + rows=4 olmalı')
 
-    forum_option = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiForums'), None)
+    forum_option = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiForums'), None)
     if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'XF\Option\Forum::renderSelectMultiple':
         fail('Forum selector callback XenForo export biçiminde değil')
 
-    groups = {g.attrib.get('group_id') for g in parsed['option_groups.xml'].findall('option_group')}
+    option_groups = parsed['option_groups.xml']
+    if option_groups.findall('option_group'):
+        fail('option_groups.xml legacy <option_group> etiketi içeriyor; XenForo export şeması <group> kullanır')
+    group_nodes = option_groups.findall('group')
+    groups = {g.attrib.get('group_id') for g in group_nodes}
     if 'warextAi' not in groups:
-        fail('Warext AI option group eksik')
+        fail('Warext AI option group kanonik <group> öğesiyle tanımlı değil')
+    warext_group = next(g for g in group_nodes if g.attrib.get('group_id') == 'warextAi')
+    if int(warext_group.attrib.get('display_order', '0')) <= 0:
+        fail('Warext AI option group display_order geçersiz')
 
     admin_nav = parsed['admin_navigation.xml']
     nav_by_id = {n.attrib.get('navigation_id'): n for n in admin_nav.findall('admin_navigation_entry')}
@@ -63,7 +91,7 @@ def main() -> None:
     if nav_by_id['warextAiSettings'].attrib.get('parent_navigation_id') != 'warextAiAdmin':
         fail('Warext AI ayarlar girdisi kendi ACP kategorisinin altında olmalı')
     if nav_by_id['warextAiSettings'].attrib.get('link') != 'add-ons/Warext-AIContentInspector/options':
-        fail('Ayarlar bağlantısı option-group 404 riskinden kaçınmak için add-on options route kullanmalı')
+        fail('Ayarlar bağlantısı add-on options route kullanmalı')
     if nav_by_id['warextAiAdmin'].attrib.get('link') != 'warext-ai-high-risk/':
         fail('Warext AI ACP ana kategorisi yüksek risk görünümüne gitmeli')
 
@@ -134,9 +162,9 @@ def main() -> None:
 
     setup = (ROOT / 'Setup.php').read_text(encoding='utf-8')
     for marker in [
-        'installStep1', 'installStep2', 'upgrade1000330Step1', 'upgrade1000340Step1', 'ensureOptionGroup',
-        "'xf_option_group'", "'group_id' => 'warextAi'", 'uninstallStep1',
-        'xf_warext_ai_analysis', 'xf_warext_ai_review_log', 'xf_warext_ai_usage'
+        'installStep1', 'installStep2', 'upgrade1000330Step1', 'upgrade1000340Step1',
+        'upgrade1000350Step1', 'ensureOptionGroup', "'xf_option_group'", "'group_id' => 'warextAi'",
+        'uninstallStep1', 'xf_warext_ai_analysis', 'xf_warext_ai_review_log', 'xf_warext_ai_usage'
     ]:
         if marker not in setup:
             fail('Install/upgrade self-heal zinciri eksik: ' + marker)
@@ -187,6 +215,8 @@ def main() -> None:
         'version': version,
         'versionId': version_id,
         'installerMasterDataValidated': True,
+        'canonicalOptionGroupSchemaValidated': True,
+        'optionRelationsValidated': True,
         'templateMarkupValidated': True,
         'optionGroupSelfHealValidated': True,
         'addonOptionsRouteValidated': True,
