@@ -54,6 +54,11 @@ class Setup extends AbstractSetup
         $this->createUsageTable();
     }
 
+    public function installStep2(): void
+    {
+        $this->ensureOptionGroup();
+    }
+
     public function upgrade1000080Step1(): void
     {
         $this->schemaManager()->alterTable('xf_warext_ai_analysis', function (\XF\Db\Schema\Alter $table)
@@ -102,6 +107,21 @@ class Setup extends AbstractSetup
         {
             $table->addColumn('cost_source', 'varchar', 12)->setDefault('unknown')->after('cost_microusd');
         });
+    }
+
+    public function upgrade1000320Step1(): void
+    {
+        $this->ensureOptionGroup();
+    }
+
+    protected function ensureOptionGroup(): void
+    {
+        \XF::db()->insert('xf_option_group', [
+            'group_id' => 'warextAi',
+            'display_order' => 9510,
+            'debug_only' => 0,
+            'addon_id' => 'Warext/AIContentInspector'
+        ], false, 'display_order = VALUES(display_order), debug_only = VALUES(debug_only), addon_id = VALUES(addon_id)');
     }
 
     protected function createReviewLogTable(): void
