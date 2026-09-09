@@ -2,6 +2,7 @@
 
 namespace Warext\AIContentInspector\Pub\Controller;
 
+use Warext\AIContentInspector\Service\UsageTracker;
 use XF\Pub\Controller\AbstractController;
 
 class Report extends AbstractController
@@ -19,6 +20,11 @@ class Report extends AbstractController
     protected function canReview(): bool
     {
         return \XF::visitor()->hasPermission('general', 'warextAiReview');
+    }
+
+    protected function canManage(): bool
+    {
+        return \XF::visitor()->hasPermission('general', 'warextAiManage');
     }
 
     public function actionIndex()
@@ -76,12 +82,57 @@ class Report extends AbstractController
             'cleared' => (int)$db->fetchOne("SELECT COUNT(*) FROM xf_warext_ai_analysis WHERE review_state = 'cleared'")
         ];
 
+        $canManage = $this->canManage();
+        $usage = $canManage ? (new UsageTracker())->summary() : [];
         $linkParams = array_filter($filters, fn($value) => $value !== '' && $value !== 0);
         return $this->view('Warext\AIContentInspector:Report\Index', 'warext_ai_center', [
             'rows' => $rows, 'total' => $total, 'page' => $page, 'perPage' => $perPage,
             'filters' => $filters, 'counts' => $counts, 'linkParams' => $linkParams,
-            'canDetailed' => $this->canViewDetailed(), 'canReview' => $this->canReview()
+            'canDetailed' => $this->canViewDetailed(), 'canReview' => $this->canReview(),
+            'canManage' => $canManage, 'usage' => $usage
         ]);
+    }
+
+    public function actionHistoryScan()
+    {
+        if (!$this->canManage()) return $this->noPermission();
+        $this->assertPostOnly();
+
+        $maxPosts = max(10, min(50000, (int)$this->filter('max_posts', 'uint')));
+        $days = min(3650, max(0, (int)$this->filter('days', 'uint')));
+        $includeExternal = (bool)$this->filter('include_external', 'bool');
+        $minDate = $days > 0 ? time() - ($days * 86400) : 0;
+
+        $configured = \XF::options()->warextAiForums ?? [];
+        if (is_array($configured))
+        {
+            $forumIds = array_values(array_unique(array_filter(array_map('intval', $configured))));
+        }
+        else
+        {
+            $legacy = trim((string)$configured);
+            $forumIds = $legacy === '' ? [] : array_values(array_unique(array_filter(array_map('intval', preg_split('/[\s,;]+/', $legacy) ?: []))));
+        }
+
+        \XF::app()->jobManager()->enqueueUnique(
+            'warextAiHistoryScan',
+            'Warext\\AIContentInspector:HistoricalScan',
+            [
+                'last_post_id' => 0,
+                'processed' => 0,
+                'analyzed' => 0,
+                'max_posts' => $maxPosts,
+                'min_date' => $minDate,
+                'include_external' => $includeExternal,
+                'forum_ids' => $forumIds
+            ],
+            false
+        );
+
+        return $this->redirect(
+            $this->buildLink('warext-ai'),
+            'Geçmiş içerik taraması arka plan kuyruğuna eklendi.'
+        );
     }
 
     public function actionBatch()
