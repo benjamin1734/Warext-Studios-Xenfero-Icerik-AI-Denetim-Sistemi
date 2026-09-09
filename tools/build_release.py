@@ -28,18 +28,30 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/addon.json',
     'upload/src/addons/Warext/AIContentInspector/Setup.php',
     'upload/src/addons/Warext/AIContentInspector/Job/ExternalVerify.php',
+    'upload/src/addons/Warext/AIContentInspector/Job/HistoricalScan.php',
+    'upload/src/addons/Warext/AIContentInspector/Cron/UsagePrune.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/ProviderInterface.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/LocalProvider.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/OpenRouterProvider.php',
+    'upload/src/addons/Warext/AIContentInspector/Provider/AbstractJsonProvider.php',
+    'upload/src/addons/Warext/AIContentInspector/Provider/OpenAICompatibleProvider.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/Registry.php',
     'upload/src/addons/Warext/AIContentInspector/Service/Analyzer.php',
     'upload/src/addons/Warext/AIContentInspector/Service/UserProfile.php',
     'upload/src/addons/Warext/AIContentInspector/Service/Similarity.php',
     'upload/src/addons/Warext/AIContentInspector/Service/ExternalVerifier.php',
+    'upload/src/addons/Warext/AIContentInspector/Service/HistoricalAnalyzer.php',
+    'upload/src/addons/Warext/AIContentInspector/Service/UsageTracker.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/Report.php',
+    'upload/src/addons/Warext/AIContentInspector/XF/Entity/Post.php',
+    'upload/src/addons/Warext/AIContentInspector/_data/admin_navigation.xml',
+    'upload/src/addons/Warext/AIContentInspector/_data/cron_entries.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/options.xml',
+    'upload/src/addons/Warext/AIContentInspector/_data/option_groups.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/permissions.xml',
+    'upload/src/addons/Warext/AIContentInspector/_data/phrases.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/routes.xml',
+    'upload/src/addons/Warext/AIContentInspector/_data/template_modifications.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/templates.xml',
     'upload/js/warext/ai-content-inspector/tracker.js',
     'upload/js/warext/ai-content-inspector/report-ui.js',
@@ -63,10 +75,14 @@ with tempfile.TemporaryDirectory(prefix='warext-ai-release-') as temp_dir:
     if readme.is_file():
         shutil.copy2(readme, stage / 'README.md')
 
+    changelog = ROOT / 'CHANGELOG.md'
+    if changelog.is_file():
+        shutil.copy2(changelog, stage / 'CHANGELOG.md')
+
     if output.exists():
         output.unlink()
 
-    fixed = (2026, 9, 8, 0, 0, 0)
+    fixed = (2026, 9, 9, 0, 0, 0)
     with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path in sorted(stage.rglob('*')):
             if not path.is_file():
