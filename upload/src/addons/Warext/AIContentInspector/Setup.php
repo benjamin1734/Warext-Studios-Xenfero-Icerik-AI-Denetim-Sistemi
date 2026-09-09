@@ -52,10 +52,12 @@ class Setup extends AbstractSetup
 
         $this->createReviewLogTable();
         $this->createUsageTable();
+        $this->ensureOptionGroup();
     }
 
     public function installStep2(): void
     {
+        // Master-data importundan önce/sonra güvenli şekilde tekrar doğrula.
         $this->ensureOptionGroup();
     }
 
@@ -110,6 +112,11 @@ class Setup extends AbstractSetup
     }
 
     public function upgrade1000330Step1(): void
+    {
+        $this->ensureOptionGroup();
+    }
+
+    public function upgrade1000340Step1(): void
     {
         $this->ensureOptionGroup();
     }
