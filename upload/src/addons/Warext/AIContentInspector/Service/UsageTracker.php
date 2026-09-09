@@ -23,7 +23,7 @@ class UsageTracker
 
         $stats = \XF::db()->fetchRow(
             'SELECT COUNT(*) AS monthly_requests,
-                    COALESCE(SUM(created_date >= ?), 0) AS daily_requests,
+                    COALESCE(SUM(IF(created_date >= ?, 1, 0)), 0) AS daily_requests,
                     COALESCE(SUM(IF(created_date >= ?, cost_microusd, 0)), 0) AS daily_cost,
                     COALESCE(SUM(cost_microusd), 0) AS monthly_cost
              FROM xf_warext_ai_usage
@@ -75,7 +75,10 @@ class UsageTracker
             $options = \XF::options();
             $inputRate = max(0.0, (float)($options->warextAiEstimatedInputUsdPerMillion ?? 0));
             $outputRate = max(0.0, (float)($options->warextAiEstimatedOutputUsdPerMillion ?? 0));
-            if ($inputRate > 0 || $outputRate > 0)
+            $hasInputPrice = $promptTokens === 0 || $inputRate > 0;
+            $hasOutputPrice = $completionTokens === 0 || $outputRate > 0;
+
+            if ($hasInputPrice && $hasOutputPrice)
             {
                 $cost = (($promptTokens / 1000000) * $inputRate) + (($completionTokens / 1000000) * $outputRate);
                 $costSource = 'estimated';
@@ -120,7 +123,7 @@ class UsageTracker
                     COALESCE(SUM(cost_microusd),0) AS monthly_cost,
                     COALESCE(SUM(cost_source = 'actual'),0) AS monthly_actual_cost_records,
                     COALESCE(SUM(cost_source = 'estimated'),0) AS monthly_estimated_cost_records,
-                    COALESCE(SUM(created_date >= ?),0) AS daily_requests,
+                    COALESCE(SUM(IF(created_date >= ?, 1, 0)),0) AS daily_requests,
                     COALESCE(SUM(IF(created_date >= ?, success, 0)),0) AS daily_successes,
                     COALESCE(SUM(IF(created_date >= ?, total_tokens, 0)),0) AS daily_tokens,
                     COALESCE(SUM(IF(created_date >= ?, cost_microusd, 0)),0) AS daily_cost,
