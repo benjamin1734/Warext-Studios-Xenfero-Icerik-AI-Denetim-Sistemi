@@ -129,10 +129,7 @@ class Report extends AbstractController
             false
         );
 
-        return $this->redirect(
-            $this->buildLink('warext-ai'),
-            'Geçmiş içerik taraması arka plan kuyruğuna eklendi.'
-        );
+        return $this->redirect($this->buildLink('warext-ai'), 'Geçmiş içerik taraması arka plan kuyruğuna eklendi.');
     }
 
     public function actionBatch()
@@ -186,23 +183,27 @@ class Report extends AbstractController
         );
         if (!$summary || (int)$summary['analyzed_count'] === 0) return $this->asJson(['threadId' => $threadId, 'available' => false]);
 
-        $top = $db->fetchAll(
-            'SELECT post_id, user_id, risk_score, confidence, classification, review_state
-             FROM xf_warext_ai_analysis
-             WHERE thread_id = ?
-             ORDER BY risk_score DESC, confidence DESC
-             LIMIT 5',
-            $threadId
-        );
-
-        foreach ($top as &$row)
+        $top = [];
+        if ($this->canViewDetailed())
         {
-            $row['post_id'] = (int)$row['post_id'];
-            $row['user_id'] = (int)$row['user_id'];
-            $row['risk_score'] = (int)$row['risk_score'];
-            $row['confidence'] = (int)$row['confidence'];
+            $top = $db->fetchAll(
+                'SELECT post_id, user_id, risk_score, confidence, classification, review_state
+                 FROM xf_warext_ai_analysis
+                 WHERE thread_id = ?
+                 ORDER BY risk_score DESC, confidence DESC
+                 LIMIT 5',
+                $threadId
+            );
+
+            foreach ($top as &$row)
+            {
+                $row['post_id'] = (int)$row['post_id'];
+                $row['user_id'] = (int)$row['user_id'];
+                $row['risk_score'] = (int)$row['risk_score'];
+                $row['confidence'] = (int)$row['confidence'];
+            }
+            unset($row);
         }
-        unset($row);
 
         return $this->asJson([
             'threadId' => $threadId,
@@ -217,7 +218,7 @@ class Report extends AbstractController
                 'confirmed' => (int)$summary['confirmed_count'],
                 'cleared' => (int)$summary['cleared_count']
             ],
-            'top' => $this->canViewDetailed() ? $top : [],
+            'top' => $top,
             'canDetailed' => $this->canViewDetailed()
         ]);
     }
@@ -250,8 +251,11 @@ class Report extends AbstractController
             'userId' => (int)$row['user_id'], 'forumId' => (int)$row['forum_id'],
             'risk' => (int)$row['risk_score'], 'confidence' => (int)$row['confidence'],
             'classification' => (string)$row['classification'], 'reviewState' => (string)$row['review_state'],
-            'textMetrics' => $this->decode($row['text_metrics']), 'behaviorMetrics' => $this->decode($row['behavior_metrics']),
-            'writingMetrics' => $this->decode($row['writing_metrics']), 'profileMetrics' => $this->decode($row['profile_metrics'] ?? null),
+            'textMetrics' => $this->decode($row['text_metrics']),
+            'behaviorMetrics' => $this->decode($row['behavior_metrics']),
+            'writingMetrics' => $this->decode($row['writing_metrics']),
+            'profileMetrics' => $this->decode($row['profile_metrics'] ?? null),
+            'similarityMetrics' => $this->decode($row['similarity_metrics'] ?? null),
             'externalMetrics' => $this->decode($row['external_metrics'] ?? null),
             'signals' => $this->decode($row['signal_summary']), 'reviewHistory' => $history,
             'analyzedDate' => (int)$row['analyzed_date'], 'updatedDate' => (int)$row['updated_date'],
