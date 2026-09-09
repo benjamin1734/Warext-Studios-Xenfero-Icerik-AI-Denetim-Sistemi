@@ -14,7 +14,8 @@ class HistoricalScan extends AbstractJob
         'max_posts' => 1000,
         'min_date' => 0,
         'include_external' => false,
-        'forum_ids' => []
+        'forum_ids' => [],
+        'thread_ids' => []
     ];
 
     public function run($maxRunTime)
@@ -27,7 +28,7 @@ class HistoricalScan extends AbstractJob
         if ($remaining <= 0) return $this->complete();
         $limit = min($batchSize, $remaining);
 
-        $where = ['p.post_id > ?'];
+        $where = ["p.post_id > ?", "p.message_state = 'visible'"];
         $params = [(int)$this->data['last_post_id']];
 
         $minDate = max(0, (int)($this->data['min_date'] ?? 0));
@@ -43,6 +44,14 @@ class HistoricalScan extends AbstractJob
             $placeholders = implode(',', array_fill(0, count($forumIds), '?'));
             $where[] = "t.node_id IN ($placeholders)";
             foreach ($forumIds as $forumId) $params[] = $forumId;
+        }
+
+        $threadIds = array_values(array_unique(array_filter(array_map('intval', (array)($this->data['thread_ids'] ?? [])))));
+        if ($threadIds)
+        {
+            $placeholders = implode(',', array_fill(0, count($threadIds), '?'));
+            $where[] = "p.thread_id IN ($placeholders)";
+            foreach ($threadIds as $threadId) $params[] = $threadId;
         }
 
         $where[] = 'NOT EXISTS (SELECT 1 FROM xf_warext_ai_analysis a WHERE a.post_id = p.post_id)';
