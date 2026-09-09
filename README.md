@@ -6,11 +6,11 @@ XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ il
 
 ## Güncel sürüm
 
-**1.0.0 Alpha 10 — yapım aşamasında**
+**1.0.0 Alpha 12 — yapım aşamasında**
 
-Alpha 10 ile planlanan provider genişletme katmanı tamamlandı. OpenRouter önerilen varsayılan bulut katmanı olmaya devam ederken OpenAI/GPT, Google Gemini, DeepSeek, Anthropic Claude, xAI/Grok, Mistral AI, Qwen/Alibaba Model Studio, yerel Ollama ve özel OpenAI-compatible endpoint doğrudan seçilebilir hale geldi.
+Alpha 12 ile maliyet/bütçe ve geçmiş tarama katmanı gerçek yönetim sistemine dönüştürüldü. Günlük istek limiti, günlük/aylık USD bütçesi, provider bazlı başarı/sağlık görünümü, token/maliyet özeti, kullanım geçmişi retention temizliği ve XenForo job kuyruğunda kontrollü geçmiş içerik taraması eklendi.
 
-Tüm harici doğrulamalar mesaj kaydı dışında XenForo job kuyruğunda çalışır. API hatası, kota veya bağlantı sorunu yerel sonucu bozmaz.
+Ayrıca ACP'de **Warext AI İçerik Denetimi** kendi ayrı üst navigasyon kategorisine ve kendi XenForo option group'una sahiptir. Ayarlar genel Setup/Add-ons içerisine dağılmaz.
 
 ## Yetki sistemi
 
@@ -19,7 +19,7 @@ Eklenti dört ayrı XenForo yetkisi kullanır:
 - `warextAiViewSimple` — konu üstündeki düz raporu ve AI denetim merkezini görüntüleme.
 - `warextAiViewDetailed` — ayrıntılı metin, davranış, Writing Checker, kullanıcı profili ve harici doğrulama verilerini görüntüleme.
 - `warextAiReview` — sonucu bekleyen / temizlendi / şüpheli / onaylandı durumlarından biriyle inceleme ve not ekleme.
-- `warextAiManage` — sistem yönetimi için ayrılmış yönetim yetkisi.
+- `warextAiManage` — API kullanımı, provider sağlığı ve geçmiş tarama gibi yönetim bölümlerine erişim.
 
 ## Konu üstü raporlama
 
@@ -47,22 +47,42 @@ OpenRouter tarafında model fallback zinciri, ZDR yönlendirmesi, veri toplama r
 
 Doğrudan providerlarda minimum yerel risk, maksimum ağırlık, gönderilecek maksimum karakter ve timeout ortak ayarlardır. Provider yapılandırılmamışsa gereksiz harici job kuyruğa eklenmez.
 
-Varsayılan doğrudan model değerleri:
-
-- OpenAI: `gpt-5.6-luna`
-- Gemini: `gemini-3.8-flash`
-- DeepSeek: `deepseek-v4-flash`
-- Anthropic: `claude-sonnet-5`
-- xAI: `grok-4.6`
-- Mistral: `mistral-small-latest`
-- Qwen: `qwen3.8-flash`
-- Ollama: `llama3.2` yalnızca örnek varsayılandır; sunucuda pull edilmiş model adıyla değiştirilmelidir.
-
-Model kimlikleri ACP'den değiştirilebilir; eklenti kodu değiştirmek gerekmez. Qwen base URL alanı bölge/workspace adresine göre değiştirilebilir. Ollama ve özel OpenAI-compatible servislerde base URL ACP'den yönetilir.
+Varsayılan doğrudan model değerleri ACP'den değiştirilebilir; model değişimi eklenti kodu değişikliği gerektirmez.
 
 Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıya ait olmayan içerik gönderilmez. URL ve BBCode kalıntıları temizlenir. API anahtarları analiz kayıtlarına veya rapor verisine yazılmaz.
 
-Özel OpenAI-compatible base URL yalnızca HTTP/HTTPS kabul eder ve URL içine gömülü kullanıcı adı/şifre reddedilir.
+## API kullanım, bütçe ve provider sağlık sistemi
+
+`xf_warext_ai_usage` tablosu her harici isteğin provider/model, post ID, token, gerçek maliyet bilgisi mevcutsa maliyet, başarı/hata ve tarih bilgisini tutar. API anahtarı hiçbir kullanım kaydına yazılmaz.
+
+ACP'den yönetilebilen sınırlar:
+
+- günlük maksimum harici AI isteği,
+- günlük maksimum USD bütçesi,
+- aylık maksimum USD bütçesi,
+- kullanım kaydı saklama süresi,
+- geçmiş tarama job paket boyutu.
+
+`0` olan istek/bütçe limitleri sınırsız kabul edilir. Bir limit dolduğunda yalnızca harici doğrulama durur; Local Engine çalışmaya devam eder.
+
+AI Denetim Merkezi'nde `warextAiManage` yetkisi bulunan kullanıcılar günlük ve aylık istek/token/maliyet özetini, provider başına başarı oranını, aktif/son modeli, son hata nedenini ve provider sağlık durumunu görebilir.
+
+Kullanım kayıtları retention süresine göre günlük cron ile otomatik temizlenir.
+
+## Geçmiş içerik taraması
+
+Daha önce analiz edilmemiş eski mesajlar `Warext\AIContentInspector:HistoricalScan` XenForo jobı ile arka planda taranabilir.
+
+Geçmiş mesajlarda tarayıcı editör oturumu bulunmadığı için typed/paste/Writing Checker davranışı uydurulmaz. Bu veriler `historical_unobserved` olarak işaretlenir ve detaylı raporda bağlam sinyali olarak görünür.
+
+Tarama seçenekleri:
+
+- maksimum işlenecek mesaj sayısı,
+- son N gün veya tüm tarih,
+- yalnızca Local Engine,
+- risk eşiğini geçen içeriklerde opsiyonel harici provider doğrulaması.
+
+Harici doğrulama seçilse bile günlük/aylık API bütçe sınırları geçerlidir. Daha önce analiz edilmiş mesajlar varsayılan geçmiş taramada tekrar işlenmez.
 
 ## Asenkron doğrulama
 
@@ -74,7 +94,7 @@ Harici sonuç tek başına moderasyon kararı oluşturmaz; provider güven puan�
 
 `ProviderInterface` ve merkezi `Registry` kullanılır. `AbstractJsonProvider` güvenli metin temizleme, JSON ayrıştırma, ortak sonuç normalizasyonu, token kullanım alanları ve hata fallback mantığını paylaşır.
 
-`OpenAICompatibleProvider` ise Grok, Mistral, Qwen, Ollama ve özel endpointler için ortak chat-completions istemcisidir. Böylece aynı kodun beş farklı adapterda kopyalanması engellenir.
+`OpenAICompatibleProvider` Grok, Mistral, Qwen, Ollama ve özel endpointler için ortak chat-completions istemcisidir. OpenRouter ise önerilen provider olarak ayrı gelişmiş routing/fallback özelliklerini korur.
 
 ## Kullanıcı yazım profili
 
@@ -98,17 +118,20 @@ Writing Checker kurulu değilse AI Content Inspector eksiksiz biçimde kendi ba�
 
 ## Otomatik doğrulama ve paketleme
 
-GitHub Actions; PHP/JavaScript sözdizimini, yerel false-positive regresyonlarını, OpenRouter davranışını, native provider payloadlarını, OpenAI-compatible URL/payload güvenliğini, Writing Checker hard-dependency bulunmadığını, harici çağrıların asenkron olduğunu, içerik hash korumasını, XenForo XML/provider mimarisini ve kurulum ZIP bütünlüğünü doğrular.
+GitHub Actions; PHP/JavaScript sözdizimini, yerel false-positive regresyonlarını, provider adapterlarını, Writing Checker hard-dependency bulunmadığını, harici çağrıların asenkron olduğunu, içerik hash korumasını, ayrı ACP navigasyonunu, bütçe seçeneklerini, kullanım retention cronunu, geçmiş tarama jobını, XenForo XML/provider mimarisini ve kurulum ZIP bütünlüğünü doğrular.
 
 ## Geliştirme durumu
 
-9 ana adımın ilk 8'i tamamlandı. Son ana adımın provider geliştirme bölümü de Alpha 9 ve Alpha 10 ile tamamlandı.
+9 ana adımın ilk 8'i tamamlandı. Son ana adımın provider, maliyet ve geçmiş tarama bölümleri Alpha 9–12 ile tamamlandı.
 
 **Tamamlanan Alpha 9:** OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan adapterları.
 
-**Tamamlanan Alpha 10:** xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint; ortak OpenAI-compatible çekirdek ve güvenli base URL doğrulaması.
+**Tamamlanan Alpha 10:** xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint; ortak OpenAI-compatible çekirdek.
 
-**Kalan 2 geliştirme grubu:**
+**Tamamlanan Alpha 11:** provider kullanım/token/maliyet kaydı ve bütçe kontrol çekirdeği.
 
-1. **Maliyet / batch / geçmiş tarama:** geçmiş içerik toplu tarama, provider batch/queue optimizasyonu, günlük/aylık API limitleri, token ve tahmini/gerçek maliyet takibi, kota/hata fallback görünürlüğü.
-2. **Final ACP + rapor + 1.0.0 Stable:** provider sağlık durumu, aktif model, son API hatası, token/maliyet görünümü; sade/detaylı rapor ayrıştırması; performans/cache ve büyük forum testleri; install/upgrade/uninstall kontrolleri; final ZIP/release ve dokümantasyon.
+**Tamamlanan Alpha 12:** ayrı ACP kategorisi, gerçek bütçe ayarları, provider sağlık/maliyet görünümü, retention cron ve kontrollü geçmiş içerik taraması.
+
+**Kalan ana geliştirme grubu:**
+
+1. **Final ACP + rapor + performans + 1.0.0 Stable:** düz/detaylı rapor son arayüz ayrıştırması; sorgu/cache optimizasyonu ve büyük forum testleri; install/upgrade/uninstall kontrolleri; final ZIP, GitHub Release ve dokümantasyon.
