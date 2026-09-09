@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <option_groups>
-  <option_group group_id="warextAi" display_order="9510" debug_only="0"/>
+  <group group_id="warextAi" icon="fa-robot" display_order="9510" debug_only="0"/>
 </option_groups>
