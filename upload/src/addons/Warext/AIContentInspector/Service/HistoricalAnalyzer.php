@@ -107,6 +107,7 @@ class HistoricalAnalyzer
             'behavior_metrics' => json_encode($result['behavior_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'writing_metrics' => json_encode($result['writing_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'profile_metrics' => json_encode($result['profile_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'similarity_metrics' => json_encode($result['similarity_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'external_metrics' => json_encode($result['external_verification'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'signal_summary' => json_encode($result['signals'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'content_hash' => $contentHash,
@@ -132,7 +133,8 @@ class HistoricalAnalyzer
 
         if (!empty($external['pending']))
         {
-            $uniqueId = 'warextAiExternal_' . $postId . '_' . substr($contentHash, 0, 16);
+            $providerId = preg_replace('/[^a-z0-9_\-]/i', '', (string)($external['provider'] ?? 'external')) ?: 'external';
+            $uniqueId = 'warextAiExternal_' . $providerId . '_' . $postId . '_' . substr($contentHash, 0, 16);
             \XF::app()->jobManager()->enqueueUnique(
                 $uniqueId,
                 'Warext\\AIContentInspector:ExternalVerify',
@@ -156,9 +158,9 @@ class HistoricalAnalyzer
 
         $rows = \XF::db()->fetchAll(
             'SELECT post_id, content_fingerprint FROM xf_warext_ai_analysis
-             WHERE forum_id = ? AND content_fingerprint <> ?
+             WHERE forum_id = ? AND post_id <> ? AND content_fingerprint <> ?
              ORDER BY analyzed_date DESC LIMIT 250',
-            [$forumId, '']
+            [$forumId, $postId, '']
         );
         $comparison = $similarity->compare($fingerprint, $rows, $postId);
         $result['similarity_metrics'] = ['available' => true, 'fingerprint' => $fingerprint] + $comparison;
