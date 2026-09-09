@@ -1,0 +1,87 @@
+name: v1.0.7
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v107-maintenance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: v1.0.7 release kontrollerini ve sürümü güncelle
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          validator = Path('tools/validate_xenforo_master.py')
+          text = validator.read_text(encoding='utf-8')
+          old = "if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'XF\\Option\\Forum::renderSelectMultiple':\n        fail('Forum selector callback XenForo export biçiminde değil')"
+          new = "if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'Warext\\AIContentInspector\\Option\\Forum::renderCheckboxList':\n        fail('Forum selector özel checkbox callback biçiminde değil')\n\n    forum_renderer = ROOT / 'Option/Forum.php'\n    if not forum_renderer.exists():\n        fail('Forum checkbox option renderer eksik')\n    forum_renderer_code = forum_renderer.read_text(encoding='utf-8')\n    for marker in ['renderCheckboxList', 'getCheckboxRow', \"node_type_id !== 'Forum'\", \"implode(' › ', $path)\"]:\n        if marker not in forum_renderer_code:\n            fail('Forum checkbox option renderer eksik: ' + marker)"
+          if old not in text:
+              raise SystemExit('Validator forum callback bloğu bulunamadı')
+          text = text.replace(old, new, 1)
+
+          anchor = "    for marker in [\n        'warext_ai_manual_post_action', 'template=\"post_macros\"',\n        'actionBar-action--menuItem', 'js-warextAiManualAnalyze',\n        \"link('warext-ai-manual/run'\", 'manual-analysis.js'\n    ]:\n        if marker not in modifications:\n            fail('Mesaj moderatör menüsü manuel analiz entegrasyonu eksik: ' + marker)\n"
+          extra = anchor + "    for marker in [\n        'warext_ai_manual_thread_action', 'template=\"thread_view\"',\n        '[XF:thread_tools_menu:before_footer]', 'js-warextAiManualThreadAnalyze',\n        \"link('warext-ai-thread/run'\", 'Konuyu AI ile analiz et'\n    ]:\n        if marker not in modifications:\n            fail('Konu üst üç nokta manuel analiz entegrasyonu eksik: ' + marker)\n"
+          if anchor not in text:
+              raise SystemExit('Validator manuel post bloğu bulunamadı')
+          text = text.replace(anchor, extra, 1)
+
+          old_js = "for marker in ['js-warextAiManualAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'ensureReportBox']:"
+          new_js = "for marker in ['js-warextAiManualAnalyze', 'js-warextAiManualThreadAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'warext-ai-manual-thread-analysis-queued', 'ensureReportBox']:"
+          if old_js not in text:
+              raise SystemExit('Validator manuel JS marker bloğu bulunamadı')
+          text = text.replace(old_js, new_js, 1)
+          validator.write_text(text, encoding='utf-8')
+
+          builder = Path('tools/build_release.py')
+          text = builder.read_text(encoding='utf-8')
+          anchor = "    'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ManualAnalyze.php',\n"
+          insert = "    'upload/src/addons/Warext/AIContentInspector/Option/Forum.php',\n" + anchor
+          if anchor not in text:
+              raise SystemExit('build_release ManualAnalyze marker bulunamadı')
+          if 'AIContentInspector/Option/Forum.php' not in text:
+              text = text.replace(anchor, insert, 1)
+          builder.write_text(text, encoding='utf-8')
+
+          addon_path = Path('upload/src/addons/Warext/AIContentInspector/addon.json')
+          addon = json.loads(addon_path.read_text(encoding='utf-8'))
+          addon['version_id'] = 1000370
+          addon['version_string'] = '1.0.7'
+          addon_path.write_text(json.dumps(addon, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          readme = Path('README.md')
+          if readme.exists():
+              text = readme.read_text(encoding='utf-8')
+              text = re.sub(r'\*\*1\.0\.\d+ Stable\*\*', '**1.0.7 Stable**', text, count=1)
+              readme.write_text(text, encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          if changelog.exists():
+              text = changelog.read_text(encoding='utf-8')
+              section = """## v1.0.7 Stable\n\n- Konu sayfasının üst üç nokta / konu araçları menüsüne `Konuyu AI ile analiz et` eylemi eklendi.\n- Tek mesaj manuel analizi `Bu mesajı AI ile analiz et` adıyla mesaj eylem menüsünde korunuyor.\n- `Analiz edilecek forumlar` alanı çoklu select yerine checkbox listesine geçirildi.\n- Forumlar `Kategori › Alt kategori › Forum` yolu ile gösteriliyor; seçili forumlar doğrudan tick ile görülebiliyor.\n- Hiç forum seçilmezse tüm forumların otomatik analiz edilmesi davranışı korunuyor.\n- Forum checkbox renderer, konu üst menü entegrasyonu ve ilgili runtime dosyaları Stable release kapısına eklendi.\n- Frontend cache anahtarı `1000370` olarak güncellendi.\n\n"""
+              if '## v1.0.7 Stable' not in text:
+                  text = text.replace('# Değişiklik Günlüğü\n\n', '# Değişiklik Günlüğü\n\n' + section, 1)
+              changelog.write_text(text, encoding='utf-8')
+          PY
+
+          python3 tools/validate_xenforo_master.py
+          python3 tools/build_release.py
+
+          git config user.name "benjamin1734"
+          git config user.email "actions@users.noreply.github.com"
+          git add tools/validate_xenforo_master.py tools/build_release.py upload/src/addons/Warext/AIContentInspector/addon.json README.md CHANGELOG.md
+          git commit -m "v1.0.7"
+          git push origin main
