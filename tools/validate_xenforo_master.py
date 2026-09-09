@@ -62,6 +62,10 @@ def main() -> None:
         fail('Warext AI ACP kategorisi core menülerin üstüne taşınmamalı')
     if nav_by_id['warextAiSettings'].attrib.get('parent_navigation_id') != 'warextAiAdmin':
         fail('Warext AI ayarlar girdisi kendi ACP kategorisinin altında olmalı')
+    if nav_by_id['warextAiSettings'].attrib.get('link') != 'add-ons/Warext-AIContentInspector/options':
+        fail('Ayarlar bağlantısı option-group 404 riskinden kaçınmak için add-on options route kullanmalı')
+    if nav_by_id['warextAiAdmin'].attrib.get('link') != 'warext-ai-high-risk/':
+        fail('Warext AI ACP ana kategorisi yüksek risk görünümüne gitmeli')
 
     public_navigation = (DATA / 'navigation.xml').read_text(encoding='utf-8')
     if "$xf.visitor->hasPermission" in public_navigation:
@@ -85,8 +89,6 @@ def main() -> None:
     if center is None:
         fail('public:warext_ai_center şablonu eksik')
 
-    # XenForo data-item version bilgisi, ilgili öğenin son değiştiği sürümdür; add-on'un
-    # güncel sürümüyle birebir eşleşmesi gerekmez. Yalnız gelecek sürüm değeri olamaz.
     for template in templates:
         item_version = int(template.attrib.get('version_id', '0'))
         if item_version <= 0 or item_version > version_id:
@@ -127,15 +129,28 @@ def main() -> None:
         fail('Ana Warext AI public route eksik')
     if route_map.get(('public', 'warext-ai-thread')) != r'Warext\AIContentInspector:ThreadAnalyze':
         fail('Konu analiz public route eksik')
+    if route_map.get(('admin', 'warext-ai-high-risk')) != r'Warext\AIContentInspector:HighRisk':
+        fail('Yüksek riskli konular ACP route eksik')
 
     setup = (ROOT / 'Setup.php').read_text(encoding='utf-8')
     for marker in [
-        'installStep1', 'installStep2', 'upgrade1000330Step1', 'ensureOptionGroup',
+        'installStep1', 'installStep2', 'upgrade1000330Step1', 'upgrade1000340Step1', 'ensureOptionGroup',
         "'xf_option_group'", "'group_id' => 'warextAi'", 'uninstallStep1',
         'xf_warext_ai_analysis', 'xf_warext_ai_review_log', 'xf_warext_ai_usage'
     ]:
         if marker not in setup:
             fail('Install/upgrade self-heal zinciri eksik: ' + marker)
+    install_step1 = setup.split('public function installStep2', 1)[0]
+    if '$this->ensureOptionGroup();' not in install_step1:
+        fail('Temiz kurulumda option group installStep1 içinde doğrulanmalı')
+
+    high_risk_controller = ROOT / 'Admin/Controller/HighRisk.php'
+    if not high_risk_controller.exists():
+        fail('Yüksek riskli konular ACP controller eksik')
+    high_risk_code = high_risk_controller.read_text(encoding='utf-8')
+    for marker in ["router('public')", "buildLink('warext-ai'", "'risk_min' => 70"]:
+        if marker not in high_risk_code:
+            fail('Yüksek riskli konular ACP controller eksik: ' + marker)
 
     history_job = (ROOT / 'Job/HistoricalScan.php').read_text(encoding='utf-8')
     for marker in ["'thread_ids' => []", 'p.thread_id IN', "p.message_state = 'visible'"]:
@@ -174,6 +189,8 @@ def main() -> None:
         'installerMasterDataValidated': True,
         'templateMarkupValidated': True,
         'optionGroupSelfHealValidated': True,
+        'addonOptionsRouteValidated': True,
+        'highRiskAdminEntryValidated': True,
         'threadAnalysisControlsValidated': True,
         'adminNavigationOrderProtected': True,
         'externalOptional': True
