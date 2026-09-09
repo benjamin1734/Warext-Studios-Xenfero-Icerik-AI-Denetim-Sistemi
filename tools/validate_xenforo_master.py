@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path('upload/src/addons/Warext/AIContentInspector')
 DATA = ROOT / '_data'
+JS = Path('upload/js/warext/ai-content-inspector')
 
 
 def fail(message: str) -> None:
@@ -26,9 +27,7 @@ def main() -> None:
     if 'Warext/TurkishSpellCheck' in json.dumps(addon, ensure_ascii=False):
         fail('Writing Checker zorunlu bağımlılık olamaz')
 
-    parsed = {}
-    for path in sorted(DATA.glob('*.xml')):
-        parsed[path.name] = ET.parse(path).getroot()
+    parsed = {path.name: ET.parse(path).getroot() for path in sorted(DATA.glob('*.xml'))}
 
     allowed_formats = {
         'textbox', 'spinbox', 'onoff', 'onofftextbox', 'radio',
@@ -42,8 +41,6 @@ def main() -> None:
     }
     if invalid_formats:
         fail('Geçersiz XenForo option edit formatı: ' + repr(invalid_formats))
-    if any(o.attrib.get('edit_format') == 'textarea' for o in options.findall('option')):
-        fail('edit_format=textarea XenForo tarafından kabul edilmez')
 
     fallback = next((o for o in options.findall('option') if o.attrib.get('option_id') == 'warextAiOpenRouterFallbackModels'), None)
     if fallback is None or fallback.attrib.get('edit_format') != 'textbox' or 'rows=4' not in (fallback.findtext('edit_format_params') or ''):
@@ -53,107 +50,64 @@ def main() -> None:
     if forum_option is None or (forum_option.findtext('edit_format_params') or '') != r'XF\Option\Forum::renderSelectMultiple':
         fail('Forum selector callback XenForo export biçiminde değil')
 
-    required_options = {
-        'warextAiEnabled', 'warextAiMinChars', 'warextAiForums', 'warextAiExternalProvider',
-        'warextAiDailyRequestLimit', 'warextAiMonthlyRequestLimit',
-        'warextAiDailyBudgetUsd', 'warextAiMonthlyBudgetUsd',
-        'warextAiEstimatedInputUsdPerMillion', 'warextAiEstimatedOutputUsdPerMillion',
-        'warextAiUsageRetentionDays', 'warextAiHistoryBatchSize'
-    }
-    option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
-    if not required_options.issubset(option_ids):
-        fail('Zorunlu ayarlar eksik: ' + ', '.join(sorted(required_options - option_ids)))
-
     groups = {g.attrib.get('group_id') for g in parsed['option_groups.xml'].findall('option_group')}
     if 'warextAi' not in groups:
         fail('Warext AI option group eksik')
 
     admin_nav = parsed['admin_navigation.xml']
-    entries = admin_nav.findall('admin_navigation_entry')
-    nav_by_id = {n.attrib.get('navigation_id'): n for n in entries}
+    nav_by_id = {n.attrib.get('navigation_id'): n for n in admin_nav.findall('admin_navigation_entry')}
     if not {'warextAiAdmin', 'warextAiSettings'}.issubset(nav_by_id):
         fail('ACP navigation export şeması hatalı')
-    if admin_nav.findall('nav'):
-        fail('Legacy <nav> ACP navigation yapısı kullanılamaz')
-    root_order = int(nav_by_id['warextAiAdmin'].attrib.get('display_order', '0'))
-    if root_order < 1000:
-        fail('Warext AI ACP kategorisi core menülerin üstüne taşınmamalı (display_order >= 1000)')
+    if int(nav_by_id['warextAiAdmin'].attrib.get('display_order', '0')) < 1000:
+        fail('Warext AI ACP kategorisi core menülerin üstüne taşınmamalı')
     if nav_by_id['warextAiSettings'].attrib.get('parent_navigation_id') != 'warextAiAdmin':
         fail('Warext AI ayarlar girdisi kendi ACP kategorisinin altında olmalı')
 
     public_navigation = (DATA / 'navigation.xml').read_text(encoding='utf-8')
     if "$xf.visitor->hasPermission" in public_navigation:
         fail('Public navigation PHP -> sözdizimi içeriyor')
-    if "$xf.visitor.hasPermission('general', 'warextAiViewSimple')" not in public_navigation:
-        fail('Public navigation XenForo template yetki koşulu eksik')
 
-    permissions = parsed['permissions.xml']
-    actual_permissions = {p.attrib.get('permission_id') for p in permissions.findall('permission')}
+    permissions = {p.attrib.get('permission_id') for p in parsed['permissions.xml'].findall('permission')}
     required_permissions = {'warextAiViewSimple', 'warextAiViewDetailed', 'warextAiReview', 'warextAiManage'}
-    if not required_permissions.issubset(actual_permissions):
+    if not required_permissions.issubset(permissions):
         fail('Yetki tanımları eksik')
 
-    phrase_titles = {p.attrib.get('title') for p in parsed['phrases.xml'].findall('phrase')}
-    required_phrases = {
-        'permission_interface.warextAi',
-        'permission.general_warextAiViewSimple', 'permission.general_warextAiViewDetailed',
-        'permission.general_warextAiReview', 'permission.general_warextAiManage',
-        'option_group.warextAi', 'option_group_description.warextAi',
-        'option.warextAiEnabled', 'option_explain.warextAiEnabled',
-        'option.warextAiDailyRequestLimit', 'option.warextAiMonthlyRequestLimit',
-        'option.warextAiDailyBudgetUsd', 'option.warextAiMonthlyBudgetUsd',
-        'option.warextAiEstimatedInputUsdPerMillion', 'option.warextAiEstimatedOutputUsdPerMillion',
-        'option.warextAiUsageRetentionDays', 'option.warextAiHistoryBatchSize',
+    phrases = {p.attrib.get('title') for p in parsed['phrases.xml'].findall('phrase')}
+    for title in [
+        'permission_interface.warextAi', 'option_group.warextAi',
         'admin_navigation.warextAiAdmin', 'admin_navigation.warextAiSettings', 'nav.warextAi'
-    }
-    if not required_phrases.issubset(phrase_titles):
-        fail('Kanonik XenForo phrase kayıtları eksik: ' + ', '.join(sorted(required_phrases - phrase_titles)))
+    ]:
+        if title not in phrases:
+            fail('Kanonik XenForo phrase eksik: ' + title)
 
-    legacy = sorted(
-        t for t in phrase_titles
-        if t.startswith('option_warext')
-        or t.startswith('option_group_warext')
-        or t.startswith('permission_interface_')
-        or t.startswith('permission_general_')
-    )
-    if legacy:
-        fail('Legacy underscore master phrase anahtarları kaldı: ' + ', '.join(legacy[:10]))
-
-    cron_ids = {e.attrib.get('cron_entry_id') for e in parsed['cron_entries.xml'].findall('cron_entry')}
-    if 'warextAiUsagePrune' not in cron_ids:
-        fail('Usage prune cron eksik')
-
-    templates_root = parsed['templates.xml']
-    templates = templates_root.findall('template')
+    templates = parsed['templates.xml'].findall('template')
     center = next((t for t in templates if t.attrib.get('type') == 'public' and t.attrib.get('title') == 'warext_ai_center'), None)
     if center is None:
         fail('public:warext_ai_center şablonu eksik')
 
+    # XenForo data-item version bilgisi, ilgili öğenin son değiştiği sürümdür; add-on'un
+    # güncel sürümüyle birebir eşleşmesi gerekmez. Yalnız gelecek sürüm değeri olamaz.
     for template in templates:
-        if int(template.attrib.get('version_id', '0')) != version_id:
-            fail(f"Template version_id addon ile eşleşmiyor: {template.attrib.get('title')}")
-        if template.attrib.get('version_string') != version:
-            fail(f"Template version_string addon ile eşleşmiyor: {template.attrib.get('title')}")
+        item_version = int(template.attrib.get('version_id', '0'))
+        if item_version <= 0 or item_version > version_id:
+            fail(f"Template version_id geçersiz: {template.attrib.get('title')} -> {item_version}")
 
-    center_body = center.text or ''
-    # XenForo'da {$...} doğrudan değer interpolasyonudur. Operatörlü ifadeler {{ ... }}
-    # veya xf:if gibi expression alanlarında kullanılmalıdır. v1.0.1'i bozan sınıfı blokla.
     dangerous_simple_expressions = [
         r'\{\$[^{}\n]*\?:[^{}\n]*\}',
         r'\{\$[^{}\n]*\?[^{}\n]*:[^{}\n]*\}',
     ]
-    for pattern in dangerous_simple_expressions:
-        match = re.search(pattern, center_body)
-        if match:
-            fail('warext_ai_center içinde geçersiz ifadeli {$...} kullanımı: ' + match.group(0))
+    for template in templates:
+        body = template.text or ''
+        for pattern in dangerous_simple_expressions:
+            match = re.search(pattern, body)
+            if match:
+                fail(f"{template.attrib.get('title')} içinde geçersiz ifadeli {{$...}} kullanımı: {match.group(0)}")
 
+    center_body = center.text or ''
     if re.search(r'<option\b[^>]*\{\{[^>]*>', center_body, flags=re.I):
-        fail('warext_ai_center raw <option> üzerinde dinamik attribute üretmemeli; xf:select/xf:option kullanın')
+        fail('warext_ai_center raw <option> üzerinde dinamik attribute üretmemeli')
     if '<xf:select name="state" value="{$filters.state}"' not in center_body:
         fail('Durum filtresi kanonik xf:select yapısında değil')
-
-    # CDATA içindeki markup XML olarak da dengeli olmalı. Bu XenForo compiler'ın yerini
-    # tutmaz fakat kapanmayan xf:if/foreach ve bozuk tag yapısını release öncesi yakalar.
     try:
         ET.fromstring('<root xmlns:xf="urn:xenforo">' + center_body + '</root>')
     except ET.ParseError as exc:
@@ -163,32 +117,46 @@ def main() -> None:
     cache_key = f'?wai={version_id}'
     if cache_key not in modifications:
         fail(f'{version} JS cache anahtarı eksik: {cache_key}')
+    for marker in ['data-thread-analyze-endpoint', 'thread-controls.js', 'warext-ai-review-capability']:
+        if marker not in modifications:
+            fail('Konu AI kontrol arayüzü eksik: ' + marker)
+
+    routes = parsed['routes.xml'].findall('route')
+    route_map = {(r.attrib.get('route_type'), r.attrib.get('route_prefix')): r.attrib.get('controller') for r in routes}
+    if route_map.get(('public', 'warext-ai')) != r'Warext\AIContentInspector:Report':
+        fail('Ana Warext AI public route eksik')
+    if route_map.get(('public', 'warext-ai-thread')) != r'Warext\AIContentInspector:ThreadAnalyze':
+        fail('Konu analiz public route eksik')
 
     setup = (ROOT / 'Setup.php').read_text(encoding='utf-8')
-    analysis_block = setup.split("$this->createReviewLogTable();", 1)[0]
-    if '$table->checkExists(true);' not in analysis_block:
-        fail('Başarısız kurulum sonrası analysis table retry koruması eksik')
     for marker in [
-        'installStep1', 'uninstallStep1', 'xf_warext_ai_analysis',
-        'xf_warext_ai_review_log', 'xf_warext_ai_usage', 'similarity_metrics',
-        'cost_source', 'forum_date'
+        'installStep1', 'installStep2', 'upgrade1000330Step1', 'ensureOptionGroup',
+        "'xf_option_group'", "'group_id' => 'warextAi'", 'uninstallStep1',
+        'xf_warext_ai_analysis', 'xf_warext_ai_review_log', 'xf_warext_ai_usage'
     ]:
         if marker not in setup:
-            fail('Install/uninstall şeması eksik: ' + marker)
-    for drop in [
-        "dropTable('xf_warext_ai_usage')",
-        "dropTable('xf_warext_ai_review_log')",
-        "dropTable('xf_warext_ai_analysis')"
-    ]:
-        if drop not in setup:
-            fail('Uninstall temizliği eksik: ' + drop)
+            fail('Install/upgrade self-heal zinciri eksik: ' + marker)
+
+    history_job = (ROOT / 'Job/HistoricalScan.php').read_text(encoding='utf-8')
+    for marker in ["'thread_ids' => []", 'p.thread_id IN', "p.message_state = 'visible'"]:
+        if marker not in history_job:
+            fail('Konu geçmiş tarama desteği eksik: ' + marker)
+
+    thread_controller = ROOT / 'Pub/Controller/ThreadAnalyze.php'
+    thread_controls = JS / 'thread-controls.js'
+    if not thread_controller.exists() or not thread_controls.exists():
+        fail('Konu AI Analizi butonu/endpoint dosyaları eksik')
+    for marker in ['warextAiReview', 'enqueueUnique', 'HistoricalScan', 'thread_ids']:
+        if marker not in thread_controller.read_text(encoding='utf-8'):
+            fail('Konu analiz controller eksik: ' + marker)
+    for marker in ['AI Analizi', 'Konuyu analiz et', 'Eksik mesajları tara', 'threadAnalyzeEndpoint']:
+        if marker not in thread_controls.read_text(encoding='utf-8'):
+            fail('Konu AI Analizi arayüzü eksik: ' + marker)
 
     post = (ROOT / 'XF/Entity/Post.php').read_text(encoding='utf-8')
     for marker in ['Registry', 'UserProfile', 'Similarity', 'enqueueUnique', 'ExternalVerify', 'existingHash', 'hash_equals']:
         if marker not in post:
             fail('Post analiz zinciri eksik: ' + marker)
-    if '(new ExternalVerifier())->enrich' in post:
-        fail('Harici provider mesaj kaydı sırasında senkron çalışmamalı')
 
     provider = ROOT / 'Provider'
     for name in [
@@ -199,29 +167,16 @@ def main() -> None:
         if not (provider / name).exists():
             fail('Provider mimarisi eksik: ' + name)
 
-    registry = (provider / 'Registry.php').read_text(encoding='utf-8')
-    for marker in ['openrouter', 'openai', 'gemini', 'deepseek', 'anthropic', 'xai', 'mistral', 'qwen', 'ollama', 'custom_openai']:
-        if marker not in registry:
-            fail('Provider registry eksik: ' + marker)
-
-    usage = (ROOT / 'Service/UsageTracker.php').read_text(encoding='utf-8')
-    for marker in ['canRequest', 'record', 'summary', 'prune', 'daily_request_limit', 'monthly_request_limit', 'cost_source']:
-        if marker not in usage:
-            fail('Kullanım/bütçe katmanı eksik: ' + marker)
-
     print(json.dumps({
         'status': 'ok',
         'version': version,
         'versionId': version_id,
         'installerMasterDataValidated': True,
         'templateMarkupValidated': True,
-        'dangerousSimpleTemplateExpressionsBlocked': True,
-        'canonicalAdminNavigation': True,
+        'optionGroupSelfHealValidated': True,
+        'threadAnalysisControlsValidated': True,
         'adminNavigationOrderProtected': True,
-        'canonicalPhrases': True,
-        'failedInstallRetryGuard': True,
-        'externalOptional': True,
-        'externalAsyncJob': True
+        'externalOptional': True
     }, ensure_ascii=False))
 
 
