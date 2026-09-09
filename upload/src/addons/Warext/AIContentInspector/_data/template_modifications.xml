@@ -17,4 +17,22 @@
 </xf:if>
 $0]]></replace>
   </modification>
+
+  <modification type="public" template="warext_ai_center" modification_key="warext_ai_daily_cost_sources" description="Günlük gerçek ve tahmini maliyet kayıtlarını gösterir" execution_order="920" enabled="1" action="str_replace">
+    <find><![CDATA[<small>Başarı: %{$usage.daily.success_rate}</small>]]></find>
+    <replace><![CDATA[$0
+<small>Maliyet kayıtları: {$usage.daily.actual_cost_records} gerçek · {$usage.daily.estimated_cost_records} tahmini</small>]]></replace>
+  </modification>
+
+  <modification type="public" template="warext_ai_center" modification_key="warext_ai_monthly_cost_sources" description="Aylık gerçek ve tahmini maliyet kayıtlarını gösterir" execution_order="921" enabled="1" action="str_replace">
+    <find><![CDATA[<small>Başarı: %{$usage.monthly.success_rate}</small>]]></find>
+    <replace><![CDATA[$0
+<small>Maliyet kayıtları: {$usage.monthly.actual_cost_records} gerçek · {$usage.monthly.estimated_cost_records} tahmini</small>]]></replace>
+  </modification>
+
+  <modification type="public" template="warext_ai_center" modification_key="warext_ai_estimated_price_note" description="Tahmini token fiyatlarını yönetim özetinde gösterir" execution_order="922" enabled="1" action="str_replace">
+    <find><![CDATA[<small>Maliyet verisi provider tarafından bildirildiğinde uygulanır.</small>]]></find>
+    <replace><![CDATA[<small>Gerçek maliyet varsa provider verisi kullanılır; yoksa yapılandırılmış token fiyatları devreye girer.</small>
+<small>Tahmin fiyatı: input ${{$usage.limits.estimated_input_usd_per_million}} / 1M · output ${{$usage.limits.estimated_output_usd_per_million}} / 1M</small>]]></replace>
+  </modification>
 </template_modifications>
