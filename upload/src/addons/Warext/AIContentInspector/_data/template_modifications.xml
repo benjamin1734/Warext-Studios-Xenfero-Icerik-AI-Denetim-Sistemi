@@ -33,6 +33,6 @@ $0]]></replace>
   <modification type="public" template="warext_ai_center" modification_key="warext_ai_estimated_price_note" description="Tahmini token fiyatlarını yönetim özetinde gösterir" execution_order="922" enabled="1" action="str_replace">
     <find><![CDATA[<small>Maliyet verisi provider tarafından bildirildiğinde uygulanır.</small>]]></find>
     <replace><![CDATA[<small>Gerçek maliyet varsa provider verisi kullanılır; yoksa yapılandırılmış token fiyatları devreye girer.</small>
-<small>Tahmin fiyatı: input ${{$usage.limits.estimated_input_usd_per_million}} / 1M · output ${{$usage.limits.estimated_output_usd_per_million}} / 1M</small>]]></replace>
+<small>Tahmin fiyatı: input {$usage.limits.estimated_input_usd_per_million} USD / 1M · output {$usage.limits.estimated_output_usd_per_million} USD / 1M</small>]]></replace>
   </modification>
 </template_modifications>
