@@ -1,5 +1,19 @@
 # Değişiklik Günlüğü
 
+## v1.0.6 Stable
+
+- Mesajların XenForo üç nokta / moderatör eylemleri menüsüne **AI ile manuel analiz et** eylemi eklendi.
+- Manuel analiz yalnız `warextAiReview` veya `warextAiManage` yetkisi bulunan kullanıcılara gösterilir.
+- Aynı içerik hash'i daha önce analiz edilmiş olsa bile yetkili moderatör zorla yeniden analiz çalıştırabilir.
+- ACP otomatik forum filtresi manuel moderatör analizinden ayrıldı; seçili olmayan forumdaki mesaj da yetkili tarafından manuel incelenebilir.
+- Otomatik minimum karakter eşiğinin altındaki mesajlar manuel analiz edilebilir; 80 karakterden kısa içerikte yanıltıcı skor yerine yetersiz metin uyarısı döner.
+- Manuel yeniden analizde geçmiş editör davranışı veya Writing Checker bilgisi uydurulmaz; `manual_reanalysis_unobserved` bağlamıyla kaydedilir.
+- Manuel analiz sonucu konu ekranındaki mevcut kısa rapora anında yansıtılır.
+- Harici ikinci görüş etkinse mevcut risk eşiği, provider yapılandırması, günlük/aylık istek ve bütçe limitleri korunur; gerekli doğrulama arka plan job kuyruğuna eklenir.
+- Manuel analiz route/controller/JS/post menu entegrasyonu Stable validator ve ZIP runtime kontrollerine eklendi.
+- Frontend cache anahtarı `1000360` olarak yükseltildi.
+- Manuel SQL gerekmez.
+
 ## v1.0.5 Stable
 
 - XenForo option-group master-data şeması düzeltildi: `_data/option_groups.xml` artık hatalı `<option_group>` yerine kanonik `<group>` öğesini kullanıyor.
