@@ -4,13 +4,7 @@
   window.__warextAiThreadReport = true;
 
   const config = document.getElementById('warext-ai-config')?.dataset || {};
-  if (!config.batchEndpoint || !config.threadEndpoint) return;
-
-  function firstPostId() {
-    const message = document.querySelector('.message[data-content^="post-"]');
-    const match = String(message?.dataset?.content || '').match(/^post-(\d+)$/);
-    return match ? Number(match[1]) : 0;
-  }
+  if (!config.threadEndpoint) return;
 
   async function json(url) {
     const response = await fetch(url, {credentials:'same-origin', headers:{'X-Requested-With':'XMLHttpRequest'}});
@@ -53,7 +47,6 @@
     }
 
     box.append(title, meta);
-
     if (data.canDetailed && Array.isArray(data.top) && data.top.length) {
       const top = document.createElement('div');
       top.style.cssText = 'margin-top:8px;font-size:12px;opacity:.85';
@@ -68,13 +61,20 @@
     first.parentNode.insertBefore(box, first);
   }
 
-  async function boot() {
-    const postId = firstPostId();
-    if (!postId) return;
-    const batch = await json(makeUrl(config.batchEndpoint, 'post_ids', postId));
+  async function loadFromBatch(batch) {
     const threadId = Number(batch?.reports?.[0]?.threadId || 0);
     if (!threadId) return;
     render(await json(makeUrl(config.threadEndpoint, 'thread_id', threadId)));
+  }
+
+  function boot() {
+    if (window.__warextAiBatchData) {
+      loadFromBatch(window.__warextAiBatchData);
+      return;
+    }
+
+    const handler = event => loadFromBatch(event.detail || {});
+    window.addEventListener('warext-ai-batch-ready', handler, {once:true});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
