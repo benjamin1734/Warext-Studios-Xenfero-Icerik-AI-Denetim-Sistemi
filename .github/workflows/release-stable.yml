@@ -72,23 +72,24 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          XenForo 2.3+ moderatör manuel analiz ve mesaj eylemleri sürümü.
+          XenForo 2.3+ moderasyon erişimi ve forum seçim arayüzü güncellemesi.
 
-          Yeni moderasyon akışı:
-          - Mesajların üç nokta / moderatör eylemleri menüsüne `AI ile manuel analiz et` eylemi eklendi.
-          - Eylem yalnız `warextAiReview` veya `warextAiManage` yetkisi bulunan kullanıcılara gösterilir.
-          - Aynı içerik daha önce analiz edilmiş olsa bile moderatör manuel olarak yeniden analiz çalıştırabilir.
-          - ACP otomatik tarama forum seçimi manuel moderatör çalıştırmasını engellemez.
-          - Otomatik analiz eşiğinin altındaki içerikler manuel çalıştırılabilir; 80 karakterden kısa içerikte yanıltıcı skor üretmek yerine yetersiz metin uyarısı döner.
-          - Manuel çalıştırmada geçmiş editör/paste/Writing Checker verisi uydurulmaz ve gözlemlenmemiş olarak kaydedilir.
-          - Yerel sonuç konu ekranındaki mevcut kısa rapora anında yansıtılır.
-          - Harici ikinci görüş etkinse mevcut risk eşiği, provider ayarları, istek limitleri ve bütçe sınırları korunur; gerekli doğrulama arka plan job kuyruğuna gider.
+          Yeni kullanım akışı:
+          - Konu sayfasının üstündeki üç nokta / konu araçları menüsüne `Konuyu AI ile analiz et` eylemi eklendi.
+          - Tek mesaj için `Bu mesajı AI ile analiz et` eylemi mesajın kendi moderatör eylemleri menüsünde korunur.
+          - Her iki manuel eylem yalnız `warextAiReview` veya `warextAiManage` yetkisi bulunan kullanıcılara gösterilir.
+          - Konu analizi görünür mesajları XenForo job kuyruğuna alır ve sayfa isteğini bloklamaz.
+
+          Forum seçimi:
+          - `Analiz edilecek forumlar` alanı eski çoklu select kutusundan checkbox listesine geçirildi.
+          - Her forum `Kategori › Alt kategori › Forum` yolu ile gösterilir; seçili forumlar doğrudan tick ile görülebilir.
+          - Hiçbir checkbox seçilmezse mevcut davranış korunur ve tüm forumlar otomatik analize dahil edilir.
+          - Veritabanında yalnız gerçek forum ID'leri saklanır; kategori/forum ID karışıklığı oluşturulmaz.
 
           Release güvenliği:
-          - Manuel analiz endpoint'i POST + XenForo CSRF akışıyla çalışır.
-          - Release validator manuel route, controller, post action menu entegrasyonu ve tarayıcı kodunu zorunlu olarak doğrular.
-          - Stable ZIP doğrulaması `ManualAnalyze.php` ve `manual-analysis.js` dosyalarını zorunlu runtime dosyaları olarak kontrol eder.
-          - Frontend cache anahtarı `1000360` olarak güncellendi.
+          - Stable validator özel forum checkbox callback'ini ve konu üst menü entegrasyonunu zorunlu doğrular.
+          - Stable ZIP `Option/Forum.php`, `ManualAnalyze.php` ve `manual-analysis.js` dosyalarını zorunlu runtime dosyaları olarak kontrol eder.
+          - Frontend cache anahtarı `1000370` olarak güncellendi.
 
           Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
