@@ -8,6 +8,7 @@ class UsageTracker
     {
         $options = \XF::options();
         $dailyRequests = max(0, (int)($options->warextAiDailyRequestLimit ?? 0));
+        $monthlyRequests = max(0, (int)($options->warextAiMonthlyRequestLimit ?? 0));
         $dailyBudget = max(0.0, (float)($options->warextAiDailyBudgetUsd ?? 0));
         $monthlyBudget = max(0.0, (float)($options->warextAiMonthlyBudgetUsd ?? 0));
 
@@ -25,6 +26,18 @@ class UsageTracker
             if ($count >= $dailyRequests)
             {
                 return ['allowed' => false, 'reason' => 'daily_request_limit', 'current' => $count, 'limit' => $dailyRequests, 'provider' => $providerId];
+            }
+        }
+
+        if ($monthlyRequests > 0)
+        {
+            $count = (int)$db->fetchOne(
+                'SELECT COUNT(*) FROM xf_warext_ai_usage WHERE created_date >= ?',
+                $monthStart
+            );
+            if ($count >= $monthlyRequests)
+            {
+                return ['allowed' => false, 'reason' => 'monthly_request_limit', 'current' => $count, 'limit' => $monthlyRequests, 'provider' => $providerId];
             }
         }
 
@@ -157,6 +170,7 @@ class UsageTracker
             'monthly' => $this->periodSummary($monthly),
             'limits' => [
                 'daily_requests' => max(0, (int)($options->warextAiDailyRequestLimit ?? 0)),
+                'monthly_requests' => max(0, (int)($options->warextAiMonthlyRequestLimit ?? 0)),
                 'daily_budget_usd' => max(0.0, (float)($options->warextAiDailyBudgetUsd ?? 0)),
                 'monthly_budget_usd' => max(0.0, (float)($options->warextAiMonthlyBudgetUsd ?? 0))
             ],
