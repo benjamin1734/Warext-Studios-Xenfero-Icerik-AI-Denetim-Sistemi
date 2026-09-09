@@ -75,11 +75,18 @@ class Report extends AbstractController
         }
         unset($row);
 
+        $countRow = $db->fetchRow(
+            "SELECT COALESCE(SUM(review_state = 'pending'), 0) AS pending,
+                    COALESCE(SUM(review_state = 'suspicious'), 0) AS suspicious,
+                    COALESCE(SUM(review_state = 'confirmed'), 0) AS confirmed,
+                    COALESCE(SUM(review_state = 'cleared'), 0) AS cleared
+             FROM xf_warext_ai_analysis"
+        ) ?: [];
         $counts = [
-            'pending' => (int)$db->fetchOne("SELECT COUNT(*) FROM xf_warext_ai_analysis WHERE review_state = 'pending'"),
-            'suspicious' => (int)$db->fetchOne("SELECT COUNT(*) FROM xf_warext_ai_analysis WHERE review_state = 'suspicious'"),
-            'confirmed' => (int)$db->fetchOne("SELECT COUNT(*) FROM xf_warext_ai_analysis WHERE review_state = 'confirmed'"),
-            'cleared' => (int)$db->fetchOne("SELECT COUNT(*) FROM xf_warext_ai_analysis WHERE review_state = 'cleared'")
+            'pending' => (int)($countRow['pending'] ?? 0),
+            'suspicious' => (int)($countRow['suspicious'] ?? 0),
+            'confirmed' => (int)($countRow['confirmed'] ?? 0),
+            'cleared' => (int)($countRow['cleared'] ?? 0)
         ];
 
         $canManage = $this->canManage();
