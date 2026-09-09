@@ -6,13 +6,14 @@ use Warext\AIContentInspector\Provider\Registry;
 
 class ExternalVerifier
 {
-    public function enrich(string $message, array $result): array
+    public function enrich(string $message, array $result, array $context = []): array
     {
         $registry = new Registry();
         $config = $registry->externalConfig();
         $providerId = (string)($config['provider'] ?? $registry->selectedExternalId());
         $minimumRisk = max(0, min(100, (int)($config['minimum_local_risk'] ?? 100)));
         $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
+        $postId = max(0, (int)($context['post_id'] ?? 0));
 
         $external = [
             'enabled' => $registry->isExternalEnabled(),
@@ -22,6 +23,7 @@ class ExternalVerifier
             'weight' => 0,
             'minimum_local_risk' => $minimumRisk,
             'skipped' => false,
+            'budget' => [],
             'result' => []
         ];
 
@@ -53,15 +55,40 @@ class ExternalVerifier
             return $result;
         }
 
+        $usageTracker = new UsageTracker();
+        $budget = $usageTracker->canRequest($providerId);
+        $external['budget'] = $budget;
+        if (empty($budget['allowed']))
+        {
+            $external['skipped'] = true;
+            $external['result'] = ['reason' => (string)($budget['reason'] ?? 'budget_limit')];
+            $result['external_verification'] = $external;
+            $result['signals'][] = [
+                'key' => 'external_budget_limit',
+                'level' => 'context',
+                'value' => (string)($budget['reason'] ?? 'budget_limit'),
+                'provider' => $providerId
+            ];
+            return $result;
+        }
+
         $assessment = $provider->analyze($message, [
             'max_chars' => (int)($config['max_chars'] ?? 12000)
         ]);
+        $usageTracker->record(
+            $providerId,
+            (string)($assessment['provider']['model'] ?? $external['model']),
+            $assessment,
+            $postId
+        );
+
         $external['result'] = $assessment;
         $external['available'] = !empty($assessment['available']);
         $external['provider'] = (string)($assessment['provider']['id'] ?? $providerId);
         $external['model'] = (string)($assessment['provider']['model'] ?? $external['model']);
         $external['fallback_models'] = (array)($assessment['provider']['fallback_models'] ?? []);
         $external['zdr_only'] = !empty($assessment['provider']['zdr_only']);
+        $external['usage_summary'] = $usageTracker->summary();
 
         if (!$external['available'])
         {
