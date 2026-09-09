@@ -71,8 +71,9 @@ jobs:
           options = ET.parse(data / 'options.xml').getroot()
           option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
           required_options = {
-              'warextAiExternalProvider', 'warextAiDailyRequestLimit', 'warextAiDailyBudgetUsd',
-              'warextAiMonthlyBudgetUsd', 'warextAiUsageRetentionDays', 'warextAiHistoryBatchSize'
+              'warextAiExternalProvider', 'warextAiDailyRequestLimit', 'warextAiMonthlyRequestLimit',
+              'warextAiDailyBudgetUsd', 'warextAiMonthlyBudgetUsd',
+              'warextAiUsageRetentionDays', 'warextAiHistoryBatchSize'
           }
           if not required_options.issubset(option_ids):
               raise SystemExit('Alpha 12 bütçe/geçmiş ayarları eksik: ' + ', '.join(sorted(required_options - option_ids)))
@@ -80,9 +81,9 @@ jobs:
           phrases = ET.parse(data / 'phrases.xml').getroot()
           phrase_titles = {p.attrib.get('title') for p in phrases.findall('phrase')}
           required_phrases = {
-              'option_warextAiDailyRequestLimit', 'option_warextAiDailyBudgetUsd',
-              'option_warextAiMonthlyBudgetUsd', 'option_warextAiUsageRetentionDays',
-              'option_warextAiHistoryBatchSize'
+              'option_warextAiDailyRequestLimit', 'option_warextAiMonthlyRequestLimit',
+              'option_warextAiDailyBudgetUsd', 'option_warextAiMonthlyBudgetUsd',
+              'option_warextAiUsageRetentionDays', 'option_warextAiHistoryBatchSize'
           }
           if not required_phrases.issubset(phrase_titles):
               raise SystemExit('Alpha 12 seçenek phrase kayıtları eksik')
@@ -113,7 +114,7 @@ jobs:
           if not usage.exists():
               raise SystemExit('UsageTracker eksik')
           usage_text = usage.read_text(encoding='utf-8')
-          for marker in ['canRequest', 'record', 'summary', 'prune', 'daily_request_limit', 'daily_budget_limit', 'monthly_budget_limit', 'success_rate', 'last_failure_reason', 'warextAiUsageRetentionDays']:
+          for marker in ['canRequest', 'record', 'summary', 'prune', 'daily_request_limit', 'monthly_request_limit', 'daily_budget_limit', 'monthly_budget_limit', 'success_rate', 'last_failure_reason', 'warextAiUsageRetentionDays', 'warextAiMonthlyRequestLimit']:
               if marker not in usage_text:
                   raise SystemExit('Maliyet/kullanım takip özelliği eksik: ' + marker)
 
@@ -173,6 +174,7 @@ jobs:
               'usageTracking':True,
               'providerHealthSummary':True,
               'dailyRequestLimit':True,
+              'monthlyRequestLimit':True,
               'dailyBudgetLimit':True,
               'monthlyBudgetLimit':True,
               'usageRetentionCron':True,
