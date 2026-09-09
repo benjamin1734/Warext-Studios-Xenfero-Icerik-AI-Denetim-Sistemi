@@ -1,5 +1,18 @@
 # Değişiklik Günlüğü
 
+## v1.0.0 Stable
+
+- Eklenti `version_id: 1000300`, `version_string: 1.0.0` ile Stable sürüme geçirildi.
+- Harici API günlük/aylık istek ve bütçe kontrolü dört ayrı sorgu yerine tek aggregate sorguda hesaplanıyor.
+- Günlük ve aylık kullanım/token/maliyet özeti iki period sorgusu yerine tek aggregate sorguda hesaplanıyor.
+- Moderasyon merkezindeki `pending`, `suspicious`, `confirmed` ve `cleared` sayaçları dört ayrı sorgu yerine tek aggregate sorguda alınıyor.
+- Tahmini maliyet hesabı sıkılaştırıldı: prompt token varsa input fiyatı, completion token varsa output fiyatı tanımlı olmak zorunda. Eksik fiyatlı kısmi tahmin artık üretilmiyor ve maliyet `unknown` kalıyor.
+- Stable cache anahtarı `1000300` olarak güncellendi.
+- Paket üretim kontrolü HistoricalScan, UsageTracker, UsagePrune, Post extension, admin navigation, cron, option group, phrase ve template modification dosyalarını da zorunlu hale getirdi.
+- README ve CHANGELOG final kurulum ZIP'ine dahil edildi.
+- Stable CI çıkış kapısı install/upgrade/uninstall şemasını, provider mimarisini, içerik-hash korumasını, maliyet güvenliğini, geçmiş taramayı ve sorgu optimizasyonlarının geri dönmemesini doğruluyor.
+- Final paket bütünlüğü `hashes.json`, ZIP CRC ve kaynak/paket sürüm eşleşmesiyle kontrol ediliyor.
+
 ## v1.0.0 Alpha 14
 
 - Harici provider gerçek dolar maliyetini bildirmiyorsa token verisinden güvenli tahmini maliyet hesaplama fallback'i eklendi.
@@ -26,4 +39,3 @@
 - Konu raporu ikinci bir batch isteği atmıyor; mesaj raporunun mevcut batch sonucunu yeniden kullanıyor.
 - Rapor JavaScript dosyaları yalnız `warextAiViewSimple` yetkisi bulunan kullanıcıya yükleniyor.
 - Editör davranış tracker'ı yalnız sayfada gerçek mesaj editörü varsa event listener kuruyor.
-- GitHub commit başlıkları sürüm numarası formatında tutuluyor.
