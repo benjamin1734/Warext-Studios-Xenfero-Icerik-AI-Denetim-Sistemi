@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'upload/src/addons/Warext/AIContentInspector/addon.json'
       - '.github/workflows/release-stable.yml'
   workflow_dispatch:
 
@@ -67,28 +68,20 @@ jobs:
           cat > RELEASE_NOTES.md <<EOF
           # Warext Studios | İçerik AI Denetim Sistemi v${VERSION} Stable
 
-          XenForo 2.3+ ACP ayar erişimi ve yüksek riskli konu görünümü düzeltme sürümü.
+          XenForo 2.3+ ACP seçenek master-data onarım sürümü.
 
-          Ayarlar düzeltmesi:
-          - ACP Ayarlar bağlantısı artık sorunlu `options/groups/warextAi/` yoluna bağlı değildir.
-          - XenForo'nun add-on bazlı kanonik seçenek yolu `add-ons/Warext-AIContentInspector/options` kullanılır.
-          - `warextAi` option group temiz kurulumun ilk adımında, ikinci kurulum adımında ve yükseltmede tekrar doğrulanır.
-          - Böylece option-group kaydı eksik/kısmi olsa bile yönetici ayarlara add-on üzerinden ulaşabilir.
-
-          ACP yüksek risk alanı:
-          - `Warext AI İçerik Denetimi` ana ACP kategorisi yüksek risk görünümünü açar.
-          - Yüksek risk görünümü AI Denetim Merkezi'ni minimum 70/100 risk filtresiyle açar.
-          - `Ayarlar` alt menüsü ayrı kalır ve doğrudan add-on seçeneklerine gider.
-
-          Konu üstü yetkili deneyimi:
-          - `AI Analizi`, `Konuyu analiz et` ve `Eksik mesajları tara` akışı korunur.
-          - Analizli mesajlarda kısa risk kartı ve yetkisi olanlarda `Detaylı rapor` kullanılabilir.
+          Kritik ayar düzeltmesi:
+          - `option_groups.xml` içindeki hatalı `<option_group>` öğesi XenForo'nun kanonik `<group>` export şemasına geçirildi.
+          - v1.0.4 ve öncesinde `Add-ons > Options` sayfasında görülen `No items have been created yet.` durumu giderildi.
+          - Tüm Warext AI seçenekleri `warextAi` option group ilişkisiyle yeniden doğrulanıyor.
+          - Mevcut kurulumlar için `upgrade1000350Step1()` option group kaydını tekrar doğruluyor; manuel SQL gerekmiyor.
 
           Release güvenliği:
-          - Validator artık add-on options route'unu, ACP yüksek risk route/controller'ını ve temiz kurulum option-group doğrulamasını zorunlu tutar.
-          - Final ZIP, HighRisk controller, ThreadAnalyze controller ve thread-controls.js olmadan üretilemez.
+          - Validator legacy `<option_group>` etiketini artık release engelleyici hata sayar.
+          - Minimum option sayısı, zorunlu option ID'leri ve bütün option → `warextAi` ilişkileri test edilir.
+          - Frontend cache anahtarı `1000350` olarak güncellendi.
 
-          Kurulum/yükseltme için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V${VERSION}.zip` dosyasını kullanın.
+          Mevcut v1.0.4 kurulumunda eklentiyi kaldırmayın. Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V${VERSION}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           EOF
 
       - name: GitHub Stable Release oluştur
