@@ -48,6 +48,16 @@ class Post extends XFCP_Post
             }
             if ($forumIds && !in_array($forumId, $forumIds, true)) return;
 
+            $contentHash = hash('sha256', $message);
+            $existingHash = \XF::db()->fetchOne(
+                'SELECT content_hash FROM xf_warext_ai_analysis WHERE post_id = ? ORDER BY analysis_id DESC LIMIT 1',
+                (int)$this->post_id
+            );
+            if (is_string($existingHash) && strlen($existingHash) === 64 && hash_equals($existingHash, $contentHash))
+            {
+                return;
+            }
+
             [$behavior, $writing] = $this->warextReadClientContext();
             $provider = (new Registry())->local();
             $result = $provider->analyze($message, ['behavior' => $behavior, 'writing' => $writing]);
@@ -55,8 +65,7 @@ class Post extends XFCP_Post
             $result = $this->warextEnrichSimilarity($forumId, $result, $message);
             $result = $this->warextPrepareExternalState($result);
 
-            $contentHash = hash('sha256', $message);
-            $this->warextPersistAnalysis($forumId, $result, $message, $contentHash);
+            $this->warextPersistAnalysis($forumId, $result, $contentHash);
             $this->warextQueueExternalVerification($result, $contentHash);
         }
         catch (\Throwable $e)
@@ -149,8 +158,12 @@ class Post extends XFCP_Post
         }
 
         $rows = \XF::db()->fetchAll(
-            'SELECT post_id, content_fingerprint FROM xf_warext_ai_analysis WHERE forum_id = ? AND content_fingerprint <> ? ORDER BY analyzed_date DESC LIMIT 250',
-            [$forumId, '']
+            'SELECT post_id, content_fingerprint
+             FROM xf_warext_ai_analysis
+             WHERE forum_id = ? AND post_id <> ? AND content_fingerprint <> ?
+             ORDER BY analyzed_date DESC
+             LIMIT 250',
+            [$forumId, (int)$this->post_id, '']
         );
         $comparison = $similarity->compare($fingerprint, $rows, (int)$this->post_id);
         $result['similarity_metrics'] = ['available' => true, 'fingerprint' => $fingerprint] + $comparison;
@@ -227,7 +240,7 @@ class Post extends XFCP_Post
         ];
     }
 
-    protected function warextPersistAnalysis(int $forumId, array $result, string $message, string $contentHash): void
+    protected function warextPersistAnalysis(int $forumId, array $result, string $contentHash): void
     {
         $db = \XF::db();
         $now = time();
@@ -249,6 +262,7 @@ class Post extends XFCP_Post
             'behavior_metrics' => json_encode($result['behavior_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'writing_metrics' => json_encode($result['writing_metrics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'profile_metrics' => json_encode($result['profile_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'similarity_metrics' => json_encode($result['similarity_metrics'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'external_metrics' => json_encode($result['external_verification'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'signal_summary' => json_encode($result['signals'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'content_hash' => $contentHash,
