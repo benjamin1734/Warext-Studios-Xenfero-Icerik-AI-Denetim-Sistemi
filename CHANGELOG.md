@@ -1,5 +1,16 @@
 # Değişiklik Günlüğü
 
+## v1.0.1 Stable
+
+- XenForo kurulumunu `Exception: Please enter a valid value.` hatasıyla durduran `edit_format="textarea"` kaldırıldı; OpenRouter fallback listesi `textbox` + `rows=4` olarak tanımlandı.
+- Forum seçici callback’i XenForo’nun kanonik `XF\Option\Forum::renderSelectMultiple` biçimine geçirildi.
+- ACP navigation master-data dosyası gerçek XenForo `admin_navigation_entry` export şemasına dönüştürüldü.
+- Public navigation yetki koşulundaki PHP `->` sözdizimi XenForo template dot sözdizimine çevrildi.
+- Permission, option, option-group, admin-navigation ve public-navigation phrase anahtarları XenForo’nun kanonik noktalı adlandırmasına geçirildi.
+- Başarısız 1.0.0 kurulumundan kalabilecek `xf_warext_ai_analysis` tablosu için kurulum yeniden-deneme güvenliği eklendi.
+- JS cache anahtarı `1000310` olarak yükseltildi.
+- CI artık desteklenmeyen option edit formatını, hatalı ACP navigation şemasını ve legacy phrase anahtarlarını release engelleyici hata olarak denetler.
+
 ## v1.0.0 Stable
 
 - Eklenti `version_id: 1000300`, `version_string: 1.0.0` ile Stable sürüme geçirildi.

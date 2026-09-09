@@ -6,7 +6,9 @@ XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ il
 
 ## Güncel sürüm
 
-**1.0.0 Stable**
+**1.0.1 Stable**
+
+1.0.1, XenForo kurulumunda master-data importunu durduran geçersiz `textarea` option formatını XenForo uyumlu `textbox + rows` yapısına çevirir. ACP navigation ve phrase exportları da XenForo’nun kanonik `_data` formatına geçirildi; başarısız 1.0.0 kurulumundan kalabilecek analiz tablosunda yeniden deneme güvenliği eklendi.
 
 Stable sürüm Alpha 9–14 arasında geliştirilen provider, raporlama, geçmiş tarama, maliyet ve performans katmanlarını tek kararlı paket altında toplar. Final stabilizasyonda harici API bütçe kontrolündeki günlük/aylık sorgular tek aggregate sorguya, kullanım özeti tek period sorgusuna ve moderasyon merkezi durum sayaçları tek sorguya indirildi. Tahmini maliyet hesabı ayrıca eksik fiyat bulunan token tarafını sessizce `0 USD` kabul etmeyecek şekilde sıkılaştırıldı.
 

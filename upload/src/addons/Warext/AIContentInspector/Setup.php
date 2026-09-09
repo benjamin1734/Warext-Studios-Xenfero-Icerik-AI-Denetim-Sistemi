@@ -18,6 +18,7 @@ class Setup extends AbstractSetup
     {
         $this->schemaManager()->createTable('xf_warext_ai_analysis', function (Create $table)
         {
+            $table->checkExists(true);
             $table->addColumn('analysis_id', 'int')->unsigned()->autoIncrement();
             $table->addColumn('post_id', 'int')->unsigned()->setDefault(0);
             $table->addColumn('thread_id', 'int')->unsigned()->setDefault(0);

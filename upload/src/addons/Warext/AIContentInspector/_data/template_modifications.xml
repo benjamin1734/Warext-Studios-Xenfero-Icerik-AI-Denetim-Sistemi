@@ -4,7 +4,7 @@
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
 <xf:if is="$xf.options.warextAiEnabled">
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000300"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000310"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
 <div id="warext-ai-config" hidden
@@ -12,8 +12,8 @@
  data-thread-endpoint="{{ link('warext-ai/thread') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000300"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000300"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000310"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000310"></script>
 </xf:if>
 $0]]></replace>
   </modification>
