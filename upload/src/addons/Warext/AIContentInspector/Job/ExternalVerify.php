@@ -58,7 +58,7 @@ class ExternalVerify extends AbstractJob
             'classification' => (string)$row['classification'],
             'signals' => $signals
         ];
-        $result = (new ExternalVerifier())->enrich($message, $result);
+        $result = (new ExternalVerifier())->enrich($message, $result, ['post_id' => $postId]);
 
         $currentHash = $db->fetchOne('SELECT content_hash FROM xf_warext_ai_analysis WHERE analysis_id = ?', (int)$row['analysis_id']);
         if (!is_string($currentHash) || !hash_equals($currentHash, $expectedHash))
