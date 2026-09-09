@@ -24,7 +24,7 @@ class UsageTracker
             );
             if ($count >= $dailyRequests)
             {
-                return ['allowed' => false, 'reason' => 'daily_request_limit', 'current' => $count, 'limit' => $dailyRequests];
+                return ['allowed' => false, 'reason' => 'daily_request_limit', 'current' => $count, 'limit' => $dailyRequests, 'provider' => $providerId];
             }
         }
 
@@ -36,7 +36,7 @@ class UsageTracker
             );
             if (($micro / 1000000) >= $dailyBudget)
             {
-                return ['allowed' => false, 'reason' => 'daily_budget_limit', 'current' => $micro / 1000000, 'limit' => $dailyBudget];
+                return ['allowed' => false, 'reason' => 'daily_budget_limit', 'current' => $micro / 1000000, 'limit' => $dailyBudget, 'provider' => $providerId];
             }
         }
 
@@ -48,7 +48,7 @@ class UsageTracker
             );
             if (($micro / 1000000) >= $monthlyBudget)
             {
-                return ['allowed' => false, 'reason' => 'monthly_budget_limit', 'current' => $micro / 1000000, 'limit' => $monthlyBudget];
+                return ['allowed' => false, 'reason' => 'monthly_budget_limit', 'current' => $micro / 1000000, 'limit' => $monthlyBudget, 'provider' => $providerId];
             }
         }
 
@@ -83,25 +83,105 @@ class UsageTracker
         $db = \XF::db();
 
         $daily = $db->fetchRow(
-            'SELECT COUNT(*) AS requests, COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost FROM xf_warext_ai_usage WHERE created_date >= ?',
+            'SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
+                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost
+             FROM xf_warext_ai_usage WHERE created_date >= ?',
             $dayStart
         ) ?: [];
         $monthly = $db->fetchRow(
-            'SELECT COUNT(*) AS requests, COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost FROM xf_warext_ai_usage WHERE created_date >= ?',
+            'SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
+                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost
+             FROM xf_warext_ai_usage WHERE created_date >= ?',
             $monthStart
         ) ?: [];
 
+        $providerRows = $db->fetchAll(
+            'SELECT provider_id, COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
+                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost,
+                    MAX(created_date) AS last_activity
+             FROM xf_warext_ai_usage
+             WHERE created_date >= ?
+             GROUP BY provider_id
+             ORDER BY requests DESC',
+            $dayStart
+        );
+
+        $latestRows = $db->fetchAll(
+            'SELECT provider_id, model, success, failure_reason, created_date
+             FROM xf_warext_ai_usage
+             ORDER BY usage_id DESC
+             LIMIT 100'
+        );
+        $latest = [];
+        $latestFailure = [];
+        foreach ($latestRows as $row)
+        {
+            $providerId = (string)$row['provider_id'];
+            if (!isset($latest[$providerId])) $latest[$providerId] = $row;
+            if (empty($row['success']) && !isset($latestFailure[$providerId])) $latestFailure[$providerId] = $row;
+        }
+
+        $providers = [];
+        foreach ($providerRows as $row)
+        {
+            $providerId = (string)$row['provider_id'];
+            $requests = (int)$row['requests'];
+            $successes = (int)$row['successes'];
+            $rate = $requests > 0 ? (int)round(($successes / $requests) * 100) : 0;
+            $last = $latest[$providerId] ?? [];
+            $failure = $latestFailure[$providerId] ?? [];
+
+            $status = 'healthy';
+            if ($requests >= 3 && $rate < 50) $status = 'error';
+            elseif ($requests >= 3 && $rate < 85) $status = 'degraded';
+            elseif (!empty($last) && empty($last['success'])) $status = 'degraded';
+
+            $providers[] = [
+                'provider' => $providerId,
+                'model' => (string)($last['model'] ?? ''),
+                'status' => $status,
+                'requests' => $requests,
+                'successes' => $successes,
+                'success_rate' => $rate,
+                'tokens' => (int)$row['tokens'],
+                'cost_usd' => round(((int)$row['cost']) / 1000000, 6),
+                'last_activity' => (int)($row['last_activity'] ?? 0),
+                'last_failure_reason' => (string)($failure['failure_reason'] ?? ''),
+                'last_failure_date' => (int)($failure['created_date'] ?? 0)
+            ];
+        }
+
+        $options = \XF::options();
         return [
-            'daily' => [
-                'requests' => (int)($daily['requests'] ?? 0),
-                'tokens' => (int)($daily['tokens'] ?? 0),
-                'cost_usd' => round(((int)($daily['cost'] ?? 0)) / 1000000, 6)
+            'daily' => $this->periodSummary($daily),
+            'monthly' => $this->periodSummary($monthly),
+            'limits' => [
+                'daily_requests' => max(0, (int)($options->warextAiDailyRequestLimit ?? 0)),
+                'daily_budget_usd' => max(0.0, (float)($options->warextAiDailyBudgetUsd ?? 0)),
+                'monthly_budget_usd' => max(0.0, (float)($options->warextAiMonthlyBudgetUsd ?? 0))
             ],
-            'monthly' => [
-                'requests' => (int)($monthly['requests'] ?? 0),
-                'tokens' => (int)($monthly['tokens'] ?? 0),
-                'cost_usd' => round(((int)($monthly['cost'] ?? 0)) / 1000000, 6)
-            ]
+            'providers' => $providers
+        ];
+    }
+
+    public function prune(): int
+    {
+        $days = max(7, min(3650, (int)(\XF::options()->warextAiUsageRetentionDays ?? 90)));
+        $cutoff = time() - ($days * 86400);
+        return \XF::db()->delete('xf_warext_ai_usage', 'created_date < ?', $cutoff);
+    }
+
+    protected function periodSummary(array $row): array
+    {
+        $requests = (int)($row['requests'] ?? 0);
+        $successes = (int)($row['successes'] ?? 0);
+        return [
+            'requests' => $requests,
+            'successes' => $successes,
+            'failed' => max(0, $requests - $successes),
+            'success_rate' => $requests > 0 ? (int)round(($successes / $requests) * 100) : 0,
+            'tokens' => (int)($row['tokens'] ?? 0),
+            'cost_usd' => round(((int)($row['cost'] ?? 0)) / 1000000, 6)
         ];
     }
 }
