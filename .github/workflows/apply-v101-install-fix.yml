@@ -1,0 +1,49 @@
+name: Apply v1.0.1 XenForo installer fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/apply_v101_install_fix.py'
+      - '.github/workflows/apply-v101-install-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply v1.0.1 installer/master-data fix
+        run: python3 tools/apply_v101_install_fix.py
+
+      - name: Validate generated XML and JSON
+        run: |
+          python3 - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          root = Path('upload/src/addons/Warext/AIContentInspector')
+          json.loads((root / 'addon.json').read_text(encoding='utf-8'))
+          for path in sorted((root / '_data').glob('*.xml')):
+              ET.parse(path)
+          PY
+
+      - name: Commit generated v1.0.1 fix
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add upload/src/addons/Warext/AIContentInspector README.md CHANGELOG.md .github/workflows/validate.yml
+          git commit -m 'fix: XenForo installer compatibility v1.0.1'
+          git push origin HEAD:main
