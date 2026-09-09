@@ -6,17 +6,20 @@ XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ il
 
 ## Güncel sürüm
 
-**1.0.0 Alpha 13 — yapım aşamasında**
+**1.0.0 Alpha 14 — yapım aşamasında**
 
-Alpha 13, Alpha 12'de tamamlanan maliyet/geçmiş tarama katmanını performans ve veri tutarlılığı açısından güçlendirir:
+Alpha 14, maliyet/bütçe katmanındaki son önemli boşluğu kapatır. Provider gerçek dolar maliyetini bildirmiyorsa ve token kullanımı mevcutsa, ACP'de yönetici tarafından girilen input/output fiyatlarından tahmini maliyet hesaplanabilir. Gerçek maliyet, tahmini maliyet ve maliyeti bilinmeyen kullanım kayıtları birbirinden açıkça ayrılır.
 
-- içerik benzerliği artık `similarity_metrics` alanında ayrıca saklanır,
+Alpha 13 ile gelen performans ve veri tutarlılığı geliştirmeleri de korunur:
+
+- içerik benzerliği `similarity_metrics` alanında ayrıca saklanır,
 - aynı forumdaki son analizler için `forum_id + analyzed_date` indeksi kullanılır,
 - mesaj içeriğinin SHA-256 hash'i değişmemişse aynı içerik yeniden analiz edilmez,
 - benzerlik sorgularında mevcut mesaj açıkça dışlanır,
 - geçmiş taramadaki harici doğrulama job kimliği provider + mesaj + içerik hash'i ile ayrıştırılır,
 - detay yetkisi olmayan kullanıcılarda konu özeti için gereksiz en-riskli-mesajlar sorgusu çalıştırılmaz,
-- detaylı rapor `similarityMetrics` verisini ayrı olarak döndürür.
+- konu raporu mevcut batch sonucunu tekrar kullanır ve ikinci batch isteği atmaz,
+- rapor JavaScript'i yalnız yetkili kullanıcıya yüklenir.
 
 ## Temel çalışma mantığı
 
@@ -31,7 +34,7 @@ Eklenti dört ayrı XenForo yetkisi kullanır:
 - `warextAiViewSimple` — konu üstündeki düz raporu ve AI denetim merkezini görüntüleme.
 - `warextAiViewDetailed` — ayrıntılı metin, davranış, Writing Checker, profil, benzerlik ve harici doğrulama verilerini görüntüleme.
 - `warextAiReview` — sonucu `pending`, `cleared`, `suspicious` veya `confirmed` durumlarından biriyle inceleme ve not ekleme.
-- `warextAiManage` — API kullanımı/provider sağlığı ve geçmiş tarama gibi yönetim özelliklerine erişme.
+- `warextAiManage` — API kullanımı/provider sağlığı, bütçe ve geçmiş tarama gibi yönetim özelliklerine erişme.
 
 ## Raporlama
 
@@ -39,15 +42,22 @@ Yetkili kullanıcılar analiz edilmiş mesajlarda doğrudan konu içinde kısa b
 
 Konu genelinde analiz edilen mesaj sayısı, ortalama/en yüksek risk, yüksek riskli mesaj sayısı ve moderasyon durum dağılımı gösterilir. En riskli mesajların ayrıntılı listesi yalnız `warextAiViewDetailed` yetkisi varsa sorgulanır.
 
-Detaylı raporda şunlar ayrı alanlar olarak bulunur:
+Detaylı raporda şu katmanlar ayrı gösterilir:
 
-- metin ölçümleri,
+- yerel metin ölçümleri,
 - editör davranış ölçümleri,
 - Writing Checker ölçümleri,
 - kullanıcı yazım profili,
-- içerik benzerliği ölçümleri,
+- içerik benzerliği ölçümleri ve eşleşen mesajlar,
 - harici provider ikinci görüşü,
+- token kullanımı ve maliyet kaynağı,
 - sinyaller ve moderasyon inceleme geçmişi.
+
+Harici provider maliyeti ayrıntılı raporda şu şekilde etiketlenir:
+
+- **Gerçek maliyet** — provider doğrudan maliyet bilgisi bildirdi.
+- **Tahmini maliyet** — provider maliyet vermedi; token kullanımı ve ACP fiyatlarıyla hesaplandı.
+- **Maliyet bilgisi yok** — güvenilir gerçek veya tahmini maliyet oluşturulamadı.
 
 `/warext-ai/` altında yetki kontrollü moderasyon merkezi bulunur. Minimum risk, forum, kullanıcı ve inceleme durumu filtreleri desteklenir.
 
@@ -88,21 +98,26 @@ Harici modele QUOTE, CODE, PHP, HTML, ICODE ve PLAIN bloklarındaki kullanıcıy
 - prompt/input token,
 - completion/output token,
 - toplam token,
-- provider tarafından bildirilen gerçek maliyet,
+- maliyet,
+- maliyet kaynağı (`actual`, `estimated`, `unknown`),
 - başarılı/başarısız durum,
 - başarısızlık nedeni,
 - tarih.
 
-ACP'den yönetilebilen sınırlar:
+ACP'den yönetilebilen sınırlar ve maliyet ayarları:
 
 - günlük maksimum harici AI isteği,
 - aylık maksimum harici AI isteği,
 - günlük maksimum USD bütçesi,
 - aylık maksimum USD bütçesi,
+- tahmini input fiyatı / 1 milyon token,
+- tahmini output fiyatı / 1 milyon token,
 - kullanım kaydı saklama süresi,
 - geçmiş tarama job paket boyutu.
 
-`0` olan çağrı/bütçe limitleri sınırsız kabul edilir. Limit dolduğunda yalnızca harici doğrulama durur; Warext Local Engine çalışmaya devam eder.
+Tahmini fiyatlar özellikle koda sabitlenmez. Model/provider fiyatları değişebildiği için yönetici kullandığı modelin güncel fiyatını ACP'den girer. Provider gerçek maliyet bildirdiğinde gerçek değer her zaman tahmini değerden önceliklidir.
+
+`0` olan çağrı/bütçe limitleri sınırsız kabul edilir. Tahmini token fiyatları `0` ise ilgili tarafta tahmin yapılmaz. Limit dolduğunda yalnızca harici doğrulama durur; Warext Local Engine çalışmaya devam eder.
 
 `warextAiManage` yetkisine sahip kullanıcılar günlük/aylık istek, token ve maliyet toplamlarını; provider başarı oranını, son kullanılan modeli, provider sağlık durumunu ve son hata nedenini görebilir.
 
@@ -131,7 +146,7 @@ Bir kullanıcının en az üç önceki analiz kaydı varsa sistem son 25 uygun �
 
 Metinler için yerel 64-bit fingerprint üretilir. Aynı forumdaki yakın geçmiş analizlerle karşılaştırma yapılır. Yüksek benzerlik AI kullanımı olarak değerlendirilmez; kopya/yeniden paylaşım bağlamı için ayrı moderasyon sinyalidir.
 
-Alpha 13 ile fingerprint yanında hesaplanan benzerlik sonucu ve eşleşme bağlamı `similarity_metrics` içinde ayrıca saklanır; böylece detay raporu sinyal özetini yeniden yorumlamak zorunda kalmaz.
+Fingerprint yanında hesaplanan benzerlik sonucu ve eşleşme bağlamı `similarity_metrics` içinde ayrıca saklanır; böylece detay raporu sinyal özetini yeniden yorumlamak zorunda kalmaz.
 
 ## Moderasyon inceleme kaydı
 
@@ -160,6 +175,7 @@ GitHub Actions şu alanları otomatik kontrol eder:
 - harici doğrulamanın asenkron çalışması,
 - içerik hash koruması,
 - günlük/aylık çağrı ve bütçe ayarları,
+- gerçek/tahmini maliyet ayrımı,
 - provider sağlık/kullanım katmanı,
 - geçmiş tarama job mimarisi,
 - kullanım geçmişi prune cron'u,
@@ -168,14 +184,15 @@ GitHub Actions şu alanları otomatik kontrol eder:
 
 ## Geliştirme durumu
 
-Başlangıçtaki **9 ana adımın ilk 8'i tamamlandı**. Son ana adımın büyük geliştirme bölümleri de Alpha 9–13 arasında tamamlandı:
+Başlangıçtaki **9 ana adımın ilk 8'i tamamlandı**. Son ana adımın temel geliştirme bölümleri Alpha 9–14 arasında tamamlandı:
 
 - **Alpha 9:** OpenAI/GPT, Google Gemini, DeepSeek ve Anthropic Claude doğrudan adapterları.
 - **Alpha 10:** xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible endpoint.
 - **Alpha 11:** provider kullanım/token/maliyet kayıt çekirdeği ve bütçe kontrol altyapısı.
 - **Alpha 12:** ayrı ACP navigasyonu, günlük/aylık çağrı ve bütçe kontrolleri, provider sağlık görünümü, retention temizliği ve kontrollü geçmiş içerik taraması.
 - **Alpha 13:** benzerlik verisinin kalıcılaştırılması, duplicate-analysis engeli ve rapor/benzerlik sorgu optimizasyonları.
+- **Alpha 14:** provider maliyet vermediğinde token bazlı ACP fiyatlarıyla tahmini maliyet fallback'i ve gerçek/tahmini/bilinmeyen maliyet kaynağı ayrımı.
 
-### Kalan 1 ana geliştirme grubu
+### Kalan son aşama
 
-**Final stabilizasyon + 1.0.0 Stable:** provider maliyet verisi dönmeyen servisler için güvenli tahmini maliyet fallback'i; fayda sağlayan providerlarda batch/queue optimizasyonu; rapor/ACP son düzenlemeleri; sorgu/cache ve büyük forum yük testleri; install/upgrade/uninstall kontrolleri; XenForo 2.3 canlı kurulum senaryoları; final ZIP, GitHub Release ve son dokümantasyon.
+**1.0.0 Stable stabilizasyonu:** final install/upgrade/uninstall şema kontrolleri, büyük forum sorgu/yük güvenlik kontrolleri, son ACP/rapor metinleri, stable sürüm kimliği, final ZIP ve GitHub Release.
