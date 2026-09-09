@@ -23,8 +23,8 @@ jobs:
           import json
           from pathlib import Path
           addon = json.loads(Path('upload/src/addons/Warext/AIContentInspector/addon.json').read_text(encoding='utf-8'))
-          if addon.get('version_string') != '1.0.1' or int(addon.get('version_id', 0)) != 1000310:
-              raise SystemExit('Bu workflow yalnız v1.0.1 Stable için çalışır.')
+          if addon.get('version_string') != '1.0.2' or int(addon.get('version_id', 0)) != 1000320:
+              raise SystemExit('Bu workflow yalnız v1.0.2 Stable için çalışır.')
           PY
 
       - name: PHP sözdizimini doğrula
@@ -33,33 +33,8 @@ jobs:
       - name: JavaScript sözdizimini doğrula
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
-      - name: XenForo master-data uyumluluğunu doğrula
-        run: |
-          python3 - <<'PY'
-          import xml.etree.ElementTree as ET
-          from pathlib import Path
-          data = Path('upload/src/addons/Warext/AIContentInspector/_data')
-          for path in sorted(data.glob('*.xml')):
-              ET.parse(path)
-
-          options = ET.parse(data / 'options.xml').getroot()
-          allowed = {'textbox','spinbox','onoff','onofftextbox','radio','select','checkbox','template','callback','username'}
-          invalid = {o.attrib.get('option_id'): o.attrib.get('edit_format') for o in options.findall('option') if o.attrib.get('edit_format') not in allowed}
-          if invalid:
-              raise SystemExit('Geçersiz XenForo option edit formatı: ' + repr(invalid))
-          if any(o.attrib.get('edit_format') == 'textarea' for o in options.findall('option')):
-              raise SystemExit('XenForo edit_format=textarea kabul etmez')
-
-          admin_nav = ET.parse(data / 'admin_navigation.xml').getroot()
-          ids = {n.attrib.get('navigation_id') for n in admin_nav.findall('admin_navigation_entry')}
-          if not {'warextAiAdmin', 'warextAiSettings'}.issubset(ids):
-              raise SystemExit('ACP navigation export formatı geçersiz')
-
-          phrases = {p.attrib.get('title') for p in ET.parse(data / 'phrases.xml').getroot().findall('phrase')}
-          for title in ['permission_interface.warextAi','option_group.warextAi','admin_navigation.warextAiAdmin','nav.warextAi']:
-              if title not in phrases:
-                  raise SystemExit('Kanonik XenForo phrase eksik: ' + title)
-          PY
+      - name: XenForo master-data ve template uyumluluğunu doğrula
+        run: python3 tools/validate_xenforo_master.py
 
       - name: Stable XenForo ZIP paketini üret ve doğrula
         id: build
@@ -75,40 +50,46 @@ jobs:
       - name: Release notlarını hazırla
         run: |
           cat > RELEASE_NOTES.md <<'EOF'
-          # Warext Studios | İçerik AI Denetim Sistemi v1.0.1 Stable
+          # Warext Studios | İçerik AI Denetim Sistemi v1.0.2 Stable
 
-          XenForo 2.3+ kurulum uyumluluğu düzeltme sürümü. **v1.0.0 yerine bu sürümü kullanın.**
+          XenForo 2.3+ template derleme ve ACP menü yerleşimi düzeltme sürümü. **v1.0.0 ve v1.0.1 yerine bu sürümü kullanın.**
 
-          Düzeltilen kritik kurulum sorunu:
-          - v1.0.0 kurulumu sırasında görülebilen `Exception: Please enter a valid value.` hatasının kök nedeni giderildi.
-          - `warextAiOpenRouterFallbackModels` seçeneğindeki XenForo tarafından desteklenmeyen `edit_format="textarea"`, kanonik `textbox` + çok satırlı `rows=4` yapılandırmasına çevrildi.
+          Kritik düzeltmeler:
+          - `public:warext_ai_center` şablonunda kurulum sırasında oluşan `Line 51: Syntax error` giderildi.
+          - PHP-benzeri kısa ternary/Elvis ifadelerinin `{$...}` doğrudan çıktı interpolasyonu içinde kullanılmasına son verildi.
+          - Provider model, konu başlığı ve kullanıcı adı fallback'leri kanonik `<xf:if>` yapısına geçirildi.
+          - Durum filtresi raw HTML option/attribute üretmek yerine XenForo'nun `<xf:select>` / `<xf:option>` bileşenine geçirildi.
+          - Risk sınıfı üretimi açık XenForo koşullarıyla güvenli hale getirildi.
 
-          Ek XenForo 2.3 master-data düzeltmeleri:
-          - Forum selector callback'i kanonik `XF\Option\Forum::renderSelectMultiple` biçimine geçirildi.
-          - ACP navigation XML'i gerçek XenForo `admin_navigation_entry` export şemasına dönüştürüldü.
-          - Public navigation yetki koşulu XenForo template sözdizimine düzeltildi.
-          - Permission, option, option-group ve navigation phrase anahtarları XenForo'nun kanonik noktalı biçimine geçirildi.
-          - Başarısız v1.0.0 kurulumundan kalabilecek analiz tablosu için yeniden kurulum/retry koruması eklendi.
-          - CI artık desteklenmeyen option edit formatlarını ve hatalı master-data yapılarını release öncesinde blokluyor.
+          ACP düzeni:
+          - `Warext AI İçerik Denetimi` kök kategorisinin `display_order` değeri 95'ten 9000'e taşındı.
+          - Böylece eklenti ayar grubu Setup / Add-ons gibi XenForo çekirdek kategorilerinin üstünde görünmez.
+
+          Release güvenliği:
+          - Yeni `tools/validate_xenforo_master.py` master-data, option formatları, phrase/nav yapıları ve template markup dengesini doğrular.
+          - `{$x ?: y}` / `{$x ? y : z}` gibi XenForo template compiler'ını bozabilecek ifadeli basit interpolasyonlar CI tarafından bloklanır.
+          - Template sürüm kimlikleri add-on sürümüyle eşleşmek zorundadır.
+          - ACP kategori sırasının tekrar core menülerin üstüne çıkması CI tarafından engellenir.
+          - Paketleme ve Release aşamalarında aynı sıkı doğrulama yeniden çalışır.
 
           Eklentinin AI analiz, moderasyon, opsiyonel provider, bütçe/maliyet, geçmiş tarama ve Writing Checker entegrasyon özellikleri korunur.
 
-          Kurulum için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V1.0.1.zip` dosyasını kullanın.
+          Kurulum için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V1.0.2.zip` dosyasını kullanın.
           EOF
 
-      - name: GitHub v1.0.1 Release oluştur
+      - name: GitHub v1.0.2 Release oluştur
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE: ${{ steps.build.outputs.package }}
         run: |
           set -euo pipefail
-          if gh release view v1.0.1 >/dev/null 2>&1; then
-            echo 'v1.0.1 Release zaten mevcut; yeniden oluşturulmadı.'
+          if gh release view v1.0.2 >/dev/null 2>&1; then
+            echo 'v1.0.2 Release zaten mevcut; yeniden oluşturulmadı.'
             exit 0
           fi
-          gh release create v1.0.1 \
+          gh release create v1.0.2 \
             "$PACKAGE#XenForo 2.3+ kurulum ZIP" \
             --target "$GITHUB_SHA" \
-            --title "Warext AI Content Inspector v1.0.1 Stable" \
+            --title "Warext AI Content Inspector v1.0.2 Stable" \
             --notes-file RELEASE_NOTES.md \
             --latest
