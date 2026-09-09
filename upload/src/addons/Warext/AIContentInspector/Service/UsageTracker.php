@@ -68,24 +68,54 @@ class UsageTracker
         return ['allowed' => true, 'reason' => 'ok', 'provider' => $providerId];
     }
 
-    public function record(string $providerId, string $model, array $assessment, int $postId = 0): void
+    public function record(string $providerId, string $model, array $assessment, int $postId = 0): array
     {
         $usage = is_array($assessment['usage'] ?? null) ? $assessment['usage'] : [];
-        $cost = isset($usage['cost']) && is_numeric($usage['cost']) ? max(0.0, (float)$usage['cost']) : 0.0;
-        $reason = empty($assessment['available']) ? (string)($assessment['reason'] ?? 'unavailable') : '';
+        $promptTokens = max(0, (int)($usage['prompt_tokens'] ?? 0));
+        $completionTokens = max(0, (int)($usage['completion_tokens'] ?? 0));
+        $totalTokens = max(0, (int)($usage['total_tokens'] ?? ($promptTokens + $completionTokens)));
 
+        $cost = 0.0;
+        $costSource = 'unknown';
+        if (isset($usage['cost']) && is_numeric($usage['cost']))
+        {
+            $cost = max(0.0, (float)$usage['cost']);
+            $costSource = 'actual';
+        }
+        elseif ($promptTokens > 0 || $completionTokens > 0)
+        {
+            $options = \XF::options();
+            $inputRate = max(0.0, (float)($options->warextAiEstimatedInputUsdPerMillion ?? 0));
+            $outputRate = max(0.0, (float)($options->warextAiEstimatedOutputUsdPerMillion ?? 0));
+            if ($inputRate > 0 || $outputRate > 0)
+            {
+                $cost = (($promptTokens / 1000000) * $inputRate) + (($completionTokens / 1000000) * $outputRate);
+                $costSource = 'estimated';
+            }
+        }
+
+        $reason = empty($assessment['available']) ? (string)($assessment['reason'] ?? 'unavailable') : '';
         \XF::db()->insert('xf_warext_ai_usage', [
             'post_id' => max(0, $postId),
             'provider_id' => substr($providerId, 0, 32),
             'model' => substr($model, 0, 191),
-            'prompt_tokens' => max(0, (int)($usage['prompt_tokens'] ?? 0)),
-            'completion_tokens' => max(0, (int)($usage['completion_tokens'] ?? 0)),
-            'total_tokens' => max(0, (int)($usage['total_tokens'] ?? 0)),
+            'prompt_tokens' => $promptTokens,
+            'completion_tokens' => $completionTokens,
+            'total_tokens' => $totalTokens,
             'cost_microusd' => (int)round($cost * 1000000),
+            'cost_source' => $costSource,
             'success' => !empty($assessment['available']) ? 1 : 0,
             'failure_reason' => substr($reason, 0, 80),
             'created_date' => time()
         ]);
+
+        return [
+            'prompt_tokens' => $promptTokens,
+            'completion_tokens' => $completionTokens,
+            'total_tokens' => $totalTokens,
+            'cost' => $cost,
+            'cost_source' => $costSource
+        ];
     }
 
     public function summary(): array
@@ -96,31 +126,37 @@ class UsageTracker
         $db = \XF::db();
 
         $daily = $db->fetchRow(
-            'SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
-                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost
-             FROM xf_warext_ai_usage WHERE created_date >= ?',
+            "SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
+                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost,
+                    COALESCE(SUM(cost_source = 'actual'),0) AS actual_cost_records,
+                    COALESCE(SUM(cost_source = 'estimated'),0) AS estimated_cost_records
+             FROM xf_warext_ai_usage WHERE created_date >= ?",
             $dayStart
         ) ?: [];
         $monthly = $db->fetchRow(
-            'SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
-                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost
-             FROM xf_warext_ai_usage WHERE created_date >= ?',
+            "SELECT COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
+                    COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost,
+                    COALESCE(SUM(cost_source = 'actual'),0) AS actual_cost_records,
+                    COALESCE(SUM(cost_source = 'estimated'),0) AS estimated_cost_records
+             FROM xf_warext_ai_usage WHERE created_date >= ?",
             $monthStart
         ) ?: [];
 
         $providerRows = $db->fetchAll(
-            'SELECT provider_id, COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
+            "SELECT provider_id, COUNT(*) AS requests, COALESCE(SUM(success),0) AS successes,
                     COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(cost_microusd),0) AS cost,
+                    COALESCE(SUM(cost_source = 'actual'),0) AS actual_cost_records,
+                    COALESCE(SUM(cost_source = 'estimated'),0) AS estimated_cost_records,
                     MAX(created_date) AS last_activity
              FROM xf_warext_ai_usage
              WHERE created_date >= ?
              GROUP BY provider_id
-             ORDER BY requests DESC',
+             ORDER BY requests DESC",
             $dayStart
         );
 
         $latestRows = $db->fetchAll(
-            'SELECT provider_id, model, success, failure_reason, created_date
+            'SELECT provider_id, model, success, failure_reason, cost_source, created_date
              FROM xf_warext_ai_usage
              ORDER BY usage_id DESC
              LIMIT 100'
@@ -158,6 +194,9 @@ class UsageTracker
                 'success_rate' => $rate,
                 'tokens' => (int)$row['tokens'],
                 'cost_usd' => round(((int)$row['cost']) / 1000000, 6),
+                'actual_cost_records' => (int)$row['actual_cost_records'],
+                'estimated_cost_records' => (int)$row['estimated_cost_records'],
+                'last_cost_source' => (string)($last['cost_source'] ?? 'unknown'),
                 'last_activity' => (int)($row['last_activity'] ?? 0),
                 'last_failure_reason' => (string)($failure['failure_reason'] ?? ''),
                 'last_failure_date' => (int)($failure['created_date'] ?? 0)
@@ -172,7 +211,9 @@ class UsageTracker
                 'daily_requests' => max(0, (int)($options->warextAiDailyRequestLimit ?? 0)),
                 'monthly_requests' => max(0, (int)($options->warextAiMonthlyRequestLimit ?? 0)),
                 'daily_budget_usd' => max(0.0, (float)($options->warextAiDailyBudgetUsd ?? 0)),
-                'monthly_budget_usd' => max(0.0, (float)($options->warextAiMonthlyBudgetUsd ?? 0))
+                'monthly_budget_usd' => max(0.0, (float)($options->warextAiMonthlyBudgetUsd ?? 0)),
+                'estimated_input_usd_per_million' => max(0.0, (float)($options->warextAiEstimatedInputUsdPerMillion ?? 0)),
+                'estimated_output_usd_per_million' => max(0.0, (float)($options->warextAiEstimatedOutputUsdPerMillion ?? 0))
             ],
             'providers' => $providers
         ];
@@ -195,7 +236,9 @@ class UsageTracker
             'failed' => max(0, $requests - $successes),
             'success_rate' => $requests > 0 ? (int)round(($successes / $requests) * 100) : 0,
             'tokens' => (int)($row['tokens'] ?? 0),
-            'cost_usd' => round(((int)($row['cost'] ?? 0)) / 1000000, 6)
+            'cost_usd' => round(((int)($row['cost'] ?? 0)) / 1000000, 6),
+            'actual_cost_records' => (int)($row['actual_cost_records'] ?? 0),
+            'estimated_cost_records' => (int)($row['estimated_cost_records'] ?? 0)
         ];
     }
 }
