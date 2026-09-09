@@ -67,26 +67,28 @@ jobs:
           cat > RELEASE_NOTES.md <<EOF
           # Warext Studios | İçerik AI Denetim Sistemi v${VERSION} Stable
 
-          XenForo 2.3+ ayar grubu erişimi ve konu üstü yetkili AI analizi geliştirme sürümü.
+          XenForo 2.3+ ACP ayar erişimi ve yüksek riskli konu görünümü düzeltme sürümü.
 
-          Kritik düzeltme:
-          - Bazı kurulum/yükseltmelerde ACP kategorisi görünmesine rağmen `options/groups/warextAi/` sayfasının 404 vermesine karşı option-group self-heal eklendi.
-          - Kurulum ve yükseltme sırasında `warextAi` ayar grubu eksikse otomatik olarak yeniden oluşturulur; manuel SQL gerekmez.
+          Ayarlar düzeltmesi:
+          - ACP Ayarlar bağlantısı artık sorunlu `options/groups/warextAi/` yoluna bağlı değildir.
+          - XenForo'nun add-on bazlı kanonik seçenek yolu `add-ons/Warext-AIContentInspector/options` kullanılır.
+          - `warextAi` option group temiz kurulumun ilk adımında, ikinci kurulum adımında ve yükseltmede tekrar doğrulanır.
+          - Böylece option-group kaydı eksik/kısmi olsa bile yönetici ayarlara add-on üzerinden ulaşabilir.
+
+          ACP yüksek risk alanı:
+          - `Warext AI İçerik Denetimi` ana ACP kategorisi yüksek risk görünümünü açar.
+          - Yüksek risk görünümü AI Denetim Merkezi'ni minimum 70/100 risk filtresiyle açar.
+          - `Ayarlar` alt menüsü ayrı kalır ve doğrudan add-on seçeneklerine gider.
 
           Konu üstü yetkili deneyimi:
-          - Yetkili kullanıcı konu başlığında doğrudan `AI Analizi` butonunu görür.
-          - Analizli mesajlarda kısa AI risk kartı otomatik görünür.
-          - Detay yetkisi olan kullanıcı `Detaylı rapor` ile yerel sinyal, yazım davranışı, Writing Checker, kullanıcı profili, benzerlik ve harici provider sonuçlarını görebilir.
-          - Eski/analiz edilmemiş konularda inceleme yetkisi olan kullanıcı `Konuyu analiz et` ile eksik mesajları XenForo job kuyruğuna alabilir.
-          - Konu taraması yalnız yerel analizle başlar; bu işlem kendi başına harici API maliyeti üretmez.
+          - `AI Analizi`, `Konuyu analiz et` ve `Eksik mesajları tara` akışı korunur.
+          - Analizli mesajlarda kısa risk kartı ve yetkisi olanlarda `Detaylı rapor` kullanılabilir.
 
-          Güvenlik ve performans:
-          - Konu taraması yalnız görünür mesajları işler ve daha önce analiz edilmiş mesajları tekrar analiz etmez.
-          - Thread bazlı job filtresi eklendi.
-          - Yeni konu kontrol endpoint'i yetki ve CSRF kontrolüyle korunur.
-          - Release öncesi validator option-group self-heal ve konu analiz kontrol dosyalarını zorunlu olarak denetler.
+          Release güvenliği:
+          - Validator artık add-on options route'unu, ACP yüksek risk route/controller'ını ve temiz kurulum option-group doğrulamasını zorunlu tutar.
+          - Final ZIP, HighRisk controller, ThreadAnalyze controller ve thread-controls.js olmadan üretilemez.
 
-          Kurulum için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V${VERSION}.zip` dosyasını kullanın.
+          Kurulum/yükseltme için Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V${VERSION}.zip` dosyasını kullanın.
           EOF
 
       - name: GitHub Stable Release oluştur
