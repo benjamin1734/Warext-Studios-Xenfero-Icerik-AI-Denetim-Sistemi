@@ -7,243 +7,85 @@
   if (!config.batchEndpoint) return;
 
   const labels = {
-    human_likely: 'İnsan yazımı ağırlıklı',
-    low_ai_signal: 'Düşük AI sinyali',
-    ai_assistance_possible: 'AI desteği olabilir',
-    ai_heavy_possible: 'AI ağırlıklı olabilir',
-    high_risk: 'Yüksek AI riski',
-    unknown: 'Belirsiz'
+    human_likely: 'İnsan yazımı ağırlıklı', low_ai_signal: 'Düşük AI sinyali',
+    ai_assistance_possible: 'AI desteği olabilir', ai_heavy_possible: 'AI ağırlıklı olabilir',
+    high_risk: 'Yüksek AI riski', unknown: 'Belirsiz'
   };
   const externalUsageLabels = {
-    human_likely: 'İnsan ağırlıklı',
-    editing_assistance: 'AI düzenleme desteği',
-    ai_assistance: 'AI desteği',
-    ai_heavy: 'AI ağırlıklı',
-    unknown: 'Belirsiz'
+    human_likely: 'İnsan ağırlıklı', editing_assistance: 'AI düzenleme desteği',
+    ai_assistance: 'AI desteği', ai_heavy: 'AI ağırlıklı', unknown: 'Belirsiz'
   };
-  const reviewLabels = {
-    pending: 'Bekleyen',
-    cleared: 'Temizlendi',
-    suspicious: 'Şüpheli',
-    confirmed: 'Onaylandı'
+  const reviewLabels = { pending:'Bekleyen', cleared:'Temizlendi', suspicious:'Şüpheli', confirmed:'Onaylandı' };
+  const signalLabels = {
+    sentence_uniformity:'Cümle uzunlukları olağandışı düzenli', paragraph_uniformity:'Paragraf uzunlukları düzenli',
+    connector_density:'Bağlaç/geçiş ifadesi yoğunluğu', template_language:'Şablonlaşmış anlatım kalıpları',
+    structured_format:'Yoğun yapılandırılmış liste/başlık düzeni', repetitive_openings:'Tekrarlayan cümle başlangıçları',
+    editor_behavior:'Editör oluşturma davranışı', writing_checker_used:'Warext Writing Checker kullanımı hesaba katıldı',
+    excluded_non_authored_blocks:'Alıntı/kod gibi kullanıcıya ait olmayan bloklar çıkarıldı', user_profile_deviation:'Geçmiş yazım profilinden sapma',
+    content_similarity:'Başka forum içeriğiyle benzerlik', high_content_similarity:'Başka forum içeriğiyle yüksek benzerlik',
+    external_provider_verification:'Harici AI ikinci görüşü', external_verifier_unavailable:'Harici AI doğrulaması kullanılamadı',
+    external_budget_limit:'API bütçe/istek limiti nedeniyle harici doğrulama atlandı', historical_behavior_unavailable:'Geçmiş içerikte editör davranışı gözlemlenmedi'
   };
 
   function installStyle() {
     if (document.getElementById('warext-ai-style')) return;
-    const style = document.createElement('style');
-    style.id = 'warext-ai-style';
-    style.textContent = `
-      .warextAiReport{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 10px;border:1px solid rgba(127,127,127,.25);border-radius:8px;background:rgba(127,127,127,.06);font-size:12px}
-      .warextAiReport strong{font-size:13px}.warextAiReport button{margin-left:auto;border:0;background:transparent;color:inherit;cursor:pointer;text-decoration:underline}
-      .warextAiDialog{width:min(780px,94vw);max-height:88vh;overflow:auto;border:1px solid rgba(127,127,127,.3);border-radius:12px;padding:0;background:Canvas;color:CanvasText}.warextAiDialog::backdrop{background:rgba(0,0,0,.42)}
-      .warextAiDialogHead,.warextAiDialogBody{padding:14px 16px}.warextAiDialogHead{display:flex;justify-content:space-between;border-bottom:1px solid rgba(127,127,127,.18)}
-      .warextAiGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.warextAiCell{padding:10px;border:1px solid rgba(127,127,127,.18);border-radius:8px}.warextAiSignals{margin-top:12px;font-size:12px;line-height:1.55}
-      .warextAiSection{margin-top:14px;padding-top:12px;border-top:1px solid rgba(127,127,127,.18)}.warextAiSection h4{margin:0 0 8px;font-size:13px}.warextAiHistory{display:flex;flex-direction:column;gap:6px}.warextAiHistoryItem{padding:8px;border-radius:7px;background:rgba(127,127,127,.06);font-size:12px}
-      .warextAiReviewForm{display:grid;grid-template-columns:160px 1fr auto;gap:8px}.warextAiReviewForm select,.warextAiReviewForm input,.warextAiReviewForm button{min-height:34px;border:1px solid rgba(127,127,127,.3);border-radius:7px;padding:6px 8px;background:Canvas;color:CanvasText}.warextAiReviewStatus{margin-top:7px;font-size:12px}
-      @media(max-width:650px){.warextAiGrid{grid-template-columns:1fr}.warextAiReport{align-items:flex-start;flex-wrap:wrap}.warextAiReviewForm{grid-template-columns:1fr}.warextAiReport button{margin-left:0}}
+    const style=document.createElement('style'); style.id='warext-ai-style';
+    style.textContent=`
+      .warextAiReport{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 10px;border:1px solid rgba(127,127,127,.25);border-radius:8px;background:rgba(127,127,127,.06);font-size:12px}.warextAiReport strong{font-size:13px}.warextAiReportLabel{opacity:.82}.warextAiReportState{padding:2px 7px;border-radius:999px;background:rgba(127,127,127,.1)}.warextAiReport button{margin-left:auto;border:0;background:transparent;color:inherit;cursor:pointer;text-decoration:underline}
+      .warextAiDialog{width:min(840px,94vw);max-height:88vh;overflow:auto;border:1px solid rgba(127,127,127,.3);border-radius:12px;padding:0;background:Canvas;color:CanvasText}.warextAiDialog::backdrop{background:rgba(0,0,0,.42)}.warextAiDialogHead,.warextAiDialogBody{padding:14px 16px}.warextAiDialogHead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(127,127,127,.18)}.warextAiDialogHead button{border:0;background:transparent;color:inherit;cursor:pointer}
+      .warextAiGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.warextAiCell{padding:10px;border:1px solid rgba(127,127,127,.18);border-radius:8px;min-width:0}.warextAiCell small{display:block;opacity:.65;margin-bottom:3px}.warextAiCell div{overflow-wrap:anywhere}.warextAiSection{margin-top:14px;padding-top:12px;border-top:1px solid rgba(127,127,127,.18)}.warextAiSection h4{margin:0 0 8px;font-size:13px}.warextAiNote{margin-top:8px;font-size:12px;line-height:1.55;opacity:.82}
+      .warextAiSignalList{display:flex;flex-direction:column;gap:6px}.warextAiSignal{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border-radius:7px;background:rgba(127,127,127,.06);font-size:12px}.warextAiSignal b{font-weight:600}.warextAiSignal span{opacity:.75;text-align:right}.warextAiHistory{display:flex;flex-direction:column;gap:6px}.warextAiHistoryItem{padding:8px;border-radius:7px;background:rgba(127,127,127,.06);font-size:12px}.warextAiReviewForm{display:grid;grid-template-columns:160px 1fr auto;gap:8px}.warextAiReviewForm select,.warextAiReviewForm input,.warextAiReviewForm button{min-height:34px;border:1px solid rgba(127,127,127,.3);border-radius:7px;padding:6px 8px;background:Canvas;color:CanvasText}.warextAiReviewStatus{margin-top:7px;font-size:12px;opacity:.75}
+      @media(max-width:650px){.warextAiGrid{grid-template-columns:1fr}.warextAiReport{align-items:flex-start;flex-wrap:wrap}.warextAiReviewForm{grid-template-columns:1fr}.warextAiReport button{margin-left:0}.warextAiSignal{flex-direction:column}.warextAiSignal span{text-align:left}}
     `;
     document.head.appendChild(style);
   }
 
-  function postId(message) {
-    const raw = String(message.dataset.content || '');
-    const match = raw.match(/^post-(\d+)$/);
-    return match ? Number(match[1]) : 0;
+  function postId(message){const m=String(message.dataset.content||'').match(/^post-(\d+)$/);return m?Number(m[1]):0;}
+  function endpoint(base,id){const url=new URL(base,location.href);url.searchParams.set('post_id',String(id));return url.toString();}
+  function csrfToken(){return document.querySelector('input[name="_xfToken"]')?.value||window.XF?.config?.csrf||'';}
+  async function detail(id){const r=await fetch(endpoint(config.detailEndpoint,id),{credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});if(r.ok)openDialog(await r.json());}
+  function cell(key,value){const i=document.createElement('div');i.className='warextAiCell';const k=document.createElement('small');k.textContent=key;const v=document.createElement('div');v.textContent=value;i.append(k,v);return i;}
+  function addSection(body,title){const s=document.createElement('div');s.className='warextAiSection';const h=document.createElement('h4');h.textContent=title;s.appendChild(h);body.appendChild(s);return s;}
+  function addNote(parent,text){if(!text)return;const n=document.createElement('div');n.className='warextAiNote';n.textContent=text;parent.appendChild(n);}
+  function formatPercent(value){const n=Number(value);return Number.isFinite(n)?`${Math.round(n*100)}%`:'-';}
+  function pasteRatio(b){if(!b?.observed)return '-';const t=Math.max(0,Number(b.typedChars||0)),p=Math.max(0,Number(b.pastedChars||0));return t+p?`${Math.round((p/(t+p))*100)}%`:'0%';}
+  function signalValue(i){if(i?.value===undefined||i?.value===null||i?.value==='')return '-';return typeof i.value==='object'?JSON.stringify(i.value):String(i.value);}
+
+  async function submitReview(data,state,note,statusEl,button){
+    if(!config.reviewEndpoint)return;const body=new URLSearchParams();body.set('post_id',String(data.postId));body.set('state',state);body.set('note',note);const token=csrfToken();if(token)body.set('_xfToken',token);button.disabled=true;statusEl.textContent='Kaydediliyor…';
+    try{const response=await fetch(config.reviewEndpoint,{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body:body.toString()});if(!response.ok)throw new Error('review_failed');const result=await response.json();data.reviewState=result.state||state;statusEl.textContent=`Kaydedildi: ${reviewLabels[data.reviewState]||data.reviewState}`;const refreshed=await fetch(endpoint(config.detailEndpoint,data.postId),{credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});if(refreshed.ok)openDialog(await refreshed.json());}catch(_){statusEl.textContent='İnceleme durumu kaydedilemedi.';}finally{button.disabled=false;}
   }
 
-  function endpoint(base, id) {
-    const url = new URL(base, location.href);
-    url.searchParams.set('post_id', String(id));
-    return url.toString();
+  function openDialog(data){
+    let dialog=document.getElementById('warext-ai-detail-dialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='warext-ai-detail-dialog';dialog.className='warextAiDialog';document.body.appendChild(dialog);}
+    const text=data.textMetrics||{},behavior=data.behaviorMetrics||{},writing=data.writingMetrics||{},profile=data.profileMetrics||{},similarity=data.similarityMetrics||{},external=data.externalMetrics||{},signals=Array.isArray(data.signals)?data.signals:[],history=Array.isArray(data.reviewHistory)?data.reviewHistory:[];dialog.innerHTML='';
+    const head=document.createElement('div');head.className='warextAiDialogHead';const title=document.createElement('strong');title.textContent=`Detaylı AI Denetim Raporu · #${data.postId}`;const close=document.createElement('button');close.type='button';close.textContent='Kapat';close.addEventListener('click',()=>dialog.close());head.append(title,close);
+    const body=document.createElement('div');body.className='warextAiDialogBody';const summary=document.createElement('div');summary.className='warextAiGrid';[['Nihai risk',`${data.risk}/100`],['Güven seviyesi',`${data.confidence}/100`],['Sonuç sınıfı',labels[data.classification]||data.classification],['Moderasyon durumu',reviewLabels[data.reviewState]||data.reviewState||'Bekleyen']].forEach(v=>summary.appendChild(cell(v[0],v[1])));body.appendChild(summary);
+
+    const local=addSection(body,'Yerel metin analizi'),localGrid=document.createElement('div');localGrid.className='warextAiGrid';[['Yerel metin riski',`${Math.round(Number(text.local_text_risk||0))}/100`],['Metin boyutu',`${text.chars??0} karakter · ${text.words??0} kelime`],['Cümle / paragraf',`${text.sentences??0} / ${text.paragraphs??0}`],['Kelime çeşitliliği',formatPercent(text.lexical_diversity)],['Cümle düzenliliği',formatPercent(text.sentence_uniformity)],['Paragraf düzenliliği',formatPercent(text.paragraph_uniformity)]].forEach(v=>localGrid.appendChild(cell(v[0],v[1])));local.appendChild(localGrid);if(Number(text.excluded_blocks||0)>0)addNote(local,`${text.excluded_blocks} alıntı/kod bloğu kullanıcının kendi metni kabul edilmeden analiz dışı bırakıldı.`);
+
+    const behaviorSection=addSection(body,'İçerik oluşturma davranışı');if(behavior.observed){const g=document.createElement('div');g.className='warextAiGrid';[['Manuel yazılan',`${behavior.typedChars??0} karakter`],['Yapıştırılan',`${behavior.pastedChars??0} karakter`],['Paste oranı',pasteRatio(behavior)],['Paste olayı',String(behavior.pasteEvents??0)],['Silinen',`${behavior.deletedChars??0} karakter`],['Editörde geçirilen süre',`${behavior.durationSeconds??0} saniye`]].forEach(v=>g.appendChild(cell(v[0],v[1])));behaviorSection.appendChild(g);}else addNote(behaviorSection,behavior.source==='historical_unobserved'?'Bu içerik geçmiş tarama ile analiz edildi. Yazma, paste ve editör süresi geçmişe dönük olarak bilinemez; sistem bu verileri tahmin etmez.':'Bu içerik için istemci tarafı yazım davranışı gözlemlenmedi.');
+
+    const writingSection=addSection(body,'Warext Writing Checker entegrasyonu');if(writing.available){const f=writing.fields?.message||{},g=document.createElement('div');g.className='warextAiGrid';[['Durum','Kullanıldı'],['Mesaj düzeltmesi',String(f.correctionCount??writing.correctionCount??0)],['Değişen karakter',String(f.changedChars??writing.changedChars??0)],['Eklenen / çıkarılan',`${f.insertedChars??writing.insertedChars??0} / ${f.removedChars??writing.removedChars??0}`]].forEach(v=>g.appendChild(cell(v[0],v[1])));writingSection.appendChild(g);}else addNote(writingSection,'Writing Checker verisi bulunmuyor. Bu durum tek başına AI sinyali olarak değerlendirilmez.');
+
+    if(profile.available){const s=addSection(body,'Kullanıcı yazım profili'),g=document.createElement('div');g.className='warextAiGrid';g.appendChild(cell('Geçmiş örnek',String(profile.sample_count??0)));g.appendChild(cell('Profil sapması',`${profile.deviation_score??0}/100`));g.appendChild(cell('Riske etkisi',`${Number(profile.risk_adjustment||0)>=0?'+':''}${profile.risk_adjustment??0}`));g.appendChild(cell('Cümle düzeni',`${formatPercent(profile.current?.sentence_uniformity)} / geçmiş ${formatPercent(profile.baseline?.sentence_uniformity)}`));s.appendChild(g);addNote(s,profile.note);}
+
+    const sim=addSection(body,'İçerik özgünlüğü / benzerlik');if(similarity.available){const g=document.createElement('div');g.className='warextAiGrid';g.appendChild(cell('En yüksek benzerlik',`${similarity.similarity??0}%`));g.appendChild(cell('Eşleşme sayısı',String(Array.isArray(similarity.matches)?similarity.matches.length:0)));sim.appendChild(g);if(Array.isArray(similarity.matches)&&similarity.matches.length){const list=document.createElement('div');list.className='warextAiSignalList';for(const match of similarity.matches){const row=document.createElement('div');row.className='warextAiSignal';const n=document.createElement('b');n.textContent=`Mesaj #${match.post_id}`;const v=document.createElement('span');v.textContent=`%${match.similarity} benzerlik`;row.append(n,v);list.appendChild(row);}sim.appendChild(list);}addNote(sim,'Benzerlik kopya/yeniden paylaşım bağlamıdır; tek başına yapay zekâ kullanımı anlamına gelmez.');}else addNote(sim,'Karşılaştırılabilir içerik fingerprint verisi bulunmadı.');
+
+    if(external.enabled){const result=external.result||{},provider=result.provider||{},providerName=provider.label||external.provider||'Harici AI',s=addSection(body,`${providerName} ikinci görüşü`),g=document.createElement('div');g.className='warextAiGrid';let status='Kullanılamadı';if(external.pending)status='Kuyrukta';else if(external.available)status='Yanıt alındı';else if(external.skipped)status='Atlandı';[['Durum',status],['Model',String(provider.model||external.model||'-')],['Harici risk',external.available?`${result.risk_score??0}/100`:'-'],['Harici güven',external.available?`${result.confidence??0}/100`:'-'],['Kullanım tahmini',external.available?(externalUsageLabels[result.usage_type]||result.usage_type||'Belirsiz'):'-'],['Nihai skora ağırlığı',external.available?`${external.weight??0}%`:'0%']].forEach(v=>g.appendChild(cell(v[0],v[1])));const usage=result.usage||{};if(external.available&&Number(usage.total_tokens||0)>0)g.appendChild(cell('Token kullanımı',String(usage.total_tokens)));if(external.available&&usage.cost!==undefined)g.appendChild(cell('Bildirilen maliyet',`$${Number(usage.cost||0).toFixed(6)}`));s.appendChild(g);addNote(s,result.note);if(!external.available&&result.reason)addNote(s,`Harici doğrulama sonucu: ${result.reason}`);}
+
+    const signalSection=addSection(body,'Sinyaller ve gerekçeler');if(signals.length){const list=document.createElement('div');list.className='warextAiSignalList';for(const item of signals){const row=document.createElement('div');row.className='warextAiSignal';const n=document.createElement('b');n.textContent=signalLabels[item.key]||item.key;const v=document.createElement('span');v.textContent=signalValue(item);row.append(n,v);list.appendChild(row);}signalSection.appendChild(list);}else addNote(signalSection,'Belirgin ek sinyal kaydedilmedi.');
+
+    if(data.canReview&&config.reviewEndpoint){const s=addSection(body,'Moderasyon incelemesi'),form=document.createElement('div');form.className='warextAiReviewForm';const select=document.createElement('select');for(const state of ['pending','cleared','suspicious','confirmed']){const o=document.createElement('option');o.value=state;o.textContent=reviewLabels[state];o.selected=state===data.reviewState;select.appendChild(o);}const note=document.createElement('input');note.type='text';note.maxLength=500;note.placeholder='İnceleme notu (isteğe bağlı)';const save=document.createElement('button');save.type='button';save.textContent='Kaydet';const status=document.createElement('div');status.className='warextAiReviewStatus';status.textContent='Her değişiklik inceleme geçmişine kaydedilir.';save.addEventListener('click',()=>submitReview(data,select.value,note.value.trim(),status,save));form.append(select,note,save);s.append(form,status);}
+
+    if(history.length){const s=addSection(body,'İnceleme geçmişi'),list=document.createElement('div');list.className='warextAiHistory';for(const item of history){const row=document.createElement('div');row.className='warextAiHistoryItem';const who=item.username||`#${item.reviewer_user_id||0}`,when=item.created_date?new Date(Number(item.created_date)*1000).toLocaleString():'';row.textContent=`${who}: ${reviewLabels[item.from_state]||item.from_state} → ${reviewLabels[item.to_state]||item.to_state}${item.note?` · ${item.note}`:''}${when?` · ${when}`:''}`;list.appendChild(row);}s.appendChild(list);}
+
+    addNote(body,'Bu rapor kesin AI tespiti değildir. Metin yapısı, oluşturma davranışı, Writing Checker, kullanıcı geçmişi, içerik benzerliği ve varsa harici model ikinci görüşünü ayrı sinyal katmanları olarak gösteren moderasyon desteğidir.');dialog.append(head,body);if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
   }
 
-  function csrfToken() {
-    return document.querySelector('input[name="_xfToken"]')?.value || window.XF?.config?.csrf || '';
-  }
+  function render(message,report,canDetailed){if(message.querySelector('.warextAiReport'))return;const body=message.querySelector('.message-body')||message.querySelector('.message-content');if(!body)return;const box=document.createElement('div');box.className='warextAiReport';const score=document.createElement('strong');score.textContent=`AI riski: ${report.risk}/100`;const label=document.createElement('span');label.className='warextAiReportLabel';label.textContent=labels[report.classification]||report.classification;const confidence=document.createElement('span');confidence.className='warextAiReportLabel';confidence.textContent=`Güven: ${report.confidence}/100`;const state=document.createElement('span');state.className='warextAiReportState';state.textContent=reviewLabels[report.reviewState]||report.reviewState||'Bekleyen';box.append(score,label,confidence,state);if(canDetailed&&config.detailEndpoint){const button=document.createElement('button');button.type='button';button.textContent='Detaylı rapor';button.addEventListener('click',()=>detail(report.postId));box.appendChild(button);}body.prepend(box);}
 
-  async function detail(id) {
-    const response = await fetch(endpoint(config.detailEndpoint, id), { credentials:'same-origin', headers:{'X-Requested-With':'XMLHttpRequest'} });
-    if (!response.ok) return;
-    const data = await response.json();
-    openDialog(data);
-  }
+  async function boot(){const messages=Array.from(document.querySelectorAll('.message[data-content^="post-"]')),ids=messages.map(postId).filter(Boolean);if(!ids.length)return;installStyle();const url=new URL(config.batchEndpoint,location.href);url.searchParams.set('post_ids',ids.join(','));const response=await fetch(url.toString(),{credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!response.ok)return;const data=await response.json();window.__warextAiBatchData=data;window.dispatchEvent(new CustomEvent('warext-ai-batch-ready',{detail:data}));const byId=new Map((data.reports||[]).map(report=>[Number(report.postId),report]));for(const message of messages){const report=byId.get(postId(message));if(report)render(message,report,!!data.canDetailed);}}
 
-  function cell(key, value) {
-    const item = document.createElement('div'); item.className='warextAiCell';
-    const k=document.createElement('small'); k.textContent=key;
-    const v=document.createElement('div'); v.textContent=value;
-    item.append(k,v);
-    return item;
-  }
-
-  function addSection(body, title) {
-    const section=document.createElement('div'); section.className='warextAiSection';
-    const heading=document.createElement('h4'); heading.textContent=title; section.appendChild(heading); body.appendChild(section);
-    return section;
-  }
-
-  function formatPercent(value) {
-    const n=Number(value);
-    return Number.isFinite(n) ? `${Math.round(n*100)}%` : '-';
-  }
-
-  async function submitReview(data, state, note, statusEl, button) {
-    if (!config.reviewEndpoint) return;
-    const body=new URLSearchParams();
-    body.set('post_id', String(data.postId));
-    body.set('state', state);
-    body.set('note', note);
-    const token=csrfToken(); if (token) body.set('_xfToken', token);
-    button.disabled=true; statusEl.textContent='Kaydediliyor…';
-    try {
-      const response=await fetch(config.reviewEndpoint, {method:'POST', credentials:'same-origin', headers:{'X-Requested-With':'XMLHttpRequest','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body:body.toString()});
-      if (!response.ok) throw new Error('review_failed');
-      const result=await response.json();
-      data.reviewState=result.state || state;
-      statusEl.textContent=`Kaydedildi: ${reviewLabels[data.reviewState] || data.reviewState}`;
-      const refreshed=await fetch(endpoint(config.detailEndpoint, data.postId), {credentials:'same-origin',headers:{'X-Requested-With':'XMLHttpRequest'}});
-      if (refreshed.ok) openDialog(await refreshed.json());
-    } catch (_) {
-      statusEl.textContent='İnceleme durumu kaydedilemedi.';
-    } finally {
-      button.disabled=false;
-    }
-  }
-
-  function openDialog(data) {
-    let dialog = document.getElementById('warext-ai-detail-dialog');
-    if (!dialog) {
-      dialog = document.createElement('dialog');
-      dialog.id = 'warext-ai-detail-dialog';
-      dialog.className = 'warextAiDialog';
-      document.body.appendChild(dialog);
-    }
-    const text = data.textMetrics || {};
-    const behavior = data.behaviorMetrics || {};
-    const writing = data.writingMetrics || {};
-    const profile = data.profileMetrics || {};
-    const external = data.externalMetrics || {};
-    const signals = Array.isArray(data.signals) ? data.signals : [];
-    const history = Array.isArray(data.reviewHistory) ? data.reviewHistory : [];
-    dialog.innerHTML = '';
-
-    const head = document.createElement('div'); head.className = 'warextAiDialogHead';
-    const title = document.createElement('strong'); title.textContent = `AI Denetim Raporu · #${data.postId}`;
-    const close = document.createElement('button'); close.type='button'; close.textContent='Kapat'; close.addEventListener('click',()=>dialog.close());
-    head.append(title,close);
-
-    const body = document.createElement('div'); body.className='warextAiDialogBody';
-    const grid = document.createElement('div'); grid.className='warextAiGrid';
-    const values = [
-      ['Nihai risk', `${data.risk}/100`], ['Güven', `${data.confidence}/100`],
-      ['Sonuç', labels[data.classification] || data.classification], ['İnceleme', reviewLabels[data.reviewState] || data.reviewState || 'Bekleyen'],
-      ['Kelime', String(text.words ?? '-')], ['Cümle', String(text.sentences ?? '-')],
-      ['Paste karakteri', String(behavior.pastedChars ?? '-')], ['Manuel karakter', String(behavior.typedChars ?? '-')],
-      ['Writing Checker', writing.available ? 'Kullanıldı' : 'Yok'], ['Düzeltme sayısı', String(writing.correctionCount ?? 0)]
-    ];
-    for (const [key,value] of values) grid.appendChild(cell(key,value));
-    body.appendChild(grid);
-
-    if (profile.available) {
-      const section=addSection(body,'Kullanıcı yazım profili');
-      const profileGrid=document.createElement('div'); profileGrid.className='warextAiGrid';
-      profileGrid.appendChild(cell('Geçmiş örnek', String(profile.sample_count ?? 0)));
-      profileGrid.appendChild(cell('Profil sapması', `${profile.deviation_score ?? 0}/100`));
-      profileGrid.appendChild(cell('Riske etkisi', `${Number(profile.risk_adjustment || 0) >= 0 ? '+' : ''}${profile.risk_adjustment ?? 0}`));
-      profileGrid.appendChild(cell('Cümle düzeni', `${formatPercent(profile.current?.sentence_uniformity)} / geçmiş ${formatPercent(profile.baseline?.sentence_uniformity)}`));
-      section.appendChild(profileGrid);
-      if (profile.note) { const note=document.createElement('div'); note.className='warextAiSignals'; note.textContent=profile.note; section.appendChild(note); }
-    }
-
-    if (external.enabled) {
-      const section=addSection(body,'OpenRouter ikinci görüşü');
-      const extGrid=document.createElement('div'); extGrid.className='warextAiGrid';
-      const result=external.result || {};
-      const provider=result.provider || {};
-      extGrid.appendChild(cell('Durum', external.available ? 'Yanıt alındı' : (external.skipped ? 'Maliyet eşiği nedeniyle atlandı' : 'Kullanılamadı')));
-      extGrid.appendChild(cell('Model', String(provider.model || external.model || '-')));
-      extGrid.appendChild(cell('OpenRouter riski', external.available ? `${result.risk_score ?? 0}/100` : '-'));
-      extGrid.appendChild(cell('OpenRouter güveni', external.available ? `${result.confidence ?? 0}/100` : '-'));
-      extGrid.appendChild(cell('Kullanım tahmini', external.available ? (externalUsageLabels[result.usage_type] || result.usage_type || 'Belirsiz') : '-'));
-      extGrid.appendChild(cell('Nihai ağırlık', external.available ? `${external.weight ?? 0}%` : '0%'));
-      section.appendChild(extGrid);
-      if (result.note) { const note=document.createElement('div'); note.className='warextAiSignals'; note.textContent=result.note; section.appendChild(note); }
-      if (Array.isArray(result.signals) && result.signals.length) {
-        const extSignals=document.createElement('div'); extSignals.className='warextAiSignals';
-        extSignals.textContent=`Model sinyalleri: ${result.signals.join(' · ')}`; section.appendChild(extSignals);
-      }
-    }
-
-    const signalSection=addSection(body,'Sinyaller');
-    const sig=document.createElement('div'); sig.className='warextAiSignals';
-    sig.textContent = signals.length ? signals.map(item => `${item.key}: ${item.value}`).join(' · ') : 'Belirgin ek sinyal kaydedilmedi.';
-    signalSection.appendChild(sig);
-
-    if (data.canReview && config.reviewEndpoint) {
-      const reviewSection=addSection(body,'Moderasyon incelemesi');
-      const form=document.createElement('div'); form.className='warextAiReviewForm';
-      const select=document.createElement('select');
-      for (const state of ['pending','cleared','suspicious','confirmed']) {
-        const option=document.createElement('option'); option.value=state; option.textContent=reviewLabels[state]; option.selected=state===data.reviewState; select.appendChild(option);
-      }
-      const note=document.createElement('input'); note.type='text'; note.maxLength=500; note.placeholder='İnceleme notu (isteğe bağlı)';
-      const save=document.createElement('button'); save.type='button'; save.textContent='Kaydet';
-      const status=document.createElement('div'); status.className='warextAiReviewStatus'; status.textContent='Her değişiklik inceleme geçmişine kaydedilir.';
-      save.addEventListener('click',()=>submitReview(data,select.value,note.value.trim(),status,save));
-      form.append(select,note,save); reviewSection.append(form,status);
-    }
-
-    if (history.length) {
-      const historySection=addSection(body,'İnceleme geçmişi');
-      const list=document.createElement('div'); list.className='warextAiHistory';
-      for (const item of history) {
-        const row=document.createElement('div'); row.className='warextAiHistoryItem';
-        const who=item.username || `#${item.reviewer_user_id || 0}`;
-        const when=item.created_date ? new Date(Number(item.created_date)*1000).toLocaleString() : '';
-        row.textContent=`${who}: ${reviewLabels[item.from_state] || item.from_state} → ${reviewLabels[item.to_state] || item.to_state}${item.note ? ` · ${item.note}` : ''}${when ? ` · ${when}` : ''}`;
-        list.appendChild(row);
-      }
-      historySection.appendChild(list);
-    }
-
-    const disclaimer=document.createElement('div'); disclaimer.className='warextAiSignals'; disclaimer.textContent='Bu rapor kesin AI tespiti değildir; yerel analiz, editör davranışı, Writing Checker, kullanıcı geçmişi ve varsa OpenRouter ikinci görüşünü birlikte değerlendiren moderasyon destek raporudur.';
-    body.appendChild(disclaimer);
-    dialog.append(head,body);
-    if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open','');
-  }
-
-  function render(message, report, canDetailed) {
-    if (message.querySelector('.warextAiReport')) return;
-    const body = message.querySelector('.message-body') || message.querySelector('.message-content');
-    if (!body) return;
-    const box = document.createElement('div'); box.className='warextAiReport';
-    const score=document.createElement('strong'); score.textContent=`AI riski: ${report.risk}/100`;
-    const label=document.createElement('span'); label.textContent=labels[report.classification] || report.classification;
-    const confidence=document.createElement('span'); confidence.textContent=`Güven: ${report.confidence}/100`;
-    const state=document.createElement('span'); state.textContent=reviewLabels[report.reviewState] || report.reviewState || 'Bekleyen';
-    box.append(score,label,confidence,state);
-    if (canDetailed && config.detailEndpoint) {
-      const button=document.createElement('button'); button.type='button'; button.textContent='Detaylı rapor'; button.addEventListener('click',()=>detail(report.postId)); box.appendChild(button);
-    }
-    body.prepend(box);
-  }
-
-  async function boot() {
-    const messages = Array.from(document.querySelectorAll('.message[data-content^="post-"]'));
-    const ids = messages.map(postId).filter(Boolean);
-    if (!ids.length) return;
-    installStyle();
-    const url = new URL(config.batchEndpoint, location.href); url.searchParams.set('post_ids', ids.join(','));
-    const response = await fetch(url.toString(), { credentials:'same-origin', headers:{'X-Requested-With':'XMLHttpRequest'} });
-    if (!response.ok) return;
-    const data = await response.json();
-    const byId = new Map((data.reports || []).map(report => [Number(report.postId), report]));
-    for (const message of messages) {
-      const report = byId.get(postId(message));
-      if (report) render(message, report, !!data.canDetailed);
-    }
-  }
-
-  installStyle();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
+  installStyle();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
