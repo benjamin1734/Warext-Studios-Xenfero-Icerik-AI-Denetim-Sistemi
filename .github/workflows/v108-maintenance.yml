@@ -1,0 +1,168 @@
+name: v1.0.8
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v108-maintenance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: v1.0.8 minimum karakter ve konu menüsü uyumluluğunu uygula
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path('upload/src/addons/Warext/AIContentInspector')
+          data = root / '_data'
+          js_dir = Path('upload/js/warext/ai-content-inspector')
+
+          # 1) ACP minimum karakter alanı: 0-50000.
+          options_path = data / 'options.xml'
+          options = options_path.read_text(encoding='utf-8')
+          old = '<option option_id="warextAiMinChars" edit_format="spinbox" data_type="integer" advanced="0"><default_value>350</default_value><edit_format_params>min=100\nmax=50000</edit_format_params>'
+          new = '<option option_id="warextAiMinChars" edit_format="spinbox" data_type="integer" advanced="0"><default_value>350</default_value><edit_format_params>min=0\nmax=50000</edit_format_params>'
+          if old not in options:
+              raise SystemExit('warextAiMinChars min=100 bloğu bulunamadı')
+          options = options.replace(old, new, 1)
+          options_path.write_text(options, encoding='utf-8')
+
+          # 2) Runtime tarafındaki 100 karakter sabit sınırını kaldır.
+          post_path = root / 'XF/Entity/Post.php'
+          post = post_path.read_text(encoding='utf-8')
+          old = "$minChars = max(100, (int)($options->warextAiMinChars ?? 350));"
+          new = "$minChars = max(0, min(50000, (int)($options->warextAiMinChars ?? 350)));"
+          if old not in post:
+              raise SystemExit('Post minChars 100 clamp bulunamadı')
+          post = post.replace(old, new, 1)
+
+          old_force = """            if ($force)\n            {\n                // Manual moderation must be able to bypass the ACP automatic-scan threshold,\n                // but tiny fragments cannot produce a responsible AI-origin assessment.\n                if ($authoredChars < 80)\n                {\n                    return [\n                        'success' => false,\n                        'reason' => 'insufficient_text',\n                        'chars' => $authoredChars,\n                        'minimum_chars' => 80\n                    ];\n                }\n            }\n"""
+          new_force = """            if ($force)\n            {\n                // Manuel moderasyon otomatik eşiği aşabilir; yönetici otomatik eşiği\n                // 80'in altına indirdiyse aynı düşük sınır manuel analizde de geçerlidir.\n                // 0 ayarında yalnızca gerçekten boş içerik reddedilir.\n                $manualMinChars = max(1, min(80, $minChars > 0 ? $minChars : 1));\n                if ($authoredChars < $manualMinChars)\n                {\n                    return [\n                        'success' => false,\n                        'reason' => 'insufficient_text',\n                        'chars' => $authoredChars,\n                        'minimum_chars' => $manualMinChars\n                    ];\n                }\n            }\n"""
+          if old_force not in post:
+              raise SystemExit('Post manuel 80 karakter bloğu bulunamadı')
+          post = post.replace(old_force, new_force, 1)
+          post_path.write_text(post, encoding='utf-8')
+
+          # 3) ACP açıklaması.
+          phrases_path = data / 'phrases.xml'
+          phrases = phrases_path.read_text(encoding='utf-8')
+          old_phrase = '<phrase title="option_explain.warextAiMinChars" version_id="1000080" version_string="1.0.0 Alpha 2"><![CDATA[Bu karakter sayısının altındaki içerikler yetersiz veri nedeniyle analiz edilmez.]]></phrase>'
+          new_phrase = '<phrase title="option_explain.warextAiMinChars" version_id="1000380" version_string="1.0.8"><![CDATA[Otomatik analiz için gereken minimum kullanıcı metni uzunluğu. 0-50000 arasında istediğiniz değeri kullanabilirsiniz. 0 seçilirse boş olmayan tüm içerikler analiz için uygun kabul edilir; çok kısa metinlerde güven skoru doğal olarak daha düşük olabilir.]]></phrase>'
+          if old_phrase not in phrases:
+              raise SystemExit('Minimum karakter açıklama phrase bulunamadı')
+          phrases = phrases.replace(old_phrase, new_phrase, 1)
+          phrases_path.write_text(phrases, encoding='utf-8')
+
+          # 4) Frontend cache ve review capability endpoint bilgisi.
+          mods_path = data / 'template_modifications.xml'
+          mods = mods_path.read_text(encoding='utf-8')
+          mods = mods.replace('?wai=1000370', '?wai=1000380')
+          old_cap = '<div id="warext-ai-review-capability" hidden></div>'
+          new_cap = '<div id="warext-ai-review-capability" hidden data-thread-analyze-endpoint="{{ link(\'warext-ai-thread/run\') }}"></div>'
+          if old_cap not in mods:
+              raise SystemExit('Review capability div bulunamadı')
+          mods = mods.replace(old_cap, new_cap, 1)
+          mods_path.write_text(mods, encoding='utf-8')
+
+          # 5) Tema thread_view hook'u eşleşmese bile Moderator actions yanına menü eylemi ekleyen fallback.
+          manual_path = js_dir / 'manual-analysis.js'
+          manual = manual_path.read_text(encoding='utf-8')
+          if 'function installThreadMenuFallback' not in manual:
+              anchor = """  const reviewLabels = {\n    pending: 'Bekleyen',\n    cleared: 'Temizlendi',\n    suspicious: 'Şüpheli',\n    confirmed: 'Onaylandı'\n  };\n"""
+              insert = anchor + """\n  const reviewCapability = document.getElementById('warext-ai-review-capability');\n  const threadAnalyzeEndpoint = reviewCapability?.dataset.threadAnalyzeEndpoint || '';\n\n  function resolveThreadId() {\n    const source = `${location.pathname}${location.search}`;\n    const match = source.match(/threads\\/(?:[^/?#]*\\.)?(\\d+)/i);\n    return match ? Number(match[1]) : 0;\n  }\n\n  function makeThreadAnalyzeUrl(threadId) {\n    if (!threadAnalyzeEndpoint) return '';\n    const url = new URL(threadAnalyzeEndpoint, location.href);\n    url.searchParams.set('thread_id', String(threadId));\n    return url.toString();\n  }\n\n  function installThreadMenuFallback(root = document) {\n    if (!reviewCapability || !threadAnalyzeEndpoint) return false;\n    if (document.querySelector('.js-warextAiManualThreadAnalyze')) return true;\n\n    const threadId = resolveThreadId();\n    if (!threadId) return false;\n\n    const links = root.querySelectorAll ? root.querySelectorAll('a.menu-linkRow[href]') : [];\n    let moderatorAction = null;\n    for (const candidate of links) {\n      const href = candidate.getAttribute('href') || '';\n      if (/moderator-actions(?:[/?#]|$)/i.test(href)) {\n        moderatorAction = candidate;\n        break;\n      }\n    }\n    if (!moderatorAction) return false;\n\n    const link = document.createElement('a');\n    link.href = makeThreadAnalyzeUrl(threadId);\n    link.className = 'menu-linkRow js-warextAiManualThreadAnalyze';\n    link.dataset.threadId = String(threadId);\n    link.textContent = 'Konuyu AI ile analiz et';\n    moderatorAction.insertAdjacentElement('afterend', link);\n    return true;\n  }\n\n  function bootThreadMenuFallback() {\n    if (installThreadMenuFallback()) return;\n    if (!document.body) return;\n\n    const observer = new MutationObserver(() => {\n      if (installThreadMenuFallback()) observer.disconnect();\n    });\n    observer.observe(document.body, {childList: true, subtree: true});\n    window.setTimeout(() => observer.disconnect(), 15000);\n  }\n"""
+              if anchor not in manual:
+                  raise SystemExit('manual-analysis reviewLabels anchor bulunamadı')
+              manual = manual.replace(anchor, insert, 1)
+
+              end_anchor = """  document.addEventListener('click', event => {\n"""
+              boot = """  if (document.readyState === 'loading') {\n    document.addEventListener('DOMContentLoaded', bootThreadMenuFallback, {once: true});\n  } else {\n    bootThreadMenuFallback();\n  }\n\n""" + end_anchor
+              if end_anchor not in manual:
+                  raise SystemExit('manual-analysis click anchor bulunamadı')
+              manual = manual.replace(end_anchor, boot, 1)
+          manual_path.write_text(manual, encoding='utf-8')
+
+          # 6) Stable validator: alt sınır ve fallback zorunlu.
+          validator_path = Path('tools/validate_xenforo_master.py')
+          validator = validator_path.read_text(encoding='utf-8')
+          forum_check_anchor = """    forum_option = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiForums'), None)\n"""
+          min_check = """    min_chars_option = next((o for o in option_nodes if o.attrib.get('option_id') == 'warextAiMinChars'), None)\n    min_chars_params = (min_chars_option.findtext('edit_format_params') or '') if min_chars_option is not None else ''\n    if min_chars_option is None or 'min=0' not in min_chars_params or 'max=50000' not in min_chars_params:\n        fail('Minimum analiz karakteri 0-50000 aralığında serbest olmalı')\n\n"""
+          if 'Minimum analiz karakteri 0-50000' not in validator:
+              if forum_check_anchor not in validator:
+                  raise SystemExit('Validator forum option anchor bulunamadı')
+              validator = validator.replace(forum_check_anchor, min_check + forum_check_anchor, 1)
+
+          old_post_markers = """        'public function warextRunAiAnalysis(bool $force = false, bool $manual = false): array',\n        'if (!$force &&', 'manual_analysis', 'manual_reanalysis_unobserved', \"'minimum_chars' => 80\"\n"""
+          new_post_markers = """        'public function warextRunAiAnalysis(bool $force = false, bool $manual = false): array',\n        '$minChars = max(0, min(50000', '$manualMinChars = max(1, min(80',\n        'if (!$force &&', 'manual_analysis', 'manual_reanalysis_unobserved', \"'minimum_chars' => $manualMinChars\"\n"""
+          if old_post_markers not in validator:
+              raise SystemExit('Validator eski Post minimum marker bloğu bulunamadı')
+          validator = validator.replace(old_post_markers, new_post_markers, 1)
+
+          old_manual_markers = """    for marker in ['js-warextAiManualAnalyze', 'js-warextAiManualThreadAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'warext-ai-manual-thread-analysis-queued', 'ensureReportBox']:\n"""
+          new_manual_markers = """    for marker in ['js-warextAiManualAnalyze', 'js-warextAiManualThreadAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'warext-ai-manual-thread-analysis-queued', 'ensureReportBox', 'installThreadMenuFallback', 'moderator-actions', 'MutationObserver']:\n"""
+          if old_manual_markers not in validator:
+              raise SystemExit('Validator manual JS marker satırı bulunamadı')
+          validator = validator.replace(old_manual_markers, new_manual_markers, 1)
+
+          capability_marker = "for marker in ['data-thread-analyze-endpoint', 'thread-controls.js', 'warext-ai-review-capability']:"
+          capability_new = "for marker in ['data-thread-analyze-endpoint', 'thread-controls.js', 'warext-ai-review-capability', 'data-thread-analyze-endpoint=\"{{ link(\\\'warext-ai-thread/run\\\') }}\"']:"
+          if capability_marker not in validator:
+              raise SystemExit('Validator review capability marker satırı bulunamadı')
+          validator = validator.replace(capability_marker, capability_new, 1)
+          validator_path.write_text(validator, encoding='utf-8')
+
+          # 7) Sürüm.
+          addon_path = root / 'addon.json'
+          addon = json.loads(addon_path.read_text(encoding='utf-8'))
+          addon['version_id'] = 1000380
+          addon['version_string'] = '1.0.8'
+          addon_path.write_text(json.dumps(addon, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          readme = Path('README.md')
+          if readme.exists():
+              text = readme.read_text(encoding='utf-8')
+              text = re.sub(r'\*\*1\.0\.\d+ Stable\*\*', '**1.0.8 Stable**', text, count=1)
+              readme.write_text(text, encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          if changelog.exists():
+              text = changelog.read_text(encoding='utf-8')
+              section = """## v1.0.8 Stable\n\n- `Minimum analiz karakteri` alt sınırı 100'den 0'a indirildi; yönetici 0-50000 arasında istediği değeri kullanabilir.\n- Runtime analiz motorundaki sabit 100 karakter clamp'i kaldırıldı.\n- Manuel analiz düşük ACP eşikleriyle uyumlu hale getirildi; 0 ayarında yalnızca boş içerik reddedilir.\n- Konu üst üç nokta menüsü için tema uyumlu JS fallback eklendi; template hook eşleşmezse `Moderator actions` satırının yanına `Konuyu AI ile analiz et` eklenir.\n- Stable validator minimum karakter aralığını ve konu menüsü fallback'ini zorunlu doğrular.\n- Frontend cache anahtarı `1000380` olarak güncellendi.\n\n"""
+              if '## v1.0.8 Stable' not in text:
+                  text = text.replace('# Değişiklik Günlüğü\n\n', '# Değişiklik Günlüğü\n\n' + section, 1)
+              changelog.write_text(text, encoding='utf-8')
+          PY
+
+          php -l upload/src/addons/Warext/AIContentInspector/XF/Entity/Post.php
+          node --check upload/js/warext/ai-content-inspector/manual-analysis.js
+          python3 tools/validate_xenforo_master.py
+          python3 tools/build_release.py
+          PACKAGE="$(cat .release-package)"
+          unzip -tq "$PACKAGE"
+
+          git config user.name "benjamin1734"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            upload/src/addons/Warext/AIContentInspector/_data/options.xml \
+            upload/src/addons/Warext/AIContentInspector/XF/Entity/Post.php \
+            upload/src/addons/Warext/AIContentInspector/_data/phrases.xml \
+            upload/src/addons/Warext/AIContentInspector/_data/template_modifications.xml \
+            upload/js/warext/ai-content-inspector/manual-analysis.js \
+            tools/validate_xenforo_master.py \
+            upload/src/addons/Warext/AIContentInspector/addon.json \
+            README.md CHANGELOG.md
+          git commit -m "v1.0.8"
+          git push origin main
