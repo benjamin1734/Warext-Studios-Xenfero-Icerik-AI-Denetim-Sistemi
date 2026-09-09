@@ -35,15 +35,18 @@ jobs:
               ET.parse(path)
           PY
 
-      - name: Commit generated v1.0.1 fix
+      - name: Commit generated v1.0.1 addon fix
         run: |
           set -euo pipefail
+          # GitHub Actions token cannot modify workflow files. The validation
+          # workflow is updated separately through the connected GitHub API.
+          git restore .github/workflows/validate.yml
           if git diff --quiet; then
-            echo 'No generated changes.'
+            echo 'No generated add-on changes.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add upload/src/addons/Warext/AIContentInspector README.md CHANGELOG.md .github/workflows/validate.yml
+          git add upload/src/addons/Warext/AIContentInspector README.md CHANGELOG.md
           git commit -m 'fix: XenForo installer compatibility v1.0.1'
           git push origin HEAD:main
