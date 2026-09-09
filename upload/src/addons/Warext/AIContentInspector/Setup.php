@@ -30,6 +30,7 @@ class Setup extends AbstractSetup
             $table->addColumn('behavior_metrics', 'mediumblob')->nullable();
             $table->addColumn('writing_metrics', 'mediumblob')->nullable();
             $table->addColumn('profile_metrics', 'mediumblob')->nullable();
+            $table->addColumn('similarity_metrics', 'mediumblob')->nullable();
             $table->addColumn('external_metrics', 'mediumblob')->nullable();
             $table->addColumn('signal_summary', 'mediumblob')->nullable();
             $table->addColumn('content_hash', 'varchar', 64)->setDefault('');
@@ -42,6 +43,7 @@ class Setup extends AbstractSetup
             $table->addKey('post_id');
             $table->addKey(['thread_id', 'risk_score'], 'thread_risk');
             $table->addKey(['forum_id', 'risk_score'], 'forum_risk');
+            $table->addKey(['forum_id', 'analyzed_date'], 'forum_date');
             $table->addKey(['user_id', 'analyzed_date'], 'user_date');
             $table->addKey(['review_state', 'risk_score'], 'review_risk');
             $table->addKey(['forum_id', 'content_fingerprint'], 'forum_fingerprint');
@@ -82,6 +84,15 @@ class Setup extends AbstractSetup
     public function upgrade1000170Step1(): void
     {
         $this->createUsageTable();
+    }
+
+    public function upgrade1000190Step1(): void
+    {
+        $this->schemaManager()->alterTable('xf_warext_ai_analysis', function (\XF\Db\Schema\Alter $table)
+        {
+            $table->addColumn('similarity_metrics', 'mediumblob')->nullable()->after('profile_metrics');
+            $table->addKey(['forum_id', 'analyzed_date'], 'forum_date');
+        });
     }
 
     protected function createReviewLogTable(): void
