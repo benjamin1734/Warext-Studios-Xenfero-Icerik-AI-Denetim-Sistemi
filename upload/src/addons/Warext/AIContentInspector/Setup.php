@@ -95,6 +95,14 @@ class Setup extends AbstractSetup
         });
     }
 
+    public function upgrade1000200Step1(): void
+    {
+        $this->schemaManager()->alterTable('xf_warext_ai_usage', function (\XF\Db\Schema\Alter $table)
+        {
+            $table->addColumn('cost_source', 'varchar', 12)->setDefault('unknown')->after('cost_microusd');
+        });
+    }
+
     protected function createReviewLogTable(): void
     {
         $this->schemaManager()->createTable('xf_warext_ai_review_log', function (Create $table)
@@ -127,6 +135,7 @@ class Setup extends AbstractSetup
             $table->addColumn('completion_tokens', 'int')->unsigned()->setDefault(0);
             $table->addColumn('total_tokens', 'int')->unsigned()->setDefault(0);
             $table->addColumn('cost_microusd', 'bigint')->unsigned()->setDefault(0);
+            $table->addColumn('cost_source', 'varchar', 12)->setDefault('unknown');
             $table->addColumn('success', 'tinyint')->unsigned()->setDefault(0);
             $table->addColumn('failure_reason', 'varchar', 80)->setDefault('');
             $table->addColumn('created_date', 'int')->unsigned()->setDefault(0);
