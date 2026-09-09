@@ -4,7 +4,7 @@
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
 <xf:if is="$xf.options.warextAiEnabled">
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000350"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000360"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
 <div id="warext-ai-config" hidden
@@ -13,14 +13,27 @@
  data-thread-analyze-endpoint="{{ link('warext-ai-thread/run') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000360"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000360"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-controls.js') }}?wai=1000360"></script>
+</xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
 <div id="warext-ai-review-capability" hidden></div>
-</xf:if>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000350"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000350"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-controls.js') }}?wai=1000350"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1000360"></script>
 </xf:if>
 $0]]></replace>
+  </modification>
+
+  <modification type="public" template="post_macros" modification_key="warext_ai_manual_post_action" description="AI manuel analizini mesaj üç nokta moderatör eylemleri menüsüne ekler" execution_order="915" enabled="1" action="str_replace">
+    <find><![CDATA[<xf:set var="$hasActionBarMenu" value="{{ false }}" />]]></find>
+    <replace><![CDATA[<xf:set var="$hasActionBarMenu" value="{{ false }}" />
+<xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
+    <a href="{{ link('warext-ai-manual/run', null, {'post_id': $post.post_id}) }}"
+       class="actionBar-action actionBar-action--warextAi actionBar-action--menuItem js-warextAiManualAnalyze"
+       data-post-id="{$post.post_id}"
+       data-menu-closer="true">AI ile manuel analiz et</a>
+    <xf:set var="$hasActionBarMenu" value="{{ true }}" />
+</xf:if>]]></replace>
   </modification>
 
   <modification type="public" template="warext_ai_center" modification_key="warext_ai_daily_cost_sources" description="Günlük gerçek ve tahmini maliyet kayıtlarını gösterir" execution_order="920" enabled="1" action="str_replace">
