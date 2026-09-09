@@ -21,6 +21,15 @@ jobs:
       - name: Paket öncesi JavaScript doğrulaması
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
+      - name: XenForo master-data ve template doğrulaması
+        run: python3 tools/validate_xenforo_master.py
+
+      - name: Sürüm kimliğini oku
+        id: version
+        run: |
+          VERSION="$(python3 -c "import json; print(json.load(open('upload/src/addons/Warext/AIContentInspector/addon.json', encoding='utf-8'))['version_string'])")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: XenForo Stable kurulum ZIP paketini üret
         id: build
         run: |
@@ -34,7 +43,7 @@ jobs:
       - name: Stable kurulum paketini artifact olarak yükle
         uses: actions/upload-artifact@v4
         with:
-          name: Warext-XenForo-Icerik-AI-Denetim-Sistemi-1.0.1
+          name: Warext-XenForo-Icerik-AI-Denetim-Sistemi-${{ steps.version.outputs.version }}
           path: ${{ steps.build.outputs.package }}
           if-no-files-found: error
           retention-days: 90
