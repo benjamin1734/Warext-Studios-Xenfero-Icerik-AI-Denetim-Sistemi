@@ -150,6 +150,13 @@ def main() -> None:
     for marker in ['data-thread-analyze-endpoint', 'thread-controls.js', 'warext-ai-review-capability']:
         if marker not in modifications:
             fail('Konu AI kontrol arayüzü eksik: ' + marker)
+    for marker in [
+        'warext_ai_manual_post_action', 'template="post_macros"',
+        'actionBar-action--menuItem', 'js-warextAiManualAnalyze',
+        "link('warext-ai-manual/run'", 'manual-analysis.js'
+    ]:
+        if marker not in modifications:
+            fail('Mesaj moderatör menüsü manuel analiz entegrasyonu eksik: ' + marker)
 
     routes = parsed['routes.xml'].findall('route')
     route_map = {(r.attrib.get('route_type'), r.attrib.get('route_prefix')): r.attrib.get('controller') for r in routes}
@@ -157,6 +164,8 @@ def main() -> None:
         fail('Ana Warext AI public route eksik')
     if route_map.get(('public', 'warext-ai-thread')) != r'Warext\AIContentInspector:ThreadAnalyze':
         fail('Konu analiz public route eksik')
+    if route_map.get(('public', 'warext-ai-manual')) != r'Warext\AIContentInspector:ManualAnalyze':
+        fail('Manuel mesaj analiz public route eksik')
     if route_map.get(('admin', 'warext-ai-high-risk')) != r'Warext\AIContentInspector:HighRisk':
         fail('Yüksek riskli konular ACP route eksik')
 
@@ -196,10 +205,29 @@ def main() -> None:
         if marker not in thread_controls.read_text(encoding='utf-8'):
             fail('Konu AI Analizi arayüzü eksik: ' + marker)
 
+    manual_controller = ROOT / 'Pub/Controller/ManualAnalyze.php'
+    manual_ui = JS / 'manual-analysis.js'
+    if not manual_controller.exists() or not manual_ui.exists():
+        fail('Manuel mesaj AI analiz endpoint/UI dosyaları eksik')
+    manual_code = manual_controller.read_text(encoding='utf-8')
+    for marker in ['warextAiReview', 'warextAiManage', 'assertPostOnly', 'warextRunAiAnalysis(true, true)', 'insufficient_text']:
+        if marker not in manual_code:
+            fail('Manuel analiz controller eksik: ' + marker)
+    manual_js = manual_ui.read_text(encoding='utf-8')
+    for marker in ['js-warextAiManualAnalyze', '_xfToken', 'warext-ai-manual-analysis-complete', 'ensureReportBox']:
+        if marker not in manual_js:
+            fail('Manuel analiz tarayıcı entegrasyonu eksik: ' + marker)
+
     post = (ROOT / 'XF/Entity/Post.php').read_text(encoding='utf-8')
     for marker in ['Registry', 'UserProfile', 'Similarity', 'enqueueUnique', 'ExternalVerify', 'existingHash', 'hash_equals']:
         if marker not in post:
             fail('Post analiz zinciri eksik: ' + marker)
+    for marker in [
+        'public function warextRunAiAnalysis(bool $force = false, bool $manual = false): array',
+        'if (!$force &&', 'manual_analysis', 'manual_reanalysis_unobserved', "'minimum_chars' => 80"
+    ]:
+        if marker not in post:
+            fail('Zorunlu manuel post yeniden analiz desteği eksik: ' + marker)
 
     provider = ROOT / 'Provider'
     for name in [
@@ -222,6 +250,7 @@ def main() -> None:
         'addonOptionsRouteValidated': True,
         'highRiskAdminEntryValidated': True,
         'threadAnalysisControlsValidated': True,
+        'manualPostAnalysisValidated': True,
         'adminNavigationOrderProtected': True,
         'externalOptional': True
     }, ensure_ascii=False))
