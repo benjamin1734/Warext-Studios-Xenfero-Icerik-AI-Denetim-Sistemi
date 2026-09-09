@@ -1,5 +1,14 @@
 # Değişiklik Günlüğü
 
+## v1.0.5 Stable
+
+- XenForo option-group master-data şeması düzeltildi: `_data/option_groups.xml` artık hatalı `<option_group>` yerine kanonik `<group>` öğesini kullanıyor.
+- v1.0.4 ve daha eski kurulumlarda `Add-ons > Options` ekranının `No items have been created yet.` göstermesine neden olan seçenek ilişkilendirme sorunu giderildi.
+- `upgrade1000350Step1()` eklendi; yükseltmede `warextAi` option group tekrar doğrulanıyor ve düzeltilmiş master-data seçenekleri yeniden içeri alınabiliyor.
+- CI artık legacy `<option_group>` etiketini doğrudan reddediyor, minimum seçenek sayısını ve tüm option → `warextAi` grup ilişkilerini doğruluyor.
+- Zorunlu temel seçenek ID'leri release kapısına eklendi; boş/eksik Options paketinin Stable olarak yayınlanması engellendi.
+- Frontend cache anahtarı `1000350` olarak yükseltildi.
+
 ## v1.0.1 Stable
 
 - XenForo kurulumunu `Exception: Please enter a valid value.` hatasıyla durduran `edit_format="textarea"` kaldırıldı; OpenRouter fallback listesi `textbox` + `rows=4` olarak tanımlandı.
