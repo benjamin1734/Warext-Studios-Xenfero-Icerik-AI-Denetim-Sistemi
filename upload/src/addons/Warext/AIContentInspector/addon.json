@@ -1,9 +1,9 @@
 {
   "legacy_addon_id": "",
   "title": "Warext Studios | İçerik AI Denetim Sistemi",
-  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı, kullanıcı yazım profili ve içerik benzerliği sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel entegrasyon verisini kullanır. OpenRouter önerilen opsiyonel bulut katmanıdır; OpenAI/GPT, Google Gemini, DeepSeek, Anthropic Claude, xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible servisler provider-neutral arka plan doğrulaması olarak desteklenir. Günlük/aylık API istek ve bütçe limitleri, provider sağlık görünümü, token/maliyet takibi, kullanım geçmişi temizliği ve kontrollü geçmiş içerik taraması bulunur. Alpha 13 ile benzerlik metrikleri ayrı saklanır, forum+tarih sorguları indekslenir, değişmemiş içerik tekrar analiz edilmez ve rapor sorguları yetkiye göre azaltılır. Harici API zorunlu değildir ve API başarısız olduğunda yerel sonuç korunur.",
-  "version_id": 1000190,
-  "version_string": "1.0.0 Alpha 13",
+  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı, kullanıcı yazım profili ve içerik benzerliği sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel entegrasyon verisini kullanır. OpenRouter önerilen opsiyonel bulut katmanıdır; OpenAI/GPT, Google Gemini, DeepSeek, Anthropic Claude, xAI/Grok, Mistral, Qwen, Ollama ve özel OpenAI-compatible servisler provider-neutral arka plan doğrulaması olarak desteklenir. Günlük/aylık API istek ve bütçe limitleri, provider sağlık görünümü, gerçek/tahmini maliyet ayrımı, token takibi, kullanım geçmişi temizliği ve kontrollü geçmiş içerik taraması bulunur. Alpha 14 ile provider gerçek maliyet döndürmediğinde token bazlı ACP fiyatlarından güvenli tahmini maliyet fallback'i eklendi ve maliyet kaynağı raporlarda açıkça ayrıştırıldı. Harici API zorunlu değildir ve API başarısız olduğunda yerel sonuç korunur.",
+  "version_id": 1000200,
+  "version_string": "1.0.0 Alpha 14",
   "dev": "Warext Studios",
   "dev_url": "",
   "faq_url": "",
