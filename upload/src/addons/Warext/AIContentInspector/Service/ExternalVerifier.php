@@ -120,7 +120,7 @@ class ExternalVerifier
 
         $result['risk_score'] = max(0, min(100, $combined));
         $result['confidence'] = min(98, (int)($result['confidence'] ?? 0) + (int)round(8 * $effectiveWeight));
-        $result['classification'] = $this->classification($result['risk_score']);
+        $result['classification'] = RiskClassifier::classify($result['risk_score']);
         $result['external_verification'] = $external;
         $result['signals'][] = [
             'key' => 'external_provider_verification',
@@ -130,14 +130,5 @@ class ExternalVerifier
         ];
 
         return $result;
-    }
-
-    protected function classification(int $risk): string
-    {
-        if ($risk < 30) return 'human_likely';
-        if ($risk < 50) return 'low_ai_signal';
-        if ($risk < 70) return 'ai_assistance_possible';
-        if ($risk < 85) return 'ai_heavy_possible';
-        return 'high_risk';
     }
 }
