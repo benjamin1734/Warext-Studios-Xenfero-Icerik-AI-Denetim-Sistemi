@@ -2,6 +2,8 @@
 
 namespace Warext\AIContentInspector\Pub\Controller;
 
+use Warext\AIContentInspector\Service\ExternalVerifier;
+use Warext\AIContentInspector\Service\RiskClassifier;
 use XF\Pub\Controller\AbstractController;
 
 class ManualAnalyze extends AbstractController
@@ -62,15 +64,7 @@ class ManualAnalyze extends AbstractController
             ]);
         }
 
-        $row = \XF::db()->fetchRow(
-            'SELECT post_id, thread_id, risk_score, confidence, classification, review_state, external_metrics, updated_date
-             FROM xf_warext_ai_analysis
-             WHERE post_id = ?
-             ORDER BY analysis_id DESC
-             LIMIT 1',
-            $postId
-        );
-
+        $row = $this->fetchAnalysisRow($postId);
         if (!$row)
         {
             return $this->asJson([
@@ -80,17 +74,87 @@ class ManualAnalyze extends AbstractController
             ]);
         }
 
-        $external = json_decode((string)($row['external_metrics'] ?? ''), true);
-        if (!is_array($external))
+        $external = $this->decode($row['external_metrics'] ?? null);
+
+        // Automatic analysis uses a local-risk threshold to save API cost. An
+        // explicit moderator action is different: if the local score was below
+        // that threshold and no job was queued, run the configured provider now.
+        // If a job is already pending, do not create a duplicate API request.
+        if (empty($external['pending']))
         {
-            $external = [];
+            $stored = [
+                'risk_score' => (int)$row['risk_score'],
+                'confidence' => (int)$row['confidence'],
+                'classification' => (string)$row['classification'],
+                'text_metrics' => $this->decode($row['text_metrics'] ?? null),
+                'behavior_metrics' => $this->decode($row['behavior_metrics'] ?? null),
+                'writing_metrics' => $this->decode($row['writing_metrics'] ?? null),
+                'profile_metrics' => $this->decode($row['profile_metrics'] ?? null),
+                'similarity_metrics' => $this->decode($row['similarity_metrics'] ?? null),
+                'signals' => $this->decode($row['signal_summary'] ?? null)
+            ];
+
+            $stored = (new ExternalVerifier())->enrich(
+                (string)$post->message,
+                $stored,
+                [
+                    'post_id' => $postId,
+                    'force_external' => true,
+                    'manual' => true
+                ]
+            );
+
+            $stored['classification'] = RiskClassifier::classifyWithConfidence(
+                (int)($stored['risk_score'] ?? 0),
+                (int)($stored['confidence'] ?? 0)
+            );
+
+            \XF::db()->update('xf_warext_ai_analysis', [
+                'risk_score' => (int)($stored['risk_score'] ?? 0),
+                'confidence' => (int)($stored['confidence'] ?? 0),
+                'classification' => (string)$stored['classification'],
+                'external_metrics' => json_encode($stored['external_verification'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'signal_summary' => json_encode($stored['signals'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_date' => time()
+            ], 'analysis_id = ?', (int)$row['analysis_id']);
+
+            $row = $this->fetchAnalysisRow($postId) ?: $row;
+            $external = $this->decode($row['external_metrics'] ?? null);
         }
+        else
+        {
+            // A low-confidence local score is not evidence that the author is
+            // human. Mark it as uncertain until the queued external result arrives.
+            $classification = RiskClassifier::classifyWithConfidence(
+                (int)$row['risk_score'],
+                (int)$row['confidence']
+            );
+            if ($classification !== (string)$row['classification'])
+            {
+                \XF::db()->update('xf_warext_ai_analysis', [
+                    'classification' => $classification,
+                    'updated_date' => time()
+                ], 'analysis_id = ?', (int)$row['analysis_id']);
+                $row['classification'] = $classification;
+            }
+        }
+
+        $text = $this->decode($row['text_metrics'] ?? null);
+        $fusion = is_array($external['fusion'] ?? null) ? $external['fusion'] : [];
+        $externalResult = is_array($external['result'] ?? null) ? $external['result'] : [];
+        $externalRisk = $fusion['external_risk'] ?? ($externalResult['risk_score'] ?? null);
+
+        $pending = !empty($external['pending']);
+        $externalAvailable = !empty($external['available']);
+        $message = $pending
+            ? 'Yerel analiz tamamlandı. Harici ikinci görüş arka plan kuyruğunda; nihai sonuç otomatik güncellenecek.'
+            : ($externalAvailable
+                ? 'Manuel analiz ve harici ikinci görüş tamamlandı.'
+                : 'Manuel AI analizi tamamlandı.');
 
         return $this->asJson([
             'success' => true,
-            'message' => !empty($external['pending'])
-                ? 'Yerel analiz tamamlandı. Harici ikinci görüş arka plan kuyruğuna eklendi.'
-                : 'Manuel AI analizi tamamlandı.',
+            'message' => $message,
             'report' => [
                 'postId' => (int)$row['post_id'],
                 'threadId' => (int)$row['thread_id'],
@@ -99,9 +163,35 @@ class ManualAnalyze extends AbstractController
                 'classification' => (string)$row['classification'],
                 'reviewState' => (string)$row['review_state'],
                 'updatedDate' => (int)$row['updated_date'],
-                'externalPending' => !empty($external['pending'])
+                'externalPending' => $pending,
+                'analysisStage' => $pending ? 'external_pending' : 'final',
+                'engineVersion' => (string)($text['engine_version'] ?? ''),
+                'rawLocalRisk' => isset($text['raw_local_risk']) ? (int)$text['raw_local_risk'] : (int)($text['local_text_risk'] ?? 0),
+                'calibratedLocalRisk' => isset($text['calibrated_local_risk']) ? (int)$text['calibrated_local_risk'] : (int)$row['risk_score'],
+                'externalRisk' => is_numeric($externalRisk) ? (int)$externalRisk : null
             ]
         ]);
+    }
+
+    protected function fetchAnalysisRow(int $postId): array
+    {
+        return \XF::db()->fetchRow(
+            'SELECT analysis_id, post_id, thread_id, risk_score, confidence, classification, review_state,
+                    text_metrics, behavior_metrics, writing_metrics, profile_metrics, similarity_metrics,
+                    external_metrics, signal_summary, updated_date
+             FROM xf_warext_ai_analysis
+             WHERE post_id = ?
+             ORDER BY analysis_id DESC
+             LIMIT 1',
+            $postId
+        ) ?: [];
+    }
+
+    protected function decode($value): array
+    {
+        if (!$value) return [];
+        $decoded = json_decode((string)$value, true);
+        return is_array($decoded) ? $decoded : [];
     }
 
     protected function failureMessage(array $result): string
