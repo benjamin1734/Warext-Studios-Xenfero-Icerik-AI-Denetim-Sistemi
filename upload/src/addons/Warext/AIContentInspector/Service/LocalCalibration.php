@@ -34,9 +34,6 @@ final class LocalCalibration
         $floor = 0;
         $reason = '';
 
-        // Five or more independent signals in a reasonably sized text is not a
-        // weak observation anymore. It is still not proof, therefore the floor
-        // deliberately remains below "confirmed/high risk" territory.
         if ($words >= 80 && $sentences >= 6)
         {
             if ($signalCount >= 7)
@@ -65,8 +62,6 @@ final class LocalCalibration
             }
         }
 
-        // Phrase-light AI output often avoids obvious transition templates but
-        // still keeps an unusually even rhythm and paragraph/structure balance.
         $statisticalVotes = 0;
         $statisticalVotes += $sentenceUniformity >= 0.66 ? 1 : 0;
         $statisticalVotes += $paragraphUniformity >= 0.60 ? 1 : 0;
@@ -82,10 +77,9 @@ final class LocalCalibration
 
         if ($floor > $risk)
         {
-            // Do not jump from a tiny raw score to the full floor in one opaque
-            // step. Blend toward the calibrated floor while retaining the raw
-            // score for moderator inspection.
-            $blend = $signalCount >= 6 ? 0.92 : 0.82;
+            // 5+ independent signals deserve a strong calibration correction;
+            // 4 signals still remain deliberately conservative.
+            $blend = $signalCount >= 5 ? 0.94 : 0.82;
             $risk = (int)round($risk + (($floor - $risk) * $blend));
             $risk = max($rawRisk, min(100, $risk));
             $confidence = min(96, $confidence + min(10, max(3, $signalCount)));
