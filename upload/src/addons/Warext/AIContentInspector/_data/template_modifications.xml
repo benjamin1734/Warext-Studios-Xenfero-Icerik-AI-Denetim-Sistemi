@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <template_modifications>
-  <!-- v1.1.1: thread-controls.js bilerek yüklenmiyor; mükerrer sağ AI Analizi butonu kaldırılmış durumda. -->
+  <!-- v1.1.2: manuel analiz yalnız mesaj seviyesindedir; konu-seviyesi manuel analiz kaldırıldı. -->
   <modification type="public" template="PAGE_CONTAINER" modification_key="warext_ai_global_loader" description="Warext AI denetimi davranış ve yetkili rapor arayüzünü koşullu yükler" execution_order="910" enabled="1" action="str_replace">
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
 <xf:if is="$xf.options.warextAiEnabled">
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1010100"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1010200"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
 <div id="warext-ai-config" hidden
  data-batch-endpoint="{{ link('warext-ai/batch') }}"
  data-thread-endpoint="{{ link('warext-ai/thread') }}"
- data-thread-analyze-endpoint="{{ link('warext-ai-thread/run') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1010100"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1010100"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1010200"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/inline-report.js') }}?wai=1010200"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1010200"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
-<div id="warext-ai-review-capability" hidden data-thread-analyze-endpoint="{{ link('warext-ai-thread/run') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1010100"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1010200"></script>
 </xf:if>
 $0]]></replace>
   </modification>
@@ -33,7 +32,7 @@ $0]]></replace>
 $0]]></replace>
   </modification>
 
-  <modification type="public" template="post_macros" modification_key="warext_ai_manual_post_action" description="AI manuel analizini mesaj üç nokta moderatör eylemleri menüsüne ekler" execution_order="915" enabled="1" action="str_replace">
+  <modification type="public" template="post_macros" modification_key="warext_ai_manual_post_action" description="AI manuel analizini her mesajın kendi üç nokta moderatör eylemleri menüsüne ekler" execution_order="915" enabled="1" action="str_replace">
     <find><![CDATA[<xf:set var="$hasActionBarMenu" value="{{ false }}" />]]></find>
     <replace><![CDATA[<xf:set var="$hasActionBarMenu" value="{{ false }}" />
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
@@ -43,17 +42,6 @@ $0]]></replace>
        data-menu-closer="true">Bu mesajı AI ile analiz et</a>
     <xf:set var="$hasActionBarMenu" value="{{ true }}" />
 </xf:if>]]></replace>
-  </modification>
-
-  <modification type="public" template="thread_view" modification_key="warext_ai_manual_thread_action" description="Konu üst üç nokta araçlar menüsüne manuel AI analizini ekler" execution_order="916" enabled="1" action="str_replace">
-    <find><![CDATA[<!--[XF:thread_tools_menu:before_footer]-->]]></find>
-    <replace><![CDATA[
-<xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
-    <a href="{{ link('warext-ai-thread/run', null, {'thread_id': $thread.thread_id}) }}"
-       class="menu-linkRow js-warextAiManualThreadAnalyze"
-       data-thread-id="{$thread.thread_id}">Konuyu AI ile analiz et</a>
-</xf:if>
-$0]]></replace>
   </modification>
 
   <modification type="public" template="warext_ai_center" modification_key="warext_ai_daily_cost_sources" description="Günlük gerçek ve tahmini maliyet kayıtlarını gösterir" execution_order="920" enabled="1" action="str_replace">
