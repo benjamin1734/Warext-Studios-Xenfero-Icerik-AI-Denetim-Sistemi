@@ -43,6 +43,7 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/Service/ExternalVerifier.php',
     'upload/src/addons/Warext/AIContentInspector/Service/HistoricalAnalyzer.php',
     'upload/src/addons/Warext/AIContentInspector/Service/UsageTracker.php',
+    'upload/src/addons/Warext/AIContentInspector/Pub/Controller/JsonResponder.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/Report.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ThreadAnalyze.php',
     'upload/src/addons/Warext/AIContentInspector/Option/Forum.php',
