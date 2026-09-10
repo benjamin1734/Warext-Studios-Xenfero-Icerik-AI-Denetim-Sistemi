@@ -1,9 +1,9 @@
 {
   "legacy_addon_id": "",
   "title": "Warext Studios | İçerik AI Denetim Sistemi",
-  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı, kullanıcı yazım profili ve içerik benzerliği sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel entegrasyon verisini kullanır. Harici API zorunlu değildir; OpenRouter ve desteklenen doğrudan sağlayıcılar yalnız opsiyonel ikinci görüş katmanı olarak çalışır. Günlük/aylık API istek ve bütçe limitleri, provider sağlık görünümü, gerçek/tahmini maliyet ayrımı, token takibi, kullanım geçmişi temizliği ve kontrollü geçmiş içerik taraması bulunur. Minimum analiz karakteri 0-50000 arasında serbestçe ayarlanabilir. Yetkili moderatörler konu üst araçlar menüsünden tüm konuyu veya mesaj eylemlerinden tek mesajı manuel analiz edebilir; tema hook'u eşleşmezse konu menüsü için JavaScript fallback kullanılır. Otomatik analiz forumları kategori yolu gösteren checkbox listesinden seçilir.",
-  "version_id": 1000380,
-  "version_string": "1.0.8",
+  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı, kullanıcı yazım profili ve içerik benzerliği sinyalleriyle analiz eder; kesin hüküm yerine risk ve güven skoru üretir. Warext Türkçe Yazım Denetimi varsa opsiyonel entegrasyon verisini kullanır. Harici API zorunlu değildir; OpenRouter ve desteklenen doğrudan sağlayıcılar yalnız opsiyonel ikinci görüş katmanı olarak çalışır. Günlük/aylık API istek ve bütçe limitleri, provider sağlık görünümü, gerçek/tahmini maliyet ayrımı, token takibi, kullanım geçmişi temizliği ve kontrollü geçmiş içerik taraması bulunur. Minimum analiz karakteri 0-50000 arasında serbestçe ayarlanabilir. Administrative ve Moderating gruplarına güvenli varsayılan AI görüntüleme/inceleme izinleri kurulumda uygulanır; özel izin tercihleri korunur. Yetkili moderatörler konu üst araçlar menüsünden tüm konuyu veya mesaj eylemlerinden tek mesajı manuel analiz edebilir; tema hook'u eşleşmezse konu menüsü için JavaScript fallback kullanılır. Otomatik analiz forumları kategori yolu gösteren checkbox listesinden seçilir.",
+  "version_id": 1000390,
+  "version_string": "1.0.9",
   "dev": "Warext Studios",
   "dev_url": "",
   "faq_url": "",
