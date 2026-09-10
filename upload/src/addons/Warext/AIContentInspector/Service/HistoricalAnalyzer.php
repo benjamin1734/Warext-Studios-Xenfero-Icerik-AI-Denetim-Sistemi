@@ -6,7 +6,7 @@ use Warext\AIContentInspector\Provider\Registry;
 
 class HistoricalAnalyzer
 {
-    public function analyzePost(array $post, bool $includeExternal = false): bool
+    public function analyzePost(array $post, bool $includeExternal = false, bool $manualScan = false): bool
     {
         $postId = max(0, (int)($post['post_id'] ?? 0));
         $threadId = max(0, (int)($post['thread_id'] ?? 0));
@@ -16,7 +16,10 @@ class HistoricalAnalyzer
         if ($postId <= 0 || $threadId <= 0 || $forumId <= 0 || $message === '') return false;
 
         $analyzer = new Analyzer();
-        $minChars = max(100, (int)(\XF::options()->warextAiMinChars ?? 350));
+        $configuredMinChars = max(0, min(50000, (int)(\XF::options()->warextAiMinChars ?? 350)));
+        $minChars = $manualScan
+            ? max(1, min(80, $configuredMinChars > 0 ? $configuredMinChars : 1))
+            : $configuredMinChars;
         if ($analyzer->authoredTextLength($message) < $minChars) return false;
 
         $behavior = [
@@ -27,7 +30,7 @@ class HistoricalAnalyzer
             'pasteEvents' => 0,
             'inputEvents' => 0,
             'durationSeconds' => 0,
-            'source' => 'historical_unobserved'
+            'source' => $manualScan ? 'manual_thread_scan_unobserved' : 'historical_unobserved'
         ];
         $emptyField = ['correctionCount' => 0, 'changedChars' => 0, 'insertedChars' => 0, 'removedChars' => 0];
         $writing = [
@@ -39,12 +42,16 @@ class HistoricalAnalyzer
             'insertedChars' => 0,
             'removedChars' => 0,
             'fields' => ['title' => $emptyField, 'message' => $emptyField],
-            'source' => 'historical_unobserved'
+            'source' => $manualScan ? 'manual_thread_scan_unobserved' : 'historical_unobserved'
         ];
 
         $registry = new Registry();
         $result = $registry->local()->analyze($message, ['behavior' => $behavior, 'writing' => $writing]);
-        $result['signals'][] = ['key' => 'historical_behavior_unavailable', 'level' => 'context', 'value' => 1];
+        $result['signals'][] = [
+            'key' => $manualScan ? 'manual_thread_behavior_unavailable' : 'historical_behavior_unavailable',
+            'level' => 'context',
+            'value' => 1
+        ];
         $result = (new UserProfile())->enrich($userId, $postId, $result);
         $result = $this->enrichSimilarity($forumId, $postId, $message, $result);
 
@@ -56,7 +63,7 @@ class HistoricalAnalyzer
             'provider' => $registry->selectedExternalId(),
             'model' => '',
             'weight' => 0,
-            'result' => ['reason' => 'historical_local_only']
+            'result' => ['reason' => $manualScan ? 'manual_thread_local_only' : 'historical_local_only']
         ];
 
         if ($includeExternal && $registry->isExternalEnabled())
