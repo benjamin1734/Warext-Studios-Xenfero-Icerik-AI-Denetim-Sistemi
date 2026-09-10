@@ -61,6 +61,16 @@ class Setup extends AbstractSetup
         $this->ensureOptionGroup();
     }
 
+    public function installStep3(): void
+    {
+        $this->ensureDefaultStaffPermissions();
+    }
+
+    public function postInstall(array &$stateChanges): void
+    {
+        $this->queuePermissionRebuild();
+    }
+
     public function upgrade1000080Step1(): void
     {
         $this->schemaManager()->alterTable('xf_warext_ai_analysis', function (\XF\Db\Schema\Alter $table)
@@ -129,6 +139,16 @@ class Setup extends AbstractSetup
         $this->ensureOptionGroup();
     }
 
+    public function upgrade1000390Step1(): void
+    {
+        // Önceki sürümlerde AI yetkileri tanımlanıyor ancak Administrative / Moderating
+        // gruplarına varsayılan olarak atanmadığı için yetkili kullanıcı menüyü göremeyebiliyordu.
+        // Yalnız eksik permission entry'leri eklenir; yöneticinin mevcut özel deny/allow
+        // tercihleri INSERT IGNORE sayesinde korunur.
+        $this->ensureDefaultStaffPermissions();
+        $this->queuePermissionRebuild();
+    }
+
     protected function ensureOptionGroup(): void
     {
         \XF::db()->insert('xf_option_group', [
@@ -137,6 +157,51 @@ class Setup extends AbstractSetup
             'debug_only' => 0,
             'addon_id' => 'Warext/AIContentInspector'
         ], false, 'display_order = VALUES(display_order), debug_only = VALUES(debug_only), addon_id = VALUES(addon_id)');
+    }
+
+    protected function ensureDefaultStaffPermissions(): void
+    {
+        $adminGroup = \XF\Entity\User::GROUP_ADMIN;
+        $moderatorGroup = \XF\Entity\User::GROUP_MOD;
+
+        $defaults = [
+            $adminGroup => [
+                'warextAiViewSimple',
+                'warextAiViewDetailed',
+                'warextAiReview',
+                'warextAiManage'
+            ],
+            $moderatorGroup => [
+                'warextAiViewSimple',
+                'warextAiViewDetailed',
+                'warextAiReview'
+            ]
+        ];
+
+        foreach ($defaults as $groupId => $permissionIds)
+        {
+            foreach ($permissionIds as $permissionId)
+            {
+                \XF::db()->insert('xf_permission_entry', [
+                    'user_group_id' => (int)$groupId,
+                    'user_id' => 0,
+                    'permission_group_id' => 'general',
+                    'permission_id' => $permissionId,
+                    'permission_value' => 'allow',
+                    'permission_value_int' => 0
+                ], true);
+            }
+        }
+    }
+
+    protected function queuePermissionRebuild(): void
+    {
+        $this->app()->jobManager()->enqueueUnique(
+            'permissionRebuild',
+            \XF\Job\PermissionRebuild::class,
+            [],
+            false
+        );
     }
 
     protected function createReviewLogTable(): void
