@@ -53,8 +53,8 @@ jobs:
       - name: XenForo master-data, template ve kurulum uyumluluğunu doğrula
         run: python3 tools/validate_xenforo_master.py
 
-      - name: Moderator panel ve konu analiz regresyonları
-        run: python3 tools/validate_v1010.py
+      - name: v1.1.2 mesaj-seviyesi analiz ve inline rapor regresyonları
+        run: python3 tools/validate_v112.py
 
       - name: Stable XenForo ZIP paketini üret ve doğrula
         id: build
@@ -78,16 +78,17 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          XenForo 2.3 JSON controller uyumluluk ve manuel analiz düzeltmesi.
+          Mesaj-seviyesi manuel analiz ve konu içi doğrudan rapor güncellemesi.
 
-          - `ThreadAnalyze`, `ManualAnalyze` ve `Report` controller'larındaki geçersiz/olmayan `asJson()` bağımlılığı ortak `JsonResponder` katmanıyla düzeltildi.
-          - JSON yanıtları XenForo 2.3 uyumlu `setResponseType('json')` + `setJsonParams(...)` akışını kullanır.
-          - Konu manuel analizi, tek mesaj analizi, batch raporu, konu özeti, detay raporu ve moderasyon durum güncellemesi aynı güvenli JSON yanıt katmanından geçer.
-          - `Call to undefined method ... ThreadAnalyze::asJson()` hatası giderildi.
-          - Public navbar girişi kaldırılmış halde kalır; AI merkezi Moderator araçları menüsündedir.
-          - Konu analizi için tek giriş üç nokta menüsündeki `Konuyu AI ile analiz et` eylemidir.
-          - Minimum analiz karakteri 0-50000, forum checkbox seçimi ve mevcut provider/bütçe sistemi korunur.
-          - JSON controller regresyon testi Stable Release için zorunlu hale getirildi.
+          - Konu üst üç nokta menüsündeki tüm-konuyu manuel analiz eylemi kaldırıldı.
+          - Manuel analiz yalnız mesajın kendi üç nokta/moderatör eylemleri menüsündeki `Bu mesajı AI ile analiz et` üzerinden çalışır.
+          - `warext-ai-thread` public route kaldırıldı; yanlışlıkla tüm konuyu manuel kuyruğa alma yolu kapatıldı.
+          - Analiz edilmiş mesajların bulunduğu konu sayfasında AI raporu doğrudan mesajın üstünde görünür.
+          - Inline rapor risk, güven, sınıflandırma, moderasyon durumu ve teknik sinyal özetlerini gösterir.
+          - Teknik ayrıntılar yalnız görünür raporlar için IntersectionObserver ile lazy-load edilir; sayfa başına gereksiz N+1 istek yükü azaltılır.
+          - Manuel tek mesaj analizi tamamlanınca aynı mesajın inline raporu sayfa yenilemeden güncellenir.
+          - Moderatör panelindeki merkezi AI denetim ekranı ve ACP yönetim bölümü korunur.
+          - XenForo 2.3 JSON responder düzeltmesi korunur.
 
           Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
