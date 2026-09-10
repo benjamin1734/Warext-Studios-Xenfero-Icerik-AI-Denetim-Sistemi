@@ -47,10 +47,13 @@ jobs:
           php tests/direct_provider_regression.php
           php tests/openai_compatible_provider_regression.php
 
+      - name: XenForo 2.3 JSON controller regresyonu
+        run: python3 tests/json_controller_regression.py
+
       - name: XenForo master-data, template ve kurulum uyumluluğunu doğrula
         run: python3 tools/validate_xenforo_master.py
 
-      - name: v1.0.10 moderator panel ve konu analiz regresyonları
+      - name: Moderator panel ve konu analiz regresyonları
         run: python3 tools/validate_v1010.py
 
       - name: Stable XenForo ZIP paketini üret ve doğrula
@@ -75,17 +78,16 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          XenForo 2.3+ moderatör panel yerleşimi ve manuel konu analiz kararlılık güncellemesi.
+          XenForo 2.3 JSON controller uyumluluk ve manuel analiz düzeltmesi.
 
-          - Public navbar üzerindeki bağımsız `AI Denetimi` girişi kaldırıldı.
-          - AI denetim merkezi, XenForo üst staff bar içindeki `Moderator -> Moderator tools` listesine taşındı.
-          - Konu sayfasındaki mükerrer sağ `AI Analizi` düğmesi kaldırıldı; konu analizi için tek giriş üç nokta menüsündeki `Konuyu AI ile analiz et` eylemidir.
-          - Manuel konu analizi XenForo `XF.ajax` üzerinden gönderilir; CSRF/XHR davranışı XenForo çekirdeğiyle uyumludur.
-          - Queue hataları XenForo sunucu hata günlüğüne referans koduyla yazılır ve kullanıcıya kör genel hata yerine neden döndürülür.
-          - Konu taramasında kalmış eski 100 karakter sabiti kaldırıldı; ACP minimum karakter ayarı gerçek çalışma eşiği olarak kullanılır.
-          - Manuel konu taraması mevcut analiz kayıtlarını da zorla yenileyebilir; `NOT EXISTS` filtresi yalnız normal geçmiş taramasında kullanılır.
-          - Forum checkbox seçimi ve staff varsayılan yetki onarımı korunur.
-          - Frontend cache anahtarı `1000400` olarak güncellendi.
+          - `ThreadAnalyze`, `ManualAnalyze` ve `Report` controller'larındaki geçersiz/olmayan `asJson()` bağımlılığı ortak `JsonResponder` katmanıyla düzeltildi.
+          - JSON yanıtları XenForo 2.3 uyumlu `setResponseType('json')` + `setJsonParams(...)` akışını kullanır.
+          - Konu manuel analizi, tek mesaj analizi, batch raporu, konu özeti, detay raporu ve moderasyon durum güncellemesi aynı güvenli JSON yanıt katmanından geçer.
+          - `Call to undefined method ... ThreadAnalyze::asJson()` hatası giderildi.
+          - Public navbar girişi kaldırılmış halde kalır; AI merkezi Moderator araçları menüsündedir.
+          - Konu analizi için tek giriş üç nokta menüsündeki `Konuyu AI ile analiz et` eylemidir.
+          - Minimum analiz karakteri 0-50000, forum checkbox seçimi ve mevcut provider/bütçe sistemi korunur.
+          - JSON controller regresyon testi Stable Release için zorunlu hale getirildi.
 
           Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
