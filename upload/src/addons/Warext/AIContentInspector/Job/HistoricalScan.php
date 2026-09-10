@@ -15,7 +15,9 @@ class HistoricalScan extends AbstractJob
         'min_date' => 0,
         'include_external' => false,
         'forum_ids' => [],
-        'thread_ids' => []
+        'thread_ids' => [],
+        'force_reanalyze' => false,
+        'manual_scan' => false
     ];
 
     public function run($maxRunTime)
@@ -54,7 +56,11 @@ class HistoricalScan extends AbstractJob
             foreach ($threadIds as $threadId) $params[] = $threadId;
         }
 
-        $where[] = 'NOT EXISTS (SELECT 1 FROM xf_warext_ai_analysis a WHERE a.post_id = p.post_id)';
+        if (empty($this->data['force_reanalyze']))
+        {
+            $where[] = 'NOT EXISTS (SELECT 1 FROM xf_warext_ai_analysis a WHERE a.post_id = p.post_id)';
+        }
+
         $sql = 'SELECT p.post_id, p.thread_id, p.user_id, p.message, p.post_date, t.node_id AS forum_id
                 FROM xf_post p
                 INNER JOIN xf_thread t ON t.thread_id = p.thread_id
@@ -74,7 +80,11 @@ class HistoricalScan extends AbstractJob
 
             try
             {
-                if ($analyzer->analyzePost($row, !empty($this->data['include_external'])))
+                if ($analyzer->analyzePost(
+                    $row,
+                    !empty($this->data['include_external']),
+                    !empty($this->data['manual_scan'])
+                ))
                 {
                     $this->data['analyzed'] = (int)$this->data['analyzed'] + 1;
                 }
