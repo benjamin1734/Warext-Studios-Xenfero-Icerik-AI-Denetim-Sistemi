@@ -4,13 +4,15 @@
   if (window.__warextAiManualAnalysis) return;
   window.__warextAiManualAnalysis = true;
 
+  const config = document.getElementById('warext-ai-config')?.dataset || {};
+
   const labels = {
     human_likely: 'İnsan yazımı ağırlıklı',
     low_ai_signal: 'Düşük AI sinyali',
     ai_assistance_possible: 'AI desteği olabilir',
     ai_heavy_possible: 'AI ağırlıklı olabilir',
     high_risk: 'Yüksek AI riski',
-    unknown: 'Belirsiz'
+    unknown: 'Belirsiz / güven yetersiz'
   };
 
   const reviewLabels = {
@@ -109,7 +111,7 @@
 
     box.innerHTML = '';
     const score = document.createElement('strong');
-    score.textContent = `AI riski: ${Number(report.risk || 0)}/100`;
+    score.textContent = `AI risk skoru: ${Number(report.risk || 0)}/100`;
     const classification = document.createElement('span');
     classification.textContent = labels[report.classification] || report.classification || 'Belirsiz';
     const confidence = document.createElement('span');
@@ -117,6 +119,72 @@
     const state = document.createElement('span');
     state.textContent = reviewLabels[report.reviewState] || report.reviewState || 'Bekleyen';
     box.append(score, classification, confidence, state);
+
+    if (report.externalPending) {
+      const stage = document.createElement('span');
+      stage.textContent = 'Harici ikinci görüş bekleniyor…';
+      stage.style.opacity = '.72';
+      box.append(stage);
+    }
+  }
+
+  function detailUrl(postId) {
+    if (!config.detailEndpoint) return '';
+    const url = new URL(config.detailEndpoint, location.href);
+    url.searchParams.set('post_id', String(postId));
+    return url.toString();
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+  }
+
+  async function pollFinalReport(postId, initialUpdatedDate) {
+    const url = detailUrl(postId);
+    if (!url) return;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await sleep(1500);
+
+      try {
+        const response = await fetch(url, {
+          credentials: 'same-origin',
+          headers: {'X-Requested-With': 'XMLHttpRequest'}
+        });
+        if (!response.ok) continue;
+        const data = await response.json();
+        const external = data.externalMetrics || {};
+        if (external.pending) continue;
+
+        const fusion = external.fusion || {};
+        const externalResult = external.result || {};
+        const text = data.textMetrics || {};
+        const externalRisk = Number.isFinite(Number(fusion.external_risk))
+          ? Number(fusion.external_risk)
+          : (Number.isFinite(Number(externalResult.risk_score)) ? Number(externalResult.risk_score) : null);
+
+        const report = {
+          postId: Number(data.postId || postId),
+          threadId: Number(data.threadId || 0),
+          risk: Number(data.risk || 0),
+          confidence: Number(data.confidence || 0),
+          classification: data.classification || 'unknown',
+          reviewState: data.reviewState || 'pending',
+          updatedDate: Number(data.updatedDate || initialUpdatedDate || 0),
+          externalPending: false,
+          analysisStage: 'final',
+          engineVersion: text.engine_version || '',
+          rawLocalRisk: Number(text.raw_local_risk ?? text.local_text_risk ?? 0),
+          calibratedLocalRisk: Number(text.calibrated_local_risk ?? data.risk ?? 0),
+          externalRisk
+        };
+
+        ensureFallbackReport(report);
+        window.dispatchEvent(new CustomEvent('warext-ai-manual-analysis-complete', {detail: {report}}));
+        notify('Harici ikinci görüş tamamlandı; nihai AI raporu güncellendi.');
+        return;
+      } catch (_) {}
+    }
   }
 
   async function analyzePost(link) {
@@ -138,9 +206,14 @@
         return;
       }
 
-      ensureFallbackReport(result.report || {});
+      const report = result.report || {};
+      ensureFallbackReport(report);
       window.dispatchEvent(new CustomEvent('warext-ai-manual-analysis-complete', {detail: result}));
       notify(resultMessage(result, 'Mesajın AI analizi tamamlandı.'));
+
+      if (report.externalPending) {
+        pollFinalReport(postId, Number(report.updatedDate || 0));
+      }
     } catch (error) {
       notify(error?.message || 'Mesaj analizi sırasında bağlantı hatası oluştu.', true);
     } finally {
