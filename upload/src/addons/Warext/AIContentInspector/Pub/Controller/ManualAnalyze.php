@@ -6,6 +6,8 @@ use XF\Pub\Controller\AbstractController;
 
 class ManualAnalyze extends AbstractController
 {
+    use JsonResponder;
+
     protected function canAnalyze(): bool
     {
         $visitor = \XF::visitor();
