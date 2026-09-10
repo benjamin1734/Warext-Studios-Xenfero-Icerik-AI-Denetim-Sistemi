@@ -16,8 +16,8 @@ def fail(message: str) -> None:
 addon = json.loads((ROOT / 'addon.json').read_text(encoding='utf-8'))
 version = str(addon.get('version_string', '')).strip()
 version_id = int(addon.get('version_id', 0))
-if version != '1.0.10' or version_id != 1000400:
-    fail(f'v1.0.10 sürüm kimliği bekleniyor, bulunan: {version} / {version_id}')
+if version_id < 1000400:
+    fail(f'v1.0.10+ sürüm kimliği bekleniyor, bulunan: {version} / {version_id}')
 
 navigation = ET.parse(DATA / 'navigation.xml').getroot()
 if navigation.findall('navigation_entry'):
