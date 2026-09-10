@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import re
 from pathlib import Path
 
 ROOT = Path('upload/src/addons/Warext/AIContentInspector')
@@ -10,8 +11,13 @@ def fail(message):
     raise SystemExit(message)
 
 addon = json.loads((ROOT / 'addon.json').read_text(encoding='utf-8'))
-if addon.get('version_string') != '1.1.2' or int(addon.get('version_id', 0)) != 1010200:
-    fail('v1.1.2 sürüm kimliği bekleniyor')
+version = str(addon.get('version_string', '')).strip()
+match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', version)
+if not match:
+    fail('Geçerli Stable sürüm kimliği bekleniyor')
+version_tuple = tuple(int(part) for part in match.groups())
+if version_tuple < (1, 1, 2) or int(addon.get('version_id', 0)) < 1010200:
+    fail('Mesaj-seviyesi akış doğrulaması yalnız v1.1.2 ve üstü sürümlerde çalışır')
 
 routes = (ROOT / '_data/routes.xml').read_text(encoding='utf-8')
 if 'warext-ai-thread' in routes or 'ThreadAnalyze' in routes:
@@ -49,7 +55,7 @@ if "'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ThreadAnalyze.ph
 
 print(json.dumps({
     'status': 'ok',
-    'version': '1.1.2',
+    'version': version,
     'singlePostManualAnalysis': True,
     'threadManualAnalysisRemoved': True,
     'inlineReportValidated': True,
