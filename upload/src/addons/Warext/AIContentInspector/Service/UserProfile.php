@@ -113,7 +113,7 @@ class UserProfile
         $confidenceBonus = $count >= 12 ? 8 : ($count >= 7 ? 6 : 3);
         $result['risk_score'] = $newRisk;
         $result['confidence'] = min(96, (int)$result['confidence'] + $confidenceBonus);
-        $result['classification'] = $this->classification($newRisk);
+        $result['classification'] = RiskClassifier::classify($newRisk);
 
         $profile = [
             'available' => true,
@@ -193,14 +193,5 @@ class UserProfile
             $result[$key] = round((float)$value, 4);
         }
         return $result;
-    }
-
-    protected function classification(int $risk): string
-    {
-        if ($risk < 30) return 'human_likely';
-        if ($risk < 50) return 'low_ai_signal';
-        if ($risk < 70) return 'ai_assistance_possible';
-        if ($risk < 85) return 'ai_heavy_possible';
-        return 'high_risk';
     }
 }
