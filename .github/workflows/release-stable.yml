@@ -40,7 +40,7 @@ jobs:
       - name: JavaScript sözdizimini doğrula
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
-      - name: Provider regresyonlarını çalıştır
+      - name: Provider ve kalibrasyon regresyonlarını çalıştır
         run: |
           php tests/analyzer_regression.php
           php tests/openrouter_provider_regression.php
@@ -53,7 +53,7 @@ jobs:
       - name: XenForo master-data, template ve kurulum uyumluluğunu doğrula
         run: python3 tools/validate_xenforo_master.py
 
-      - name: v1.1.2 mesaj-seviyesi analiz ve inline rapor regresyonları
+      - name: Mesaj-seviyesi analiz ve inline rapor regresyonları
         run: python3 tools/validate_v112.py
 
       - name: Stable XenForo ZIP paketini üret ve doğrula
@@ -78,17 +78,17 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          Mesaj-seviyesi manuel analiz ve konu içi doğrudan rapor güncellemesi.
+          AI false-negative kalibrasyonu ve çoklu sinyal motoru güncellemesi.
 
-          - Konu üst üç nokta menüsündeki tüm-konuyu manuel analiz eylemi kaldırıldı.
-          - Manuel analiz yalnız mesajın kendi üç nokta/moderatör eylemleri menüsündeki `Bu mesajı AI ile analiz et` üzerinden çalışır.
-          - `warext-ai-thread` public route kaldırıldı; yanlışlıkla tüm konuyu manuel kuyruğa alma yolu kapatıldı.
-          - Analiz edilmiş mesajların bulunduğu konu sayfasında AI raporu doğrudan mesajın üstünde görünür.
-          - Inline rapor risk, güven, sınıflandırma, moderasyon durumu ve teknik sinyal özetlerini gösterir.
-          - Teknik ayrıntılar yalnız görünür raporlar için IntersectionObserver ile lazy-load edilir; sayfa başına gereksiz N+1 istek yükü azaltılır.
-          - Manuel tek mesaj analizi tamamlanınca aynı mesajın inline raporu sayfa yenilemeden güncellenir.
-          - Moderatör panelindeki merkezi AI denetim ekranı ve ACP yönetim bölümü korunur.
-          - XenForo 2.3 JSON responder düzeltmesi korunur.
+          - Tamamen AI üslubundaki uzun ve aşırı düzenli metinlerin yanlış biçimde `İnsan yazımı ağırlıklı` sayılmasına yol açan muhafazakâr puanlama düzeltildi.
+          - Yerel analiz motoruna genişletilmiş Türkçe şablon kalıpları, formülsel anlatım yoğunluğu, geçiş ifadesiyle cümle başlatma oranı ve biçimsel cümle ritmi sinyalleri eklendi.
+          - Tek bir düzgün-yazım sinyali yerine birden fazla bağımsız sinyal aynı yönde birleştiğinde çalışan `multi_signal_consistency` katkısı eklendi.
+          - Editör davranışı gözlemlenmediyse artık varsayımsal davranış puanı verilmez; veri yokluğu nötr kabul edilir.
+          - Writing Checker düzeltmelerinin riski gereğinden fazla düşürmesi engellendi; proofreading en fazla küçük bir bağlamsal düzeltme yapabilir.
+          - Risk sınıflandırması Analyzer, kullanıcı profili ve harici doğrulama servislerinde tek `RiskClassifier` üzerinden eşitlendi.
+          - Harici AI ikinci görüş promptu yeni 0-24 / 25-44 / 45-64 / 65-79 / 80-100 kalibrasyon bantlarına göre güncellendi.
+          - Regresyon kapısına belirgin AI metni, doğal forum mesajı ve düzgün teknik insan metni örnekleri eklendi. Release yalnız AI örneği >=70, doğal forum örneği <55 ve teknik insan örneği <65 olduğunda üretilebilir.
+          - Mesajın kendi üç nokta menüsünden tek-mesaj analizi ve konu içinde doğrudan inline rapor sistemi korunur.
 
           Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
