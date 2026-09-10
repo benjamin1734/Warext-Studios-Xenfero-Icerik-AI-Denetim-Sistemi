@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <template_modifications>
-  <!-- v1.1.2: manuel analiz yalnız mesaj seviyesindedir; konu-seviyesi manuel analiz kaldırıldı. -->
+  <!-- v1.1.3: mesaj-seviyesi analiz korunur; AI false-negative kalibrasyonu yenilendi. -->
   <modification type="public" template="PAGE_CONTAINER" modification_key="warext_ai_global_loader" description="Warext AI denetimi davranış ve yetkili rapor arayüzünü koşullu yükler" execution_order="910" enabled="1" action="str_replace">
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
 <xf:if is="$xf.options.warextAiEnabled">
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1010200"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1010300"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
 <div id="warext-ai-config" hidden
@@ -13,12 +13,12 @@
  data-thread-endpoint="{{ link('warext-ai/thread') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1010200"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/inline-report.js') }}?wai=1010200"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1010200"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1010300"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/inline-report.js') }}?wai=1010300"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1010300"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
-<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1010200"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1010300"></script>
 </xf:if>
 $0]]></replace>
   </modification>
