@@ -7,6 +7,8 @@ use XF\Pub\Controller\AbstractController;
 
 class ThreadAnalyze extends AbstractController
 {
+    use JsonResponder;
+
     protected function canRun(): bool
     {
         $visitor = \XF::visitor();
