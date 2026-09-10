@@ -24,6 +24,9 @@ jobs:
       - name: XenForo master-data ve template doğrulaması
         run: python3 tools/validate_xenforo_master.py
 
+      - name: v1.0.10 moderator panel ve konu analiz regresyonları
+        run: python3 tools/validate_v1010.py
+
       - name: Sürüm kimliğini oku
         id: version
         run: |
