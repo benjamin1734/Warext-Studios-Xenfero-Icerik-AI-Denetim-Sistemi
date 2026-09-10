@@ -7,6 +7,8 @@ use XF\Pub\Controller\AbstractController;
 
 class Report extends AbstractController
 {
+    use JsonResponder;
+
     protected function canViewSimple(): bool
     {
         return \XF::visitor()->hasPermission('general', 'warextAiViewSimple');
