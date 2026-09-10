@@ -13,6 +13,7 @@ class ExternalVerifier
         $providerId = (string)($config['provider'] ?? $registry->selectedExternalId());
         $minimumRisk = max(0, min(100, (int)($config['minimum_local_risk'] ?? 100)));
         $localRisk = max(0, min(100, (int)($result['risk_score'] ?? 0)));
+        $localConfidence = max(0, min(100, (int)($result['confidence'] ?? 0)));
         $postId = max(0, (int)($context['post_id'] ?? 0));
         $forceExternal = !empty($context['force_external']);
         $manual = !empty($context['manual']);
@@ -128,56 +129,27 @@ class ExternalVerifier
 
         $baseWeight = max(0, min(40, (int)($config['weight'] ?? 0)));
         $providerConfidence = max(0, min(100, (int)($assessment['confidence'] ?? 0)));
-        $effectiveWeight = ($baseWeight / 100) * ($providerConfidence / 100);
-
-        if ($forceExternal && $providerConfidence >= 60)
-        {
-            $manualFloor = min(0.48, 0.28 + (($providerConfidence - 60) / 250));
-            $effectiveWeight = max($effectiveWeight, $manualFloor);
-        }
-
         $externalRisk = max(0, min(100, (int)($assessment['risk_score'] ?? 0)));
-        $combined = (int)round(($localRisk * (1 - $effectiveWeight)) + ($externalRisk * $effectiveWeight));
-        $disagreement = abs($externalRisk - $localRisk) >= 35;
 
-        if ($forceExternal && $providerConfidence >= 80 && $externalRisk >= 85 && $localRisk < 45)
-        {
-            $combined = max($combined, 65);
-        }
-        elseif ($forceExternal && $providerConfidence >= 75 && $externalRisk >= 75 && $localRisk < 45)
-        {
-            $combined = max($combined, 58);
-        }
+        $fusion = ExternalScoreFusion::combine(
+            $localRisk,
+            $localConfidence,
+            $externalRisk,
+            $providerConfidence,
+            $baseWeight,
+            $forceExternal
+        );
 
-        if ($forceExternal && $providerConfidence >= 80 && $externalRisk <= 20 && $localRisk >= 80)
-        {
-            $combined = max($combined, 62);
-        }
+        $combined = (int)$fusion['risk'];
+        $confidence = (int)$fusion['confidence'];
+        $disagreement = !empty($fusion['disagreement']);
 
-        $confidence = (int)($result['confidence'] ?? 0);
-        if ($forceExternal)
-        {
-            if ($disagreement)
-            {
-                $confidence = max($confidence, min(82, (int)round(($confidence + $providerConfidence) / 2)));
-            }
-            else
-            {
-                $confidence = min(96, max($confidence, (int)round(($confidence * 0.55) + ($providerConfidence * 0.45))));
-            }
-        }
-        else
-        {
-            $confidence = min(98, $confidence + (int)round(8 * $effectiveWeight));
-        }
-
-        $combined = max(0, min(100, $combined));
-        $external['weight'] = round($effectiveWeight * 100, 2);
+        $external['weight'] = (float)$fusion['effective_weight'];
         $external['fusion'] = [
             'local_risk' => $localRisk,
             'external_risk' => $externalRisk,
             'provider_confidence' => $providerConfidence,
-            'effective_weight' => round($effectiveWeight * 100, 2),
+            'effective_weight' => (float)$fusion['effective_weight'],
             'combined_risk' => $combined,
             'disagreement' => $disagreement
         ];
