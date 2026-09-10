@@ -21,10 +21,13 @@ jobs:
       - name: Paket öncesi JavaScript doğrulaması
         run: find upload/js/warext/ai-content-inspector -type f -name '*.js' -print0 | sort -z | xargs -0 -n1 node --check
 
+      - name: XenForo 2.3 JSON controller regresyonu
+        run: python3 tests/json_controller_regression.py
+
       - name: XenForo master-data ve template doğrulaması
         run: python3 tools/validate_xenforo_master.py
 
-      - name: v1.0.10 moderator panel ve konu analiz regresyonları
+      - name: Moderator panel ve konu analiz regresyonları
         run: python3 tools/validate_v1010.py
 
       - name: Sürüm kimliğini oku
