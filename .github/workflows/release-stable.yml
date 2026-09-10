@@ -72,15 +72,16 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          XenForo 2.3+ minimum metin eşiği ve moderasyon menüsü uyumluluk güncellemesi.
+          XenForo 2.3+ staff permission ve manuel AI analiz görünürlüğü düzeltmesi.
 
-          - `Minimum analiz karakteri` artık 0-50000 arasında yönetici tarafından serbestçe ayarlanabilir. 0 değeri, boş olmayan her içeriğin otomatik analiz için uygun olduğu anlamına gelir.
-          - Analiz motorundaki eski 100 karakter alt sınırı kaldırıldı; ACP'de seçilen değer gerçek çalışma eşiği olarak kullanılır.
-          - Manuel analiz eşiği de düşük ACP değerleriyle uyumlu hale getirildi; kısa içeriklerde güven skoru yine analiz motoru tarafından sınırlı tutulur.
-          - Konu üst üç nokta menüsündeki `Konuyu AI ile analiz et` eylemi için tema/şablon uyumsuzluğuna karşı JavaScript fallback eklendi. Statik template modification eşleşmezse `Moderator actions` satırının yanına yetkili eylem çalışma anında eklenir.
-          - Forum checkbox seçimi ve tek mesaj manuel analiz sistemi korunur.
-          - Stable validator minimum karakter sınırını, runtime PHP eşiğini ve konu menüsü fallback'ini zorunlu doğrular.
-          - Frontend cache anahtarı `1000380` olarak güncellendi.
+          - Administrative grubuna varsayılan olarak basit rapor, detaylı rapor, inceleme/manuel analiz ve AI yönetim izinleri verilir.
+          - Moderating grubuna varsayılan olarak basit rapor, detaylı rapor ve inceleme/manuel analiz izinleri verilir.
+          - Yalnız eksik permission entry kayıtları oluşturulur; mevcut özel Allow/Deny/Never tercihleri ezilmez.
+          - Kurulum ve v1.0.8 -> v1.0.9 yükseltmesinde XenForo permission rebuild kuyruğu tetiklenir.
+          - Konu üst üç nokta menüsündeki `Konuyu AI ile analiz et` ve mesaj eylemlerindeki `Bu mesajı AI ile analiz et` mevcut yetki sistemi üzerinden görünür olur.
+          - v1.0.8'de eklenen tema uyumlu JavaScript fallback korunur.
+          - Minimum analiz karakteri 0-50000 aralığında serbest kalır ve forum checkbox seçimi korunur.
+          - Frontend cache anahtarı `1000390` olarak güncellendi.
 
           Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
           '''
