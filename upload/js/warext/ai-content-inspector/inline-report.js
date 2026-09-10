@@ -13,7 +13,7 @@
     ai_assistance_possible: 'AI desteği olabilir',
     ai_heavy_possible: 'AI ağırlıklı olabilir',
     high_risk: 'Yüksek AI riski',
-    unknown: 'Belirsiz'
+    unknown: 'Belirsiz / güven yetersiz'
   };
   const reviewLabels = {
     pending: 'Bekleyen',
@@ -26,6 +26,12 @@
     paragraph_uniformity: 'Paragraf uzunlukları düzenli',
     connector_density: 'Bağlaç/geçiş ifadesi yoğunluğu',
     template_language: 'Şablonlaşmış anlatım kalıpları',
+    formulaic_language: 'Formülsel anlatım yoğunluğu',
+    transition_openings: 'Geçiş ifadeli cümle başlangıçları',
+    formal_cadence: 'Düzenli/formel cümle ritmi',
+    multi_signal_consistency: 'Birden fazla AI-benzeri sinyal birlikte görüldü',
+    local_ensemble_calibration: 'Yerel çoklu-sinyal kalibrasyonu',
+    local_external_disagreement: 'Yerel ve harici sonuçlar belirgin biçimde çelişiyor',
     structured_format: 'Yoğun yapılandırılmış anlatım',
     repetitive_openings: 'Tekrarlayan cümle başlangıçları',
     editor_behavior: 'Editör oluşturma davranışı',
@@ -37,7 +43,8 @@
     external_provider_verification: 'Harici AI ikinci görüşü',
     external_verifier_unavailable: 'Harici AI doğrulaması kullanılamadı',
     external_budget_limit: 'Harici API bütçe/istek limiti',
-    historical_behavior_unavailable: 'Geçmiş içerikte editör davranışı bilinmiyor'
+    historical_behavior_unavailable: 'Geçmiş içerikte editör davranışı bilinmiyor',
+    manual_analysis: 'Moderatör tarafından manuel analiz edildi'
   };
 
   function installStyle() {
@@ -120,6 +127,7 @@
     }
 
     panel.innerHTML = '';
+    panel.dataset.detailLoaded = '0';
     const head = document.createElement('div');
     head.className = 'warextAiInlineHead';
     const title = document.createElement('div');
@@ -127,12 +135,14 @@
     title.textContent = `Mesaj #${postId} · AI Analiz Raporu`;
     const state = document.createElement('span');
     state.className = 'warextAiInlineState';
-    state.textContent = reviewLabels[report.reviewState] || report.reviewState || 'Bekleyen';
+    state.textContent = report.externalPending
+      ? 'Harici doğrulama bekleniyor'
+      : (reviewLabels[report.reviewState] || report.reviewState || 'Bekleyen');
     head.append(title, state);
 
     const grid = document.createElement('div');
     grid.className = 'warextAiInlineGrid';
-    const risk = cell('AI risk skoru', `${Number(report.risk || 0)}/100`, true);
+    const risk = cell('Nihai AI risk skoru', `${Number(report.risk || 0)}/100`, true);
     risk.querySelector('strong')?.classList.add('warextAiInlineRisk');
     grid.append(
       risk,
@@ -145,7 +155,7 @@
     technical.className = 'warextAiInlineTechnical';
     technical.open = true;
     const summary = document.createElement('summary');
-    summary.textContent = 'Analiz ayrıntıları';
+    summary.textContent = 'Analiz ayrıntıları ve skor zinciri';
     const loading = document.createElement('div');
     loading.className = 'warextAiInlineLoading';
     loading.textContent = 'Ayrıntılar görünür olduğunda yükleniyor…';
@@ -153,7 +163,7 @@
 
     const note = document.createElement('div');
     note.className = 'warextAiInlineNote';
-    note.textContent = 'Bu sonuç kesin AI tespiti değildir; moderasyon için çoklu sinyal risk değerlendirmesidir.';
+    note.textContent = 'Bu değer AI yazarlık olasılığının matematiksel yüzdesi değildir; çoklu sinyallerden üretilen moderasyon risk skorudur. Düşük güvenli düşük skor insan yazarlığının kanıtı sayılmaz.';
     panel.append(head, grid, technical, note);
     observePanel(panel, postId);
     return panel;
@@ -188,13 +198,25 @@
       grid.className = 'warextAiInlineTechnicalGrid';
       const externalResult = external.result || {};
       const provider = externalResult.provider || {};
+      const fusion = external.fusion || {};
+      const rawLocal = Number(text.raw_local_risk ?? text.local_text_risk ?? 0);
+      const calibratedLocal = Number(text.calibrated_local_risk ?? data.risk ?? 0);
+      const externalRisk = Number.isFinite(Number(fusion.external_risk))
+        ? Number(fusion.external_risk)
+        : (Number.isFinite(Number(externalResult.risk_score)) ? Number(externalResult.risk_score) : null);
+
       let externalText = 'Kullanılmadı';
       if (external.pending) externalText = 'İkinci görüş kuyrukta';
-      else if (external.available) externalText = `${provider.label || external.provider || 'Harici AI'} · ${Number(externalResult.risk_score || 0)}/100`;
+      else if (external.available) externalText = `${provider.label || external.provider || 'Harici AI'} · ${externalRisk ?? 0}/100`;
       else if (external.enabled && external.skipped) externalText = 'Atlandı';
 
       grid.append(
-        cell('Yerel metin riski', `${Math.round(Number(text.local_text_risk || 0))}/100`),
+        cell('Ham yerel skor', `${Math.round(rawLocal)}/100`),
+        cell('Kalibre yerel skor', `${Math.round(calibratedLocal)}/100`),
+        cell('Harici sağlayıcı skoru', externalRisk === null ? externalText : `${Math.round(externalRisk)}/100`),
+        cell('Nihai skor', `${Number(data.risk || 0)}/100`, true),
+        cell('Motor sürümü', text.engine_version || 'Eski kayıt'),
+        cell('Birleşik güçlü sinyal', String(Number(text.combined_signal_count || 0))),
         cell('Metin', `${Number(text.chars || 0)} karakter · ${Number(text.words || 0)} kelime`),
         cell('Kelime çeşitliliği', ratio(text.lexical_diversity)),
         cell('Paste oranı', pasteRatio(behavior)),
@@ -202,7 +224,8 @@
         cell('İçerik benzerliği', similarity.available ? `${Number(similarity.similarity || 0)}%` : 'Veri yok'),
         cell('Writing Checker', writing.available ? 'Kullanıldı' : 'Kullanılmadı'),
         cell('Harici ikinci görüş', externalText),
-        cell('Cümle / paragraf', `${Number(text.sentences || 0)} / ${Number(text.paragraphs || 0)}`)
+        cell('Cümle / paragraf', `${Number(text.sentences || 0)} / ${Number(text.paragraphs || 0)}`),
+        cell('Kalibrasyon nedeni', text.calibration_reason || 'Yok')
       );
       technical.appendChild(grid);
 
@@ -213,7 +236,7 @@
         label.textContent = 'Öne çıkan sinyaller';
         const list = document.createElement('div');
         list.className = 'warextAiInlineSignalsList';
-        for (const signal of signals.slice(0, 6)) {
+        for (const signal of signals.slice(0, 8)) {
           const chip = document.createElement('span');
           chip.className = 'warextAiInlineSignal';
           chip.textContent = signalText(signal);
