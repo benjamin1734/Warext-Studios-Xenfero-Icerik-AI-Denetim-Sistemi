@@ -40,3 +40,6 @@ jobs:
 
       - name: Mesaj-seviyesi analiz ve inline rapor regresyonları
         run: python3 tools/validate_v112.py
+
+      - name: v1.1.4 manuel derin analiz ve skor izi doğrulaması
+        run: python3 tools/validate_v114.py
