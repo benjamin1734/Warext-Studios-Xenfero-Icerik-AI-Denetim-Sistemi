@@ -3,6 +3,7 @@
 namespace Warext\AIContentInspector\Provider;
 
 use Warext\AIContentInspector\Service\Analyzer;
+use Warext\AIContentInspector\Service\LocalCalibration;
 
 class LocalProvider implements ProviderInterface
 {
@@ -27,10 +28,12 @@ class LocalProvider implements ProviderInterface
         $writing = is_array($context['writing'] ?? null) ? $context['writing'] : [];
 
         $result = (new Analyzer())->analyze($message, $behavior, $writing);
+        $result = LocalCalibration::apply($result);
         $result['provider'] = [
             'id' => $this->getId(),
             'label' => $this->getLabel(),
-            'external' => false
+            'external' => false,
+            'engine_version' => LocalCalibration::ENGINE_VERSION
         ];
 
         return $result;
