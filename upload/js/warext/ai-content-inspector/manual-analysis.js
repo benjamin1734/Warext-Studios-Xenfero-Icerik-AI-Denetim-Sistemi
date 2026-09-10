@@ -78,6 +78,16 @@
     return document.querySelector('input[name="_xfToken"]')?.value || window.XF?.config?.csrf || '';
   }
 
+  function resultMessage(result, fallback) {
+    if (typeof result?.message === 'string' && result.message.trim()) return result.message.trim();
+    if (Array.isArray(result?.errors) && result.errors.length) {
+      return result.errors.map(error => typeof error === 'string' ? error : (error?.message || '')).filter(Boolean).join(' ');
+    }
+    if (typeof result?.error === 'string' && result.error.trim()) return result.error.trim();
+    if (typeof result?.exception?.message === 'string' && result.exception.message.trim()) return result.exception.message.trim();
+    return fallback;
+  }
+
   function notify(message, error = false) {
     if (window.XF && typeof window.XF.flashMessage === 'function') {
       try {
@@ -86,9 +96,53 @@
       } catch (_) {}
     }
 
-    if (error) {
-      window.alert(message);
+    if (error) window.alert(message);
+  }
+
+  function xfPost(url, data) {
+    if (window.XF && typeof window.XF.ajax === 'function') {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        try {
+          const request = window.XF.ajax('post', url, data, result => {
+            settled = true;
+            resolve(result || {});
+          });
+          if (request && typeof request.catch === 'function') {
+            request.catch(error => {
+              if (!settled) reject(error);
+            });
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
     }
+
+    const body = new URLSearchParams();
+    for (const [key, value] of Object.entries(data || {})) body.set(key, String(value));
+    const token = csrfToken();
+    if (token) body.set('_xfToken', token);
+    body.set('_xfResponseType', 'json');
+
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+      },
+      body: body.toString()
+    }).then(async response => {
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(resultMessage(result, `HTTP ${response.status}: AI analiz isteği başarısız oldu.`));
+      }
+      return result || {};
+    });
   }
 
   function ensureReportBox(report) {
@@ -136,47 +190,22 @@
     const postId = Number(link.dataset.postId || 0);
     if (!postId || !link.href) return;
 
-    if (!window.confirm(`Mesaj #${postId} mevcut içeriğiyle yeniden AI analizine alınacak. Devam edilsin mi?`)) {
-      return;
-    }
+    if (!window.confirm(`Mesaj #${postId} mevcut içeriğiyle yeniden AI analizine alınacak. Devam edilsin mi?`)) return;
 
     const original = link.textContent;
     link.dataset.warextBusy = '1';
     link.textContent = 'AI analizi çalışıyor…';
 
-    const body = new URLSearchParams();
-    body.set('post_id', String(postId));
-    const token = csrfToken();
-    if (token) body.set('_xfToken', token);
-
     try {
-      const response = await fetch(link.href, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        },
-        body: body.toString()
-      });
-
-      let result = null;
-      try {
-        result = await response.json();
-      } catch (_) {}
-
-      if (!response.ok) {
-        throw new Error(result?.message || 'Manuel analiz isteği başarısız oldu.');
-      }
-
+      const result = await xfPost(link.href, {post_id: postId});
       if (!result?.success) {
-        notify(result?.message || 'Manuel analiz tamamlanamadı.', true);
+        notify(resultMessage(result, 'Manuel analiz tamamlanamadı.'), true);
         return;
       }
 
       ensureReportBox(result.report || {});
       window.dispatchEvent(new CustomEvent('warext-ai-manual-analysis-complete', {detail: result}));
-      notify(result.message || 'Manuel AI analizi tamamlandı.');
+      notify(resultMessage(result, 'Manuel AI analizi tamamlandı.'));
     } catch (error) {
       notify(error?.message || 'Manuel analiz sırasında bağlantı hatası oluştu.', true);
     } finally {
@@ -191,46 +220,21 @@
     const threadId = Number(link.dataset.threadId || 0);
     if (!threadId || !link.href) return;
 
-    if (!window.confirm(`Bu konudaki görünür mesajlar AI analiz kuyruğuna alınacak. Devam edilsin mi?`)) {
-      return;
-    }
+    if (!window.confirm('Bu konudaki görünür mesajlar yeniden AI analiz kuyruğuna alınacak. Devam edilsin mi?')) return;
 
     const original = link.textContent;
     link.dataset.warextBusy = '1';
     link.textContent = 'Konu AI analizine alınıyor…';
 
-    const body = new URLSearchParams();
-    body.set('thread_id', String(threadId));
-    const token = csrfToken();
-    if (token) body.set('_xfToken', token);
-
     try {
-      const response = await fetch(link.href, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        },
-        body: body.toString()
-      });
-
-      let result = null;
-      try {
-        result = await response.json();
-      } catch (_) {}
-
-      if (!response.ok) {
-        throw new Error(result?.message || 'Konu analiz isteği başarısız oldu.');
-      }
-
+      const result = await xfPost(link.href, {thread_id: threadId});
       if (!result?.queued) {
-        notify('Konu AI analiz kuyruğuna eklenemedi.', true);
+        notify(resultMessage(result, 'Konu AI analiz kuyruğuna eklenemedi.'), true);
         return;
       }
 
       window.dispatchEvent(new CustomEvent('warext-ai-manual-thread-analysis-queued', {detail: result}));
-      notify(`${Number(result.posts || 0)} mesaja kadar konu AI analiz kuyruğuna eklendi.`);
+      notify(resultMessage(result, `${Number(result.posts || 0)} mesaja kadar konu AI analiz kuyruğuna eklendi.`));
     } catch (error) {
       notify(error?.message || 'Konu analizi sırasında bağlantı hatası oluştu.', true);
     } finally {
