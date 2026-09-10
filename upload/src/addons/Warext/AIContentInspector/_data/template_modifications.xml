@@ -23,6 +23,15 @@
 $0]]></replace>
   </modification>
 
+  <modification type="public" template="PAGE_CONTAINER" modification_key="warext_ai_moderator_tools_link" description="AI denetim merkezini XenForo moderatör araçları menüsüne ekler" execution_order="912" enabled="1" action="str_replace">
+    <find><![CDATA[<!--[XF:mod_tools_menu:bottom]-->]]></find>
+    <replace><![CDATA[
+<xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
+    <a href="{{ link('warext-ai') }}" class="menu-linkRow">AI İçerik Denetimi</a>
+</xf:if>
+$0]]></replace>
+  </modification>
+
   <modification type="public" template="post_macros" modification_key="warext_ai_manual_post_action" description="AI manuel analizini mesaj üç nokta moderatör eylemleri menüsüne ekler" execution_order="915" enabled="1" action="str_replace">
     <find><![CDATA[<xf:set var="$hasActionBarMenu" value="{{ false }}" />]]></find>
     <replace><![CDATA[<xf:set var="$hasActionBarMenu" value="{{ false }}" />
