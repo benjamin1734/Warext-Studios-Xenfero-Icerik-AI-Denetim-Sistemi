@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <template_modifications>
+  <!-- v1.0.10: thread-controls.js bilerek yüklenmiyor; mükerrer sağ AI Analizi butonu kaldırıldı. -->
   <modification type="public" template="PAGE_CONTAINER" modification_key="warext_ai_global_loader" description="Warext AI denetimi davranış ve yetkili rapor arayüzünü koşullu yükler" execution_order="910" enabled="1" action="str_replace">
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
