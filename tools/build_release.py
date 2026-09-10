@@ -45,9 +45,8 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/Service/UsageTracker.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/JsonResponder.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/Report.php',
-    'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ThreadAnalyze.php',
-    'upload/src/addons/Warext/AIContentInspector/Option/Forum.php',
     'upload/src/addons/Warext/AIContentInspector/Pub/Controller/ManualAnalyze.php',
+    'upload/src/addons/Warext/AIContentInspector/Option/Forum.php',
     'upload/src/addons/Warext/AIContentInspector/XF/Entity/Post.php',
     'upload/src/addons/Warext/AIContentInspector/_data/admin_navigation.xml',
     'upload/src/addons/Warext/AIContentInspector/_data/cron_entries.xml',
@@ -60,8 +59,8 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/_data/templates.xml',
     'upload/js/warext/ai-content-inspector/tracker.js',
     'upload/js/warext/ai-content-inspector/report-ui.js',
+    'upload/js/warext/ai-content-inspector/inline-report.js',
     'upload/js/warext/ai-content-inspector/thread-report.js',
-    'upload/js/warext/ai-content-inspector/thread-controls.js',
     'upload/js/warext/ai-content-inspector/manual-analysis.js'
 }
 
