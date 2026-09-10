@@ -38,6 +38,7 @@ required = {
     'upload/src/addons/Warext/AIContentInspector/Provider/OpenAICompatibleProvider.php',
     'upload/src/addons/Warext/AIContentInspector/Provider/Registry.php',
     'upload/src/addons/Warext/AIContentInspector/Service/Analyzer.php',
+    'upload/src/addons/Warext/AIContentInspector/Service/RiskClassifier.php',
     'upload/src/addons/Warext/AIContentInspector/Service/UserProfile.php',
     'upload/src/addons/Warext/AIContentInspector/Service/Similarity.php',
     'upload/src/addons/Warext/AIContentInspector/Service/ExternalVerifier.php',
