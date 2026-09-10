@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <template_modifications>
-  <!-- v1.0.10: thread-controls.js bilerek yüklenmiyor; mükerrer sağ AI Analizi butonu kaldırıldı. -->
+  <!-- v1.1.1: thread-controls.js bilerek yüklenmiyor; mükerrer sağ AI Analizi butonu kaldırılmış durumda. -->
   <modification type="public" template="PAGE_CONTAINER" modification_key="warext_ai_global_loader" description="Warext AI denetimi davranış ve yetkili rapor arayüzünü koşullu yükler" execution_order="910" enabled="1" action="str_replace">
     <find><![CDATA[</body>]]></find>
     <replace><![CDATA[
 <xf:if is="$xf.options.warextAiEnabled">
-<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1000400"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/tracker.js') }}?wai=1010100"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiViewSimple')">
 <div id="warext-ai-config" hidden
@@ -14,12 +14,12 @@
  data-thread-analyze-endpoint="{{ link('warext-ai-thread/run') }}"
  data-detail-endpoint="{{ link('warext-ai/detail') }}"
  data-review-endpoint="{{ link('warext-ai/review') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1000400"></script>
-<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1000400"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/report-ui.js') }}?wai=1010100"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/thread-report.js') }}?wai=1010100"></script>
 </xf:if>
 <xf:if is="$xf.visitor.hasPermission('general', 'warextAiReview') OR $xf.visitor.hasPermission('general', 'warextAiManage')">
 <div id="warext-ai-review-capability" hidden data-thread-analyze-endpoint="{{ link('warext-ai-thread/run') }}"></div>
-<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1000400"></script>
+<script src="{{ base_url('js/warext/ai-content-inspector/manual-analysis.js') }}?wai=1010100"></script>
 </xf:if>
 $0]]></replace>
   </modification>
