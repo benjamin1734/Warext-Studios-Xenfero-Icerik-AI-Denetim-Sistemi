@@ -160,14 +160,19 @@ def main() -> None:
             fail('Yüksek riskli konular ACP controller eksik: ' + marker)
 
     manual_controller = ROOT / 'Pub/Controller/ManualAnalyze.php'
+    json_responder = ROOT / 'Pub/Controller/JsonResponder.php'
     manual_ui = JS / 'manual-analysis.js'
     inline_ui = JS / 'inline-report.js'
-    if not manual_controller.exists() or not manual_ui.exists() or not inline_ui.exists():
-        fail('Manuel mesaj analiz/inline rapor dosyaları eksik')
+    if not manual_controller.exists() or not json_responder.exists() or not manual_ui.exists() or not inline_ui.exists():
+        fail('Manuel mesaj analiz/JSON/inline rapor dosyaları eksik')
     manual_code = manual_controller.read_text(encoding='utf-8')
-    for marker in ['warextAiReview','warextAiManage','assertPostOnly','warextRunAiAnalysis(true, true)','insufficient_text','jsonResponse(']:
+    for marker in ['use JsonResponder;','warextAiReview','warextAiManage','assertPostOnly','warextRunAiAnalysis(true, true)','insufficient_text','asJson(']:
         if marker not in manual_code:
             fail('Manuel analiz controller eksik: ' + marker)
+    responder_code = json_responder.read_text(encoding='utf-8')
+    for marker in ['trait JsonResponder','protected function asJson','setResponseType(\'json\')','setJsonParams']:
+        if marker not in responder_code:
+            fail('XenForo JSON responder eksik: ' + marker)
     manual_js = manual_ui.read_text(encoding='utf-8')
     for marker in ['js-warextAiManualAnalyze','_xfToken','warext-ai-manual-analysis-complete','Yalnızca mesaj #']:
         if marker not in manual_js:
@@ -194,8 +199,8 @@ def main() -> None:
         'status':'ok','version':version,'versionId':version_id,
         'installerMasterDataValidated':True,'optionRelationsValidated':True,
         'messageManualAnalysisValidated':True,'threadManualAnalysisRemoved':True,
-        'inlineReportValidated':True,'adminNavigationOrderProtected':True,
-        'externalOptional':True
+        'inlineReportValidated':True,'jsonResponderValidated':True,
+        'adminNavigationOrderProtected':True,'externalOptional':True
     }, ensure_ascii=False))
 
 
