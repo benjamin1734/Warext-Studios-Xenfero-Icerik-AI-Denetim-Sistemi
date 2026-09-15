@@ -92,6 +92,12 @@ abstract class AbstractJsonProvider implements ProviderInterface
         ];
     }
 
+    protected function outputTokenLimit(): int
+    {
+        $tasks = (array)($this->requestContext['tasks'] ?? ['moderation']);
+        return in_array('writing', $tasks, true) ? 1200 : 280;
+    }
+
     protected function normalizeResponse(array $raw): array
     {
         $content = $raw['content'] ?? null;
