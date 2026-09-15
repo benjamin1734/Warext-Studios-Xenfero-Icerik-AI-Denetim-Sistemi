@@ -83,24 +83,44 @@ jobs:
           version = os.environ['VERSION']
           notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
 
-          Canlı false-negative düzeltmesi, manuel derin analiz ve şeffaf skor zinciri.
+Canlı false-negative düzeltmesi, manuel derin analiz ve şeffaf skor zinciri.
 
-          - Aynı metnin canlıda 28/100 risk ve 56/100 güven civarında kalabildiği çoklu-sinyal kalibrasyon boşluğu düzeltildi.
-          - 5+ bağımsız güçlü dil/yapı sinyali taşıyan yeterli uzunluktaki metinler artık tek tek zayıf sinyaller gibi değerlendirilmez.
-          - Düşük risk + düşük/orta güven sonucu artık insan yazarlığının kanıtı sayılmaz; gerektiğinde `Belirsiz / güven yetersiz` sınıfına düşer.
-          - Manuel mesaj analizi, yapılandırılmış harici sağlayıcı varsa yerel risk API eşiğinin altında kalsa bile harici ikinci görüşü zorlayabilir.
-          - Zaten arka plan harici doğrulama jobu sıradaysa duplicate API çağrısı yapılmaz; konu içi rapor nihai sonucu otomatik takip eder.
-          - Yerel ve harici skorlar güçlü biçimde çeliştiğinde tek taraf körlemesine kazanmaz; sonuç inceleme seviyesine taşınır ve çelişki sinyali kaydedilir.
-          - Inline raporda Ham yerel skor → Kalibre yerel skor → Harici sağlayıcı skoru → Nihai skor zinciri, motor sürümü ve kalibrasyon nedeni görünür.
-          - Risk değerinin matematiksel AI olasılık yüzdesi değil moderasyon risk skoru olduğu arayüzde açıkça belirtilir.
-          - `LocalCalibration` ve `ExternalScoreFusion` servisleri Stable ZIP için zorunlu hale getirildi ve özel regresyon testlerine bağlandı.
+- Aynı metnin canlıda 28/100 risk ve 56/100 güven civarında kalabildiği çoklu-sinyal kalibrasyon boşluğu düzeltildi.
+- 5+ bağımsız güçlü dil/yapı sinyali taşıyan yeterli uzunluktaki metinler artık tek tek zayıf sinyaller gibi değerlendirilmez.
+- Düşük risk + düşük/orta güven sonucu artık insan yazarlığının kanıtı sayılmaz; gerektiğinde `Belirsiz / güven yetersiz` sınıfına düşer.
+- Manuel mesaj analizi, yapılandırılmış harici sağlayıcı varsa yerel risk API eşiğinin altında kalsa bile harici ikinci görüşü zorlayabilir.
+- Zaten arka plan harici doğrulama jobu sıradaysa duplicate API çağrısı yapılmaz; konu içi rapor nihai sonucu otomatik takip eder.
+- Yerel ve harici skorlar güçlü biçimde çeliştiğinde tek taraf körlemesine kazanmaz; sonuç inceleme seviyesine taşınır ve çelişki sinyali kaydedilir.
+- Inline raporda Ham yerel skor → Kalibre yerel skor → Harici sağlayıcı skoru → Nihai skor zinciri, motor sürümü ve kalibrasyon nedeni görünür.
+- Risk değerinin matematiksel AI olasılık yüzdesi değil moderasyon risk skoru olduğu arayüzde açıkça belirtilir.
+- `LocalCalibration` ve `ExternalScoreFusion` servisleri Stable ZIP için zorunlu hale getirildi ve özel regresyon testlerine bağlandı.
 
-          Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
-          '''
+Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
+
+---
+
+## English
+
+# Warext Studios | AI Content Inspector v{version} Stable
+
+Live false-negative fixes, manual deep analysis and a transparent scoring chain.
+
+- Fixed the multi-signal calibration gap where the same text could remain around 28/100 risk and 56/100 confidence in live analysis.
+- Sufficiently long texts carrying 5+ independent strong language/structure signals are no longer treated as if they only contained isolated weak signals.
+- A low-risk plus low/medium-confidence result is no longer treated as evidence of human authorship; when necessary it falls back to `Uncertain / insufficient confidence`.
+- Manual message analysis can force an external second opinion when an external provider is configured, even if the local risk is below the normal API threshold.
+- If a background external-verification job is already queued, no duplicate API call is made; the inline report automatically follows the final result.
+- When local and external scores strongly conflict, neither side wins blindly; the result is escalated to review level and a conflict signal is recorded.
+- The inline report exposes the Raw local score → Calibrated local score → External provider score → Final score chain, together with the engine version and calibration reason.
+- The interface explicitly states that the risk value is a moderation risk score, not a mathematical percentage probability that the content was AI-generated.
+- `LocalCalibration` and `ExternalScoreFusion` are mandatory for the Stable ZIP and are covered by dedicated regression tests.
+
+No manual SQL is required. Upgrade the existing installation without uninstalling it by uploading `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` from this release through XenForo.
+'''
           Path('RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
           PY
 
-      - name: GitHub Stable Release oluştur
+      - name: GitHub Stable Release oluştur veya güncelle
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE: ${{ steps.build.outputs.package }}
@@ -109,12 +129,16 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "$TAG Release zaten mevcut; yeniden oluşturulmadı."
-            exit 0
+            gh release edit "$TAG" \
+              --title "Warext AI Content Inspector v${VERSION} Stable" \
+              --notes-file RELEASE_NOTES.md \
+              --latest
+            gh release upload "$TAG" "$PACKAGE#XenForo 2.3+ kurulum ZIP" --clobber
+          else
+            gh release create "$TAG" \
+              "$PACKAGE#XenForo 2.3+ kurulum ZIP" \
+              --target "$GITHUB_SHA" \
+              --title "Warext AI Content Inspector v${VERSION} Stable" \
+              --notes-file RELEASE_NOTES.md \
+              --latest
           fi
-          gh release create "$TAG" \
-            "$PACKAGE#XenForo 2.3+ kurulum ZIP" \
-            --target "$GITHUB_SHA" \
-            --title "Warext AI Content Inspector v${VERSION} Stable" \
-            --notes-file RELEASE_NOTES.md \
-            --latest
