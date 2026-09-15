@@ -55,7 +55,7 @@ class DeepSeekProvider extends AbstractJsonProvider
             ],
             'response_format' => ['type' => 'json_object'],
             'thinking' => ['type' => 'disabled'],
-            'max_tokens' => 280
+            'max_tokens' => $this->outputTokenLimit()
         ];
     }
 }
