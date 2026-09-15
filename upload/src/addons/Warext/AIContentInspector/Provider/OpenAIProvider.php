@@ -70,7 +70,7 @@ class OpenAIProvider extends AbstractJsonProvider
             'model' => $this->model,
             'instructions' => $this->systemPrompt(),
             'input' => $message,
-            'max_output_tokens' => 280
+            'max_output_tokens' => $this->outputTokenLimit()
         ];
     }
 }
