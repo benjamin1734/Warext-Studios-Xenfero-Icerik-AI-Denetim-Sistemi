@@ -6,10 +6,8 @@ use Warext\AIContentInspector\Provider\Registry;
 
 /**
  * Shared provider gateway used by first-party Warext add-ons.
- *
- * The class deliberately has no dependency on TurkishSpellCheck. Consumers
- * discover it with class_exists(), so either add-on can be installed/removed
- * independently without creating a XenForo add-on dependency cycle.
+ * Consumers discover this capability dynamically, so companion add-ons remain
+ * independently installable and removable.
  */
 class InteropGateway
 {
@@ -40,27 +38,18 @@ class InteropGateway
     public function analyze(string $message, array $localWriting = [], array $context = []): array
     {
         $message = trim($message);
-        if ($message === '')
-        {
-            return $this->unavailable('empty_message');
-        }
+        if ($message === '') return $this->unavailable('empty_message');
+        if (empty(\XF::options()->warextAiInteropEnabled)) return $this->unavailable('interop_disabled');
 
-        if (empty(\XF::options()->warextAiInteropEnabled))
-        {
-            return $this->unavailable('interop_disabled');
-        }
+        $tasks = $this->normalizeTasks((array)($context['tasks'] ?? ['moderation', 'writing']));
+        $moderationRequested = in_array('moderation', $tasks, true);
+        $writingRequested = in_array('writing', $tasks, true);
 
         $registry = new Registry();
-        if (!$registry->isExternalEnabled())
-        {
-            return $this->unavailable('external_provider_disabled');
-        }
+        if (!$registry->isExternalEnabled()) return $this->unavailable('external_provider_disabled', $tasks);
 
         $provider = $registry->external();
-        if (!$provider || !$provider->isConfigured())
-        {
-            return $this->unavailable('provider_not_configured');
-        }
+        if (!$provider || !$provider->isConfigured()) return $this->unavailable('provider_not_configured', $tasks);
 
         $config = $registry->externalConfig();
         $maxChars = max(500, min(
@@ -72,9 +61,10 @@ class InteropGateway
             $message = mb_substr($message, 0, $maxChars, 'UTF-8');
         }
 
-        $localWriting = $this->normalizeLocalWriting($localWriting);
+        $localWriting = $writingRequested ? $this->normalizeLocalWriting($localWriting) : ['issues' => []];
         $cacheSeconds = max(0, min(900, (int)(\XF::options()->warextAiInteropCacheSeconds ?? 120)));
-        $cacheKey = hash('sha256', $registry->selectedExternalId() . "\n" . $message . "\n" . json_encode($localWriting, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $providerId = $registry->selectedExternalId();
+        $cacheKey = hash('sha256', implode(',', $tasks) . "\n" . $providerId . "\n" . $message . "\n" . json_encode($localWriting, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $now = time();
         if ($cacheSeconds > 0 && isset(self::$requestCache[$cacheKey]) && self::$requestCache[$cacheKey]['expires'] >= $now)
         {
@@ -83,19 +73,18 @@ class InteropGateway
             return $cached;
         }
 
-        $providerId = $registry->selectedExternalId();
         $usageTracker = new UsageTracker();
         $budget = $usageTracker->canRequest($providerId);
         if (empty($budget['allowed']))
         {
-            $result = $this->unavailable((string)($budget['reason'] ?? 'budget_limit'));
+            $result = $this->unavailable((string)($budget['reason'] ?? 'budget_limit'), $tasks);
             $result['budget'] = $budget;
             return $result;
         }
 
         $assessment = $provider->analyze($message, [
             'max_chars' => $maxChars,
-            'tasks' => ['moderation', 'writing'],
+            'tasks' => $tasks,
             'writing_context' => $localWriting,
             'writing_mode' => (string)($context['writing_mode'] ?? 'hybrid'),
             'preserve_style' => true,
@@ -109,20 +98,16 @@ class InteropGateway
             max(0, (int)($context['post_id'] ?? 0))
         );
 
-        if (!isset($assessment['usage']) || !is_array($assessment['usage']))
-        {
-            $assessment['usage'] = [];
-        }
+        if (!isset($assessment['usage']) || !is_array($assessment['usage'])) $assessment['usage'] = [];
         $assessment['usage']['prompt_tokens'] = (int)$recorded['prompt_tokens'];
         $assessment['usage']['completion_tokens'] = (int)$recorded['completion_tokens'];
         $assessment['usage']['total_tokens'] = (int)$recorded['total_tokens'];
         $assessment['usage']['cost_source'] = (string)$recorded['cost_source'];
-        if (($recorded['cost_source'] ?? 'unknown') !== 'unknown')
-        {
-            $assessment['usage']['cost'] = (float)$recorded['cost'];
-        }
+        if (($recorded['cost_source'] ?? 'unknown') !== 'unknown') $assessment['usage']['cost'] = (float)$recorded['cost'];
 
-        if ($cacheSeconds > 0 && !empty($assessment['available']))
+        // Only a moderation result for the exact full authored text is useful to
+        // ExternalVerifier. Writing-only caret-window calls must never populate it.
+        if ($moderationRequested && $cacheSeconds > 0 && !empty($assessment['available']))
         {
             (new InteropResultCache())->put(
                 $message,
@@ -138,44 +123,47 @@ class InteropGateway
             'available' => !empty($assessment['available']),
             'source' => 'warext_ai_content_inspector',
             'shared_credentials' => true,
-            'combined_request' => true,
-            'result_reuse' => true,
+            'combined_request' => $moderationRequested && $writingRequested,
+            'result_reuse' => $moderationRequested,
+            'tasks' => $tasks,
             'provider' => $assessment['provider'] ?? ['id' => $providerId],
-            'moderation' => [
+            'moderation' => $moderationRequested ? [
                 'risk_score' => (int)($assessment['risk_score'] ?? 0),
                 'confidence' => (int)($assessment['confidence'] ?? 0),
                 'usage_type' => (string)($assessment['usage_type'] ?? 'unknown'),
                 'signals' => (array)($assessment['signals'] ?? []),
                 'note' => (string)($assessment['note'] ?? '')
-            ],
-            'writing' => is_array($assessment['writing'] ?? null) ? $assessment['writing'] : [],
+            ] : [],
+            'writing' => $writingRequested && is_array($assessment['writing'] ?? null) ? $assessment['writing'] : [],
             'usage' => (array)($assessment['usage'] ?? []),
             'budget' => $budget,
             'cache_hit' => false
         ];
 
-        if (empty($assessment['available']))
-        {
-            $result['reason'] = (string)($assessment['reason'] ?? 'provider_unavailable');
-        }
+        if (empty($assessment['available'])) $result['reason'] = (string)($assessment['reason'] ?? 'provider_unavailable');
 
         if ($cacheSeconds > 0 && !empty($result['available']))
         {
-            self::$requestCache[$cacheKey] = ['expires' => $now + $cacheSeconds, 'value' => $result];
-            if (count(self::$requestCache) > 64)
+            self::$requestCache[$cacheKey] = ['expires' => $now + min($cacheSeconds, 180), 'value' => $result];
+            foreach (self::$requestCache as $key => $item)
             {
-                foreach (self::$requestCache as $key => $item)
-                {
-                    if ($item['expires'] < $now) unset(self::$requestCache[$key]);
-                }
-                while (count(self::$requestCache) > 64)
-                {
-                    array_shift(self::$requestCache);
-                }
+                if ($item['expires'] < $now) unset(self::$requestCache[$key]);
             }
+            while (count(self::$requestCache) > 32) array_shift(self::$requestCache);
         }
 
         return $result;
+    }
+
+    protected function normalizeTasks(array $tasks): array
+    {
+        $normalized = [];
+        foreach ($tasks as $task)
+        {
+            $task = strtolower(trim((string)$task));
+            if (in_array($task, ['moderation', 'writing'], true) && !in_array($task, $normalized, true)) $normalized[] = $task;
+        }
+        return $normalized ?: ['writing'];
     }
 
     protected function normalizeLocalWriting(array $localWriting): array
@@ -189,7 +177,7 @@ class InteropGateway
             foreach ((array)($issue['suggestions'] ?? []) as $suggestion)
             {
                 if (!is_scalar($suggestion)) continue;
-                $suggestion = mb_substr(trim((string)$suggestion), 0, 160, 'UTF-8');
+                $suggestion = mb_substr(trim((string)$suggestion, 0, 160, 'UTF-8'));
                 if ($suggestion !== '') $suggestions[] = $suggestion;
                 if (count($suggestions) >= 3) break;
             }
@@ -202,21 +190,21 @@ class InteropGateway
                 'rule' => mb_substr((string)($issue['rule'] ?? $issue['type'] ?? ''), 0, 80, 'UTF-8'),
                 'confidence' => max(0, min(100, (int)($issue['confidence'] ?? 0)))
             ];
-            if (count($out) >= 24) break;
+            if (count($out) >= 16) break;
         }
-
         return ['issues' => $out];
     }
 
-    protected function unavailable(string $reason): array
+    protected function unavailable(string $reason, array $tasks = ['moderation', 'writing']): array
     {
         return [
             'contract' => self::CONTRACT_VERSION,
             'available' => false,
             'source' => 'warext_ai_content_inspector',
             'shared_credentials' => true,
-            'combined_request' => true,
-            'result_reuse' => true,
+            'combined_request' => in_array('moderation', $tasks, true) && in_array('writing', $tasks, true),
+            'result_reuse' => false,
+            'tasks' => $tasks,
             'reason' => $reason,
             'moderation' => [],
             'writing' => [],
