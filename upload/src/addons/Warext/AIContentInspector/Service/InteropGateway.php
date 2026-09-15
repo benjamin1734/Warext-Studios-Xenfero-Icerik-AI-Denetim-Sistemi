@@ -177,7 +177,7 @@ class InteropGateway
             foreach ((array)($issue['suggestions'] ?? []) as $suggestion)
             {
                 if (!is_scalar($suggestion)) continue;
-                $suggestion = mb_substr(trim((string)$suggestion, 0, 160, 'UTF-8'));
+                $suggestion = mb_substr(trim((string)$suggestion), 0, 160, 'UTF-8');
                 if ($suggestion !== '') $suggestions[] = $suggestion;
                 if (count($suggestions) >= 3) break;
             }
