@@ -1,7 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../upload/src/addons/Warext/AIContentInspector/Provider/ProviderInterface.php';
-require_once __DIR__ . '/../upload/src/addons/Warext/AIContentInspector/Provider/OpenRouterProvider.php';
+$base = __DIR__ . '/../upload/src/addons/Warext/AIContentInspector/Provider/';
+require_once $base . 'ProviderInterface.php';
+require_once $base . 'AbstractJsonProvider.php';
+require_once $base . 'OpenRouterProvider.php';
 
 use Warext\AIContentInspector\Provider\OpenRouterProvider;
 
@@ -10,6 +12,24 @@ class TestOpenRouterProvider extends OpenRouterProvider
     public function clean(string $message): string { return $this->sanitizeAuthoredText($message); }
     public function parse(string $content): array { return $this->parseJson($content); }
     public function payload(string $message): array { return $this->buildPayload($message); }
+    public function writingPayload(string $message): array
+    {
+        $this->requestContext = $this->normalizeRequestContext([
+            'tasks' => ['moderation', 'writing'],
+            'writing_mode' => 'hybrid',
+            'writing_context' => [
+                'issues' => [[
+                    'start' => 0,
+                    'end' => 5,
+                    'original' => 'yanliş',
+                    'suggestions' => ['yanlış'],
+                    'rule' => 'spelling',
+                    'confidence' => 95
+                ]]
+            ]
+        ]);
+        return $this->buildPayload($message);
+    }
 }
 
 function assert_true($condition, string $message): void
@@ -37,6 +57,12 @@ assert_true(($payload['provider']['allow_fallbacks'] ?? false) === true, 'Provid
 assert_true(($payload['provider']['sort'] ?? '') === 'price', 'Maliyet rotası aktarılmalı');
 assert_true(($payload['provider']['data_collection'] ?? '') === 'deny', 'Data collection deny olmalı');
 assert_true(($payload['usage']['include'] ?? false) === true, 'Usage ölçümü açık olmalı');
+assert_true(($payload['max_tokens'] ?? 0) === 280, 'Sadece moderasyon çağrısı düşük çıktı bütçesini korumalı');
+
+$writingPayload = $provider->writingPayload('yanliş bir metin');
+assert_true(($writingPayload['max_tokens'] ?? 0) === 1200, 'Birleşik yazım çağrısı genişletilmiş çıktı bütçesi kullanmalı');
+assert_true(str_contains((string)($writingPayload['messages'][0]['content'] ?? ''), 'Türkçe yazım denetimi'), 'Birleşik prompt yazım görevini içermeli');
+assert_true(str_contains((string)($writingPayload['messages'][0]['content'] ?? ''), 'yanlış'), 'Hybrid prompt yerel öneriyi içermeli');
 
 $parsed = $provider->parse("```json\n{\"risk\":72,\"confidence\":81,\"usage_type\":\"ai_assistance\",\"signals\":[\"düzenli yapı\"],\"note\":\"örnek\"}\n```");
 assert_true(($parsed['risk'] ?? null) === 72, 'Markdown JSON parse edilmeli');
