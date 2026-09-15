@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -44,7 +45,10 @@ for marker in [
     'UsageTracker'
 ]:
     require(marker in gateway, f'InteropGateway missing: {marker}')
-require('TurkishSpellCheck' not in gateway, 'AI add-on must not directly depend on spell-check classes')
+# Comments/documentation may name the companion add-on. What is forbidden is a
+# PHP namespace/class/static reference that would create a runtime dependency.
+require(not re.search(r'\\?Warext\\+TurkishSpellCheck\\+', gateway), 'AI add-on must not reference spell-check PHP classes')
+require('class_exists(\'Warext\\\\TurkishSpellCheck' not in gateway, 'AI add-on must not discover the spell checker directly')
 
 cache = (SERVICE / 'InteropResultCache.php').read_text(encoding='utf-8')
 for marker in ['MAX_ENTRIES = 24', 'simpleCache()->getValue', 'simpleCache()->setValue', 'canonicalText', 'shared_reuse']:
