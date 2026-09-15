@@ -21,19 +21,16 @@ require(addon['version_id'] == 1020000, 'addon version_id must be 1020000')
 require('Warext/TurkishSpellCheck' not in json.dumps(addon, ensure_ascii=False), 'hard dependency on spell checker is forbidden')
 
 routes = ET.parse(ADDON / '_data/routes.xml').getroot()
-route_map = {(r.attrib.get('route_type'), r.attrib.get('route_prefix')): r.attrib.get('controller') for r in routes.findall('route')}
-require(route_map.get(('public', 'warext-ai-interop')) == r'Warext\AIContentInspector:Interop', 'interop public route missing')
+route_prefixes = {r.attrib.get('route_prefix') for r in routes.findall('route')}
+require('warext-ai-interop' not in route_prefixes, 'shared provider interop must not expose a public browser endpoint')
+require(not (ADDON / 'Pub/Controller/Interop.php').exists(), 'unused public interop controller must not ship')
 
 options = ET.parse(ADDON / '_data/options.xml').getroot()
 option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
 for option in ['warextAiInteropEnabled', 'warextAiInteropWritingMaxChars', 'warextAiInteropCacheSeconds']:
     require(option in option_ids, f'missing interop option: {option}')
 
-for relative in [
-    'Pub/Controller/Interop.php',
-    'Service/InteropGateway.php',
-    'Service/InteropResultCache.php'
-]:
+for relative in ['Service/InteropGateway.php', 'Service/InteropResultCache.php']:
     require((ADDON / relative).is_file(), f'missing interop file: {relative}')
 
 gateway = (SERVICE / 'InteropGateway.php').read_text(encoding='utf-8')
@@ -93,8 +90,4 @@ openrouter = (PROVIDER / 'OpenRouterProvider.php').read_text(encoding='utf-8')
 require('extends AbstractJsonProvider' in openrouter, 'OpenRouter must use shared provider contract')
 require('fallback_models' in openrouter and 'response_cache' in openrouter, 'OpenRouter routing metadata must remain available')
 
-controller = (ADDON / 'Pub/Controller/Interop.php').read_text(encoding='utf-8')
-for marker in ['assertPostOnly', "filter('message', 'str')", "filter('local_context', 'str')", 'use JsonResponder;', 'new InteropGateway()']:
-    require(marker in controller, f'interop controller missing: {marker}')
-
-print('AI Content Inspector V1.2.0 interop regression: OK')
+print('AI Content Inspector V1.2.0 server-only interop regression: OK')
