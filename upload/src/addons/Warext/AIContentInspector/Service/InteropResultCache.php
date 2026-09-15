@@ -4,28 +4,35 @@ namespace Warext\AIContentInspector\Service;
 
 class InteropResultCache
 {
-    protected const CACHE_SET = 'Warext/AIContentInspector';
-    protected const CACHE_KEY = 'interop_results_v1';
-    protected const MAX_ENTRIES = 24;
+    protected const TABLE = 'xf_warext_ai_interop_cache';
 
     public function get(string $message, string $provider, string $model): ?array
     {
         $key = $this->makeKey($message, $provider, $model);
         if ($key === '') return null;
 
-        $bucket = \XF::app()->simpleCache()->getValue(self::CACHE_SET, self::CACHE_KEY);
-        if (!is_array($bucket) || !isset($bucket[$key]) || !is_array($bucket[$key])) return null;
-
-        $entry = $bucket[$key];
-        if ((int)($entry['expires'] ?? 0) < time())
+        try
         {
-            unset($bucket[$key]);
-            \XF::app()->simpleCache()->setValue(self::CACHE_SET, self::CACHE_KEY, $bucket);
+            $row = \XF::db()->fetchRow(
+                'SELECT payload, expires_date FROM ' . self::TABLE . ' WHERE cache_key = ?',
+                $key
+            );
+        }
+        catch (\Throwable $e)
+        {
+            \XF::logException($e, false, 'Warext AI Interop Cache Read: ');
             return null;
         }
 
-        $assessment = is_array($entry['assessment'] ?? null) ? $entry['assessment'] : [];
-        if (!$assessment || empty($assessment['available'])) return null;
+        if (!$row) return null;
+        if ((int)($row['expires_date'] ?? 0) < time())
+        {
+            try { \XF::db()->delete(self::TABLE, 'cache_key = ?', $key); } catch (\Throwable) {}
+            return null;
+        }
+
+        $assessment = json_decode((string)($row['payload'] ?? ''), true);
+        if (!is_array($assessment) || empty($assessment['available'])) return null;
         $assessment['shared_reuse'] = true;
         return $assessment;
     }
@@ -39,33 +46,41 @@ class InteropResultCache
         $ttl ??= max(30, min(900, (int)(\XF::options()->warextAiInteropCacheSeconds ?? 120)));
         if ($ttl <= 0) return;
 
-        $now = time();
-        $bucket = \XF::app()->simpleCache()->getValue(self::CACHE_SET, self::CACHE_KEY);
-        if (!is_array($bucket)) $bucket = [];
+        $payload = json_encode($this->compactAssessment($assessment), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($payload) || $payload === '') return;
 
-        foreach ($bucket as $existingKey => $entry)
+        try
         {
-            if (!is_array($entry) || (int)($entry['expires'] ?? 0) < $now)
+            \XF::db()->insert(self::TABLE, [
+                'cache_key' => $key,
+                'payload' => $payload,
+                'expires_date' => time() + $ttl
+            ], false, 'payload = VALUES(payload), expires_date = VALUES(expires_date)');
+
+            // Avoid one global-cache write per keystroke. Expired DB rows are pruned
+            // probabilistically here and deterministically by the daily cron.
+            if ((hexdec(substr($key, 0, 2)) & 15) === 0)
             {
-                unset($bucket[$existingKey]);
+                $this->prune();
             }
         }
-
-        $bucket[$key] = [
-            'expires' => $now + $ttl,
-            'assessment' => $this->compactAssessment($assessment)
-        ];
-
-        if (count($bucket) > self::MAX_ENTRIES)
+        catch (\Throwable $e)
         {
-            uasort($bucket, static fn(array $a, array $b) => ((int)($a['expires'] ?? 0)) <=> ((int)($b['expires'] ?? 0)));
-            while (count($bucket) > self::MAX_ENTRIES)
-            {
-                array_shift($bucket);
-            }
+            \XF::logException($e, false, 'Warext AI Interop Cache Write: ');
         }
+    }
 
-        \XF::app()->simpleCache()->setValue(self::CACHE_SET, self::CACHE_KEY, $bucket);
+    public function prune(): int
+    {
+        try
+        {
+            return \XF::db()->delete(self::TABLE, 'expires_date < ?', time());
+        }
+        catch (\Throwable $e)
+        {
+            \XF::logException($e, false, 'Warext AI Interop Cache Prune: ');
+            return 0;
+        }
     }
 
     protected function compactAssessment(array $assessment): array
@@ -81,7 +96,13 @@ class InteropResultCache
         }
 
         return [
-            'provider' => $provider,
+            'provider' => [
+                'id' => (string)($provider['id'] ?? ''),
+                'label' => (string)($provider['label'] ?? ''),
+                'external' => !empty($provider['external']),
+                'model' => (string)($provider['model'] ?? ''),
+                'requested_model' => (string)($provider['requested_model'] ?? '')
+            ],
             'available' => true,
             'risk_score' => max(0, min(100, (int)($assessment['risk_score'] ?? 0))),
             'confidence' => max(0, min(100, (int)($assessment['confidence'] ?? 0))),
