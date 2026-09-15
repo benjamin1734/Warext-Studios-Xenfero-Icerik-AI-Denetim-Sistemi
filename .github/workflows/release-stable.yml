@@ -76,49 +76,9 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          version = os.environ['VERSION']
-          notes = f'''# Warext Studios | İçerik AI Denetim Sistemi v{version} Stable
-
-Canlı false-negative düzeltmesi, manuel derin analiz ve şeffaf skor zinciri.
-
-- Aynı metnin canlıda 28/100 risk ve 56/100 güven civarında kalabildiği çoklu-sinyal kalibrasyon boşluğu düzeltildi.
-- 5+ bağımsız güçlü dil/yapı sinyali taşıyan yeterli uzunluktaki metinler artık tek tek zayıf sinyaller gibi değerlendirilmez.
-- Düşük risk + düşük/orta güven sonucu artık insan yazarlığının kanıtı sayılmaz; gerektiğinde `Belirsiz / güven yetersiz` sınıfına düşer.
-- Manuel mesaj analizi, yapılandırılmış harici sağlayıcı varsa yerel risk API eşiğinin altında kalsa bile harici ikinci görüşü zorlayabilir.
-- Zaten arka plan harici doğrulama jobu sıradaysa duplicate API çağrısı yapılmaz; konu içi rapor nihai sonucu otomatik takip eder.
-- Yerel ve harici skorlar güçlü biçimde çeliştiğinde tek taraf körlemesine kazanmaz; sonuç inceleme seviyesine taşınır ve çelişki sinyali kaydedilir.
-- Inline raporda Ham yerel skor → Kalibre yerel skor → Harici sağlayıcı skoru → Nihai skor zinciri, motor sürümü ve kalibrasyon nedeni görünür.
-- Risk değerinin matematiksel AI olasılık yüzdesi değil moderasyon risk skoru olduğu arayüzde açıkça belirtilir.
-- `LocalCalibration` ve `ExternalScoreFusion` servisleri Stable ZIP için zorunlu hale getirildi ve özel regresyon testlerine bağlandı.
-
-Manuel SQL gerekmez. Mevcut kurulumu kaldırmadan Release altındaki `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` dosyasını yükleyip XenForo üzerinden yükseltin.
-
----
-
-## English
-
-# Warext Studios | AI Content Inspector v{version} Stable
-
-Live false-negative fixes, manual deep analysis and a transparent scoring chain.
-
-- Fixed the multi-signal calibration gap where the same text could remain around 28/100 risk and 56/100 confidence in live analysis.
-- Sufficiently long texts carrying 5+ independent strong language/structure signals are no longer treated as if they only contained isolated weak signals.
-- A low-risk plus low/medium-confidence result is no longer treated as evidence of human authorship; when necessary it falls back to `Uncertain / insufficient confidence`.
-- Manual message analysis can force an external second opinion when an external provider is configured, even if the local risk is below the normal API threshold.
-- If a background external-verification job is already queued, no duplicate API call is made; the inline report automatically follows the final result.
-- When local and external scores strongly conflict, neither side wins blindly; the result is escalated to review level and a conflict signal is recorded.
-- The inline report exposes the Raw local score → Calibrated local score → External provider score → Final score chain, together with the engine version and calibration reason.
-- The interface explicitly states that the risk value is a moderation risk score, not a mathematical percentage probability that the content was AI-generated.
-- `LocalCalibration` and `ExternalScoreFusion` are mandatory for the Stable ZIP and are covered by dedicated regression tests.
-
-No manual SQL is required. Upgrade the existing installation without uninstalling it by uploading `Warext-XenForo-Icerik-AI-Denetim-Sistemi-V{version}.zip` from this release through XenForo.
-'''
-          Path('RELEASE_NOTES.md').write_text(notes, encoding='utf-8')
-          PY
+          set -euo pipefail
+          printf '%s' 'IyBXYXJleHQgU3R1ZGlvcyB8IMSww6dlcmlrIEFJIERlbmV0aW0gU2lzdGVtaSB2X19WRVJTSU9OX18gU3RhYmxlCgpDYW5sxLEgZmFsc2UtbmVnYXRpdmUgZMO8emVsdG1lc2ksIG1hbnVlbCBkZXJpbiBhbmFsaXogdmUgxZ9lZmZhZiBza29yIHppbmNpcmkuCgotIEF5bsSxIG1ldG5pbiBjYW5sxLFkYSAyOC8xMDAgcmlzayB2ZSA1Ni8xMDAgZ8O8dmVuIGNpdmFyxLFuZGEga2FsYWJpbGRpxJ9pIMOnb2tsdS1zaW55YWwga2FsaWJyYXN5b24gYm/Fn2x1xJ91IGTDvHplbHRpbGRpLgotIDUrIGJhxJ/EsW1zxLF6IGfDvMOnbMO8IGRpbC95YXDEsSBzaW55YWxpIHRhxZ/EsXlhbiB5ZXRlcmxpIHV6dW5sdWt0YWtpIG1ldGlubGVyIGFydMSxayB0ZWsgdGVrIHphecSxZiBzaW55YWxsZXIgZ2liaSBkZcSfZXJsZW5kaXJpbG1lei4KLSBEw7zFn8O8ayByaXNrICsgZMO8xZ/DvGsvb3J0YSBnw7x2ZW4gc29udWN1IGFydMSxayBpbnNhbiB5YXphcmzEscSfxLFuxLFuIGthbsSxdMSxIHNhecSxbG1hejsgZ2VyZWt0acSfaW5kZSBgQmVsaXJzaXogLyBnw7x2ZW4geWV0ZXJzaXpgIHPEsW7EsWbEsW5hIGTDvMWfZXIuCi0gTWFudWVsIG1lc2FqIGFuYWxpemksIHlhcMSxbGFuZMSxcsSxbG3EscWfIGhhcmljaSBzYcSfbGF5xLFjxLEgdmFyc2EgeWVyZWwgcmlzayBBUEkgZcWfacSfaW5pbiBhbHTEsW5kYSBrYWxzYSBiaWxlIGhhcmljaSBpa2luY2kgZ8O2csO8xZ/DvCB6b3JsYXlhYmlsaXIuCi0gWmF0ZW4gYXJrYSBwbGFuIGhhcmljaSBkb8SfcnVsYW1hIGpvYnUgc8SxcmFkYXlzYSBkdXBsaWNhdGUgQVBJIMOnYcSfcsSxc8SxIHlhcMSxbG1hejsga29udSBpw6dpIHJhcG9yIG5paGFpIHNvbnVjdSBvdG9tYXRpayB0YWtpcCBlZGVyLgotIFllcmVsIHZlIGhhcmljaSBza29ybGFyIGfDvMOnbMO8IGJpw6dpbWRlIMOnZWxpxZ90acSfaW5kZSB0ZWsgdGFyYWYga8O2cmxlbWVzaW5lIGthemFubWF6OyBzb251w6cgaW5jZWxlbWUgc2V2aXllc2luZSB0YcWfxLFuxLFyIHZlIMOnZWxpxZ9raSBzaW55YWxpIGtheWRlZGlsaXIuCi0gSW5saW5lIHJhcG9yZGEgSGFtIHllcmVsIHNrb3Ig4oaSIEthbGlicmUgeWVyZWwgc2tvciDihpIgSGFyaWNpIHNhxJ9sYXnEsWPEsSBza29ydSDihpIgTmloYWkgc2tvciB6aW5jaXJpLCBtb3RvciBzw7xyw7xtw7wgdmUga2FsaWJyYXN5b24gbmVkZW5pIGfDtnLDvG7DvHIuCi0gUmlzayBkZcSfZXJpbmluIG1hdGVtYXRpa3NlbCBBSSBvbGFzxLFsxLFrIHnDvHpkZXNpIGRlxJ9pbCBtb2RlcmFzeW9uIHJpc2sgc2tvcnUgb2xkdcSfdSBhcmF5w7x6ZGUgYcOnxLFrw6dhIGJlbGlydGlsaXIuCi0gYExvY2FsQ2FsaWJyYXRpb25gIHZlIGBFeHRlcm5hbFNjb3JlRnVzaW9uYCBzZXJ2aXNsZXJpIFN0YWJsZSBaSVAgacOnaW4gem9ydW5sdSBoYWxlIGdldGlyaWxkaSB2ZSDDtnplbCByZWdyZXN5b24gdGVzdGxlcmluZSBiYcSfbGFuZMSxLgoKTWFudWVsIFNRTCBnZXJla21lei4gTWV2Y3V0IGt1cnVsdW11IGthbGTEsXJtYWRhbiBSZWxlYXNlIGFsdMSxbmRha2kgYFdhcmV4dC1YZW5Gb3JvLUljZXJpay1BSS1EZW5ldGltLVNpc3RlbWktVl9fVkVSU0lPTl9fLnppcGAgZG9zeWFzxLFuxLEgecO8a2xleWlwIFhlbkZvcm8gw7x6ZXJpbmRlbiB5w7xrc2VsdGluLgoKLS0tCgojIyBFbmdsaXNoCgojIFdhcmV4dCBTdHVkaW9zIHwgQUkgQ29udGVudCBJbnNwZWN0b3Igdl9fVkVSU0lPTl9fIFN0YWJsZQoKTGl2ZSBmYWxzZS1uZWdhdGl2ZSBmaXhlcywgbWFudWFsIGRlZXAgYW5hbHlzaXMgYW5kIGEgdHJhbnNwYXJlbnQgc2NvcmluZyBjaGFpbi4KCi0gRml4ZWQgdGhlIG11bHRpLXNpZ25hbCBjYWxpYnJhdGlvbiBnYXAgd2hlcmUgdGhlIHNhbWUgdGV4dCBjb3VsZCByZW1haW4gYXJvdW5kIDI4LzEwMCByaXNrIGFuZCA1Ni8xMDAgY29uZmlkZW5jZSBpbiBsaXZlIGFuYWx5c2lzLgotIFN1ZmZpY2llbnRseSBsb25nIHRleHRzIGNhcnJ5aW5nIDUrIGluZGVwZW5kZW50IHN0cm9uZyBsYW5ndWFnZS9zdHJ1Y3R1cmUgc2lnbmFscyBhcmUgbm8gbG9uZ2VyIHRyZWF0ZWQgYXMgaWYgdGhleSBvbmx5IGNvbnRhaW5lZCBpc29sYXRlZCB3ZWFrIHNpZ25hbHMuCi0gQSBsb3ctcmlzayBwbHVzIGxvdy9tZWRpdW0tY29uZmlkZW5jZSByZXN1bHQgaXMgbm8gbG9uZ2VyIHRyZWF0ZWQgYXMgZXZpZGVuY2Ugb2YgaHVtYW4gYXV0aG9yc2hpcDsgd2hlbiBuZWNlc3NhcnkgaXQgZmFsbHMgYmFjayB0byBgVW5jZXJ0YWluIC8gaW5zdWZmaWNpZW50IGNvbmZpZGVuY2VgLgotIE1hbnVhbCBtZXNzYWdlIGFuYWx5c2lzIGNhbiBmb3JjZSBhbiBleHRlcm5hbCBzZWNvbmQgb3BpbmlvbiB3aGVuIGFuIGV4dGVybmFsIHByb3ZpZGVyIGlzIGNvbmZpZ3VyZWQsIGV2ZW4gaWYgdGhlIGxvY2FsIHJpc2sgaXMgYmVsb3cgdGhlIG5vcm1hbCBBUEkgdGhyZXNob2xkLgotIElmIGEgYmFja2dyb3VuZCBleHRlcm5hbC12ZXJpZmljYXRpb24gam9iIGlzIGFscmVhZHkgcXVldWVkLCBubyBkdXBsaWNhdGUgQVBJIGNhbGwgaXMgbWFkZTsgdGhlIGlubGluZSByZXBvcnQgYXV0b21hdGljYWxseSBmb2xsb3dzIHRoZSBmaW5hbCByZXN1bHQuCi0gV2hlbiBsb2NhbCBhbmQgZXh0ZXJuYWwgc2NvcmVzIHN0cm9uZ2x5IGNvbmZsaWN0LCBuZWl0aGVyIHNpZGUgd2lucyBibGluZGx5OyB0aGUgcmVzdWx0IGlzIGVzY2FsYXRlZCB0byByZXZpZXcgbGV2ZWwgYW5kIGEgY29uZmxpY3Qgc2lnbmFsIGlzIHJlY29yZGVkLgotIFRoZSBpbmxpbmUgcmVwb3J0IGV4cG9zZXMgdGhlIFJhdyBsb2NhbCBzY29yZSDihpIgQ2FsaWJyYXRlZCBsb2NhbCBzY29yZSDihpIgRXh0ZXJuYWwgcHJvdmlkZXIgc2NvcmUg4oaSIEZpbmFsIHNjb3JlIGNoYWluLCB0b2dldGhlciB3aXRoIHRoZSBlbmdpbmUgdmVyc2lvbiBhbmQgY2FsaWJyYXRpb24gcmVhc29uLgotIFRoZSBpbnRlcmZhY2UgZXhwbGljaXRseSBzdGF0ZXMgdGhhdCB0aGUgcmlzayB2YWx1ZSBpcyBhIG1vZGVyYXRpb24gcmlzayBzY29yZSwgbm90IGEgbWF0aGVtYXRpY2FsIHBlcmNlbnRhZ2UgcHJvYmFiaWxpdHkgdGhhdCB0aGUgY29udGVudCB3YXMgQUktZ2VuZXJhdGVkLgotIGBMb2NhbENhbGlicmF0aW9uYCBhbmQgYEV4dGVybmFsU2NvcmVGdXNpb25gIGFyZSBtYW5kYXRvcnkgZm9yIHRoZSBTdGFibGUgWklQIGFuZCBhcmUgY292ZXJlZCBieSBkZWRpY2F0ZWQgcmVncmVzc2lvbiB0ZXN0cy4KCk5vIG1hbnVhbCBTUUwgaXMgcmVxdWlyZWQuIFVwZ3JhZGUgdGhlIGV4aXN0aW5nIGluc3RhbGxhdGlvbiB3aXRob3V0IHVuaW5zdGFsbGluZyBpdCBieSB1cGxvYWRpbmcgYFdhcmV4dC1YZW5Gb3JvLUljZXJpay1BSS1EZW5ldGltLVNpc3RlbWktVl9fVkVSU0lPTl9fLnppcGAgZnJvbSB0aGlzIHJlbGVhc2UgdGhyb3VnaCBYZW5Gb3JvLgo=' | base64 --decode > RELEASE_NOTES.md
+          sed -i "s/__VERSION__/${VERSION}/g" RELEASE_NOTES.md
 
       - name: GitHub Stable Release oluştur veya güncelle
         env:
