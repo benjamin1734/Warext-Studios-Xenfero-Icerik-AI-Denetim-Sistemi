@@ -1,7 +1,7 @@
 {
   "legacy_addon_id": "",
   "title": "Warext Studios | XenForo İçerik AI Denetim Sistemi",
-  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı, kullanıcı yazım profili ve içerik benzerliği sinyalleriyle analiz eder. v1.2.0 ile Warext Türkçe Yazım Denetimi için zorunlu bağımlılık oluşturmayan ortak AI sağlayıcı sözleşmesi eklenmiştir. İki eklenti birlikte kullanıldığında seçili harici sağlayıcı, model, bütçe ve kullanım takibi tek merkezden paylaşılabilir; tek provider çağrısı aynı anda moderasyon ve Türkçe yazım değerlendirmesi döndürebilir. Yazım eklentisi kaldırıldığında içerik denetimi, içerik denetimi kaldırıldığında yazım eklentisi bağımsız çalışmaya devam eder. Mevcut yerel risk, harici ikinci görüş, kalibrasyon, bütçe, geçmiş analiz ve moderasyon özellikleri korunur.",
+  "description": "Seçilen XenForo forumlarındaki içerikleri yerel dil, yapı, editör davranışı, kullanıcı yazım profili ve içerik benzerliği sinyalleriyle analiz eder. v1.2.0 ile Warext Türkçe Yazım Denetimi için zorunlu bağımlılık oluşturmayan, yalnız sunucu içinde erişilen ortak AI sağlayıcı sözleşmesi eklenmiştir. İki eklenti birlikte kullanıldığında seçili harici sağlayıcı, model, bütçe ve kullanım takibi tek merkezden paylaşılabilir; tam mesaj kapsamı uygun olduğunda tek provider çağrısı aynı anda moderasyon ve Türkçe yazım değerlendirmesi döndürebilir. Kısmi editör pencereleri yalnız yazım görevi kullanır ve tam mesaj moderasyon cache'ine yazılmaz. Ortak sonuç cache'i ayrı TTL tablosunda tutulur; browser'a ayrı interop/provider endpoint'i açılmaz. Eklentiler birbirinden bağımsız çalışmaya devam eder.",
   "version_id": 1020000,
   "version_string": "1.2.0",
   "dev": "Warext Studios | Support Discord Server",
