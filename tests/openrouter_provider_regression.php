@@ -30,6 +30,11 @@ class TestOpenRouterProvider extends OpenRouterProvider
         ]);
         return $this->buildPayload($message);
     }
+    public function writingOnlyPayload(string $message): array
+    {
+        $this->requestContext = $this->normalizeRequestContext(['tasks' => ['writing']]);
+        return $this->buildPayload($message);
+    }
 }
 
 function assert_true($condition, string $message): void
@@ -63,6 +68,12 @@ $writingPayload = $provider->writingPayload('yanliş bir metin');
 assert_true(($writingPayload['max_tokens'] ?? 0) === 1200, 'Birleşik yazım çağrısı genişletilmiş çıktı bütçesi kullanmalı');
 assert_true(str_contains((string)($writingPayload['messages'][0]['content'] ?? ''), 'Türkçe yazım denetimi'), 'Birleşik prompt yazım görevini içermeli');
 assert_true(str_contains((string)($writingPayload['messages'][0]['content'] ?? ''), 'yanlış'), 'Hybrid prompt yerel öneriyi içermeli');
+assert_true(!str_contains((string)($writingPayload['messages'][0]['content'] ?? ''), 'corrected_text'), 'Birleşik prompt gereksiz tam metin çıktısı istememeli');
+
+$writingOnlyPayload = $provider->writingOnlyPayload('Deneme');
+$writingOnlySystem = (string)($writingOnlyPayload['messages'][0]['content'] ?? '');
+assert_true(str_contains($writingOnlySystem, 'Türkçe yazım denetimi'), 'Writing-only prompt yazım görevini içermeli');
+assert_true(!str_contains($writingOnlySystem, 'forum moderasyon destek analizörüsün'), 'Writing-only prompt gereksiz moderasyon talimatı taşımamalı');
 
 $parsed = $provider->parse("```json\n{\"risk\":72,\"confidence\":81,\"usage_type\":\"ai_assistance\",\"signals\":[\"düzenli yapı\"],\"note\":\"örnek\"}\n```");
 assert_true(($parsed['risk'] ?? null) === 72, 'Markdown JSON parse edilmeli');
