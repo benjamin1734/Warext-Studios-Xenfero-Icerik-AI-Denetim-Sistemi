@@ -38,30 +38,52 @@ for relative in [
 
 gateway = (SERVICE / 'InteropGateway.php').read_text(encoding='utf-8')
 for marker in [
-    "'tasks' => ['moderation', 'writing']",
+    'normalizeTasks',
     "'writing_context' => $localWriting",
-    "'combined_request' => true",
+    "$moderationRequested && $writingRequested",
     'new InteropResultCache()',
-    'UsageTracker'
+    'UsageTracker',
+    "implode(',', $tasks)"
 ]:
     require(marker in gateway, f'InteropGateway missing: {marker}')
-# Comments/documentation may name the companion add-on. What is forbidden is a
-# PHP namespace/class/static reference that would create a runtime dependency.
 require(not re.search(r'\\?Warext\\+TurkishSpellCheck\\+', gateway), 'AI add-on must not reference spell-check PHP classes')
 require('class_exists(\'Warext\\\\TurkishSpellCheck' not in gateway, 'AI add-on must not discover the spell checker directly')
 
 cache = (SERVICE / 'InteropResultCache.php').read_text(encoding='utf-8')
-for marker in ['MAX_ENTRIES = 24', 'simpleCache()->getValue', 'simpleCache()->setValue', 'canonicalText', 'shared_reuse']:
-    require(marker in cache, f'bounded result cache missing: {marker}')
+for marker in [
+    "TABLE = 'xf_warext_ai_interop_cache'",
+    'SELECT payload, expires_date',
+    'payload = VALUES(payload)',
+    'canonicalText',
+    'shared_reuse',
+    'public function prune()'
+]:
+    require(marker in cache, f'database result cache missing: {marker}')
+require('simpleCache()' not in cache, 'high-churn interop results must not use XenForo global SimpleCache')
+
+setup = (ADDON / 'Setup.php').read_text(encoding='utf-8')
+for marker in [
+    'createInteropCacheTable()',
+    'upgrade1020000Step1',
+    "createTable('xf_warext_ai_interop_cache'",
+    "addPrimaryKey('cache_key')",
+    "dropTable('xf_warext_ai_interop_cache')"
+]:
+    require(marker in setup, f'interop cache schema missing: {marker}')
+
+cron = (ADDON / 'Cron/UsagePrune.php').read_text(encoding='utf-8')
+require('InteropResultCache' in cron and '->prune()' in cron, 'expired interop cache must be pruned by cron')
 
 external = (SERVICE / 'ExternalVerifier.php').read_text(encoding='utf-8')
 for marker in ['InteropResultCache', "'request_avoided' => true", "'shared_result_reuse'", "'shared_provider_result_reused'"]:
     require(marker in external, f'ExternalVerifier reuse path missing: {marker}')
 
 abstract = (PROVIDER / 'AbstractJsonProvider.php').read_text(encoding='utf-8')
-for marker in ['normalizeRequestContext', 'outputTokenLimit', "['moderation', 'writing']", 'normalizeWriting', "'local_supported'"]:
-    require(marker in abstract, f'combined provider contract missing: {marker}')
+for marker in ['normalizeRequestContext', 'outputTokenLimit', 'normalizeWriting', "'local_supported'", '$moderation = in_array', '$writing = in_array']:
+    require(marker in abstract, f'task-aware provider contract missing: {marker}')
 require("return in_array('writing', $tasks, true) ? 1200 : 280;" in abstract, 'task-aware token budget missing')
+require('tam düzeltilmiş metin kopyası döndürme' in abstract, 'writing prompt must forbid full rewritten-text output')
+require("'corrected_text'" not in abstract, 'provider normalization should not retain redundant full corrected text')
 
 for name in ['OpenAIProvider.php', 'GeminiProvider.php', 'DeepSeekProvider.php', 'AnthropicProvider.php', 'OpenAICompatibleProvider.php', 'OpenRouterProvider.php']:
     source = (PROVIDER / name).read_text(encoding='utf-8')
