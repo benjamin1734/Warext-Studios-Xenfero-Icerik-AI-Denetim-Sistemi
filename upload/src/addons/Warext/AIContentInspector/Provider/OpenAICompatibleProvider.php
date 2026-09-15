@@ -91,7 +91,7 @@ class OpenAICompatibleProvider extends AbstractJsonProvider
                 ['role' => 'user', 'content' => $message]
             ],
             'temperature' => 0,
-            'max_tokens' => 280
+            'max_tokens' => $this->outputTokenLimit()
         ];
     }
 
