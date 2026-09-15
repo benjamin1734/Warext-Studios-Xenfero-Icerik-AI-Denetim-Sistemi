@@ -7,7 +7,7 @@ use Warext\AIContentInspector\Provider\Registry;
 /**
  * Shared provider gateway used by first-party Warext add-ons.
  *
- * The class deliberately has no dependency on TurkishSpellCheck.  Consumers
+ * The class deliberately has no dependency on TurkishSpellCheck. Consumers
  * discover it with class_exists(), so either add-on can be installed/removed
  * independently without creating a XenForo add-on dependency cycle.
  */
@@ -32,7 +32,8 @@ class InteropGateway
             'provider' => $registry->selectedExternalId(),
             'shared_credentials' => true,
             'tasks' => ['moderation', 'writing'],
-            'combined_request' => true
+            'combined_request' => true,
+            'result_reuse' => true
         ];
     }
 
@@ -121,12 +122,24 @@ class InteropGateway
             $assessment['usage']['cost'] = (float)$recorded['cost'];
         }
 
+        if ($cacheSeconds > 0 && !empty($assessment['available']))
+        {
+            (new InteropResultCache())->put(
+                $message,
+                $providerId,
+                (string)($config['model'] ?? ''),
+                $assessment,
+                $cacheSeconds
+            );
+        }
+
         $result = [
             'contract' => self::CONTRACT_VERSION,
             'available' => !empty($assessment['available']),
             'source' => 'warext_ai_content_inspector',
             'shared_credentials' => true,
             'combined_request' => true,
+            'result_reuse' => true,
             'provider' => $assessment['provider'] ?? ['id' => $providerId],
             'moderation' => [
                 'risk_score' => (int)($assessment['risk_score'] ?? 0),
@@ -203,6 +216,7 @@ class InteropGateway
             'source' => 'warext_ai_content_inspector',
             'shared_credentials' => true,
             'combined_request' => true,
+            'result_reuse' => true,
             'reason' => $reason,
             'moderation' => [],
             'writing' => [],
