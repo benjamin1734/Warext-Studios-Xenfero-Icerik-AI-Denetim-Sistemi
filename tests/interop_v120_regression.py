@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT / 'upload/src/addons/Warext/AIContentInspector'
 PROVIDER = ADDON / 'Provider'
 SERVICE = ADDON / 'Service'
+DATA = ADDON / '_data'
 
 
 def require(condition: bool, message: str) -> None:
@@ -20,12 +21,16 @@ require(addon['version_string'] == '1.2.0', 'addon version must be 1.2.0')
 require(addon['version_id'] == 1020000, 'addon version_id must be 1020000')
 require('Warext/TurkishSpellCheck' not in json.dumps(addon, ensure_ascii=False), 'hard dependency on spell checker is forbidden')
 
-routes = ET.parse(ADDON / '_data/routes.xml').getroot()
+routes = ET.parse(DATA / 'routes.xml').getroot()
 route_prefixes = {r.attrib.get('route_prefix') for r in routes.findall('route')}
 require('warext-ai-interop' not in route_prefixes, 'shared provider interop must not expose a public browser endpoint')
 require(not (ADDON / 'Pub/Controller/Interop.php').exists(), 'unused public interop controller must not ship')
 
-options = ET.parse(ADDON / '_data/options.xml').getroot()
+modifications = (DATA / 'template_modifications.xml').read_text(encoding='utf-8')
+require('?wai=1020000' in modifications, 'frontend cache key must match v1.2.0 version_id')
+require('?wai=1010400' not in modifications, 'stale frontend cache key must not remain')
+
+options = ET.parse(DATA / 'options.xml').getroot()
 option_ids = {o.attrib.get('option_id') for o in options.findall('option')}
 for option in ['warextAiInteropEnabled', 'warextAiInteropWritingMaxChars', 'warextAiInteropCacheSeconds']:
     require(option in option_ids, f'missing interop option: {option}')
