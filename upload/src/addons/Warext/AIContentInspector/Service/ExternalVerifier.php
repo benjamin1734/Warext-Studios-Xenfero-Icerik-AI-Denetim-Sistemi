@@ -28,6 +28,7 @@ class ExternalVerifier
             'forced' => $forceExternal,
             'manual' => $manual,
             'skipped' => false,
+            'shared_reuse' => false,
             'budget' => [],
             'result' => [],
             'fusion' => [
@@ -69,43 +70,65 @@ class ExternalVerifier
         }
 
         $usageTracker = new UsageTracker();
-        $budget = $usageTracker->canRequest($providerId);
-        $external['budget'] = $budget;
-        if (empty($budget['allowed']))
+        $assessment = null;
+        if (!empty(\XF::options()->warextAiInteropEnabled))
         {
-            $external['skipped'] = true;
-            $external['result'] = ['reason' => (string)($budget['reason'] ?? 'budget_limit')];
-            $result['external_verification'] = $external;
-            $result['signals'][] = [
-                'key' => 'external_budget_limit',
-                'level' => 'context',
-                'value' => (string)($budget['reason'] ?? 'budget_limit'),
-                'provider' => $providerId
+            $assessment = (new InteropResultCache())->get(
+                $message,
+                $providerId,
+                (string)($config['model'] ?? '')
+            );
+        }
+
+        if ($assessment)
+        {
+            $external['shared_reuse'] = true;
+            $external['budget'] = [
+                'allowed' => true,
+                'reason' => 'shared_result_reuse',
+                'request_avoided' => true
             ];
-            return $result;
         }
-
-        $assessment = $provider->analyze($message, [
-            'max_chars' => (int)($config['max_chars'] ?? 12000)
-        ]);
-        $recordedUsage = $usageTracker->record(
-            $providerId,
-            (string)($assessment['provider']['model'] ?? $external['model']),
-            $assessment,
-            $postId
-        );
-
-        if (!isset($assessment['usage']) || !is_array($assessment['usage']))
+        else
         {
-            $assessment['usage'] = [];
-        }
-        $assessment['usage']['prompt_tokens'] = (int)$recordedUsage['prompt_tokens'];
-        $assessment['usage']['completion_tokens'] = (int)$recordedUsage['completion_tokens'];
-        $assessment['usage']['total_tokens'] = (int)$recordedUsage['total_tokens'];
-        $assessment['usage']['cost_source'] = (string)$recordedUsage['cost_source'];
-        if ($recordedUsage['cost_source'] !== 'unknown')
-        {
-            $assessment['usage']['cost'] = (float)$recordedUsage['cost'];
+            $budget = $usageTracker->canRequest($providerId);
+            $external['budget'] = $budget;
+            if (empty($budget['allowed']))
+            {
+                $external['skipped'] = true;
+                $external['result'] = ['reason' => (string)($budget['reason'] ?? 'budget_limit')];
+                $result['external_verification'] = $external;
+                $result['signals'][] = [
+                    'key' => 'external_budget_limit',
+                    'level' => 'context',
+                    'value' => (string)($budget['reason'] ?? 'budget_limit'),
+                    'provider' => $providerId
+                ];
+                return $result;
+            }
+
+            $assessment = $provider->analyze($message, [
+                'max_chars' => (int)($config['max_chars'] ?? 12000)
+            ]);
+            $recordedUsage = $usageTracker->record(
+                $providerId,
+                (string)($assessment['provider']['model'] ?? $external['model']),
+                $assessment,
+                $postId
+            );
+
+            if (!isset($assessment['usage']) || !is_array($assessment['usage']))
+            {
+                $assessment['usage'] = [];
+            }
+            $assessment['usage']['prompt_tokens'] = (int)$recordedUsage['prompt_tokens'];
+            $assessment['usage']['completion_tokens'] = (int)$recordedUsage['completion_tokens'];
+            $assessment['usage']['total_tokens'] = (int)$recordedUsage['total_tokens'];
+            $assessment['usage']['cost_source'] = (string)$recordedUsage['cost_source'];
+            if ($recordedUsage['cost_source'] !== 'unknown')
+            {
+                $assessment['usage']['cost'] = (float)$recordedUsage['cost'];
+            }
         }
 
         $external['result'] = $assessment;
@@ -159,7 +182,7 @@ class ExternalVerifier
         $result['classification'] = RiskClassifier::classifyWithConfidence($combined, $confidence);
         $result['external_verification'] = $external;
         $result['signals'][] = [
-            'key' => 'external_provider_verification',
+            'key' => $external['shared_reuse'] ? 'shared_provider_result_reused' : 'external_provider_verification',
             'level' => 'context',
             'value' => $externalRisk,
             'provider' => $external['provider']
