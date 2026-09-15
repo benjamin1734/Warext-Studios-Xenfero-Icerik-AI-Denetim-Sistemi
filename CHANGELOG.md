@@ -1,5 +1,23 @@
 # Değişiklik Günlüğü
 
+## v1.2.0
+
+- Warext Türkçe Yazım Denetimi V1.1.0+ için zorunlu dependency oluşturmayan sunucu-içi `InteropGateway` eklendi.
+- Ortak provider katmanı `writing` ve `moderation + writing` görevlerini ayırır; aktif editör penceresi gereksiz moderasyon tokenı tüketmez.
+- Tam mesaj kapsamı uygun olduğunda tek harici provider isteği hem moderasyon hem yazım sonucu üretebilir.
+- Kısmi/caret-window metni hiçbir zaman tam mesaj moderasyon sonucu olarak tekrar kullanılmaz.
+- OpenRouter, OpenAI, Gemini, DeepSeek, Claude ve OpenAI-compatible yollar ortak görev sözleşmesine geçirildi; mevcut provider davranışı ve routing özellikleri korundu.
+- Yazım cevabından gereksiz tam `corrected_text` üretimi kaldırıldı; yalnız sorun/düzeltme aralıkları döndürülür.
+- Birleşik tam-mesaj moderasyon sonucu provider + model + normalize içerik hash'i ile tekrar kullanılabilir.
+- Yüksek frekanslı interop cache, XenForo global `SimpleCache` yerine ayrı `xf_warext_ai_interop_cache` tablosuna taşındı.
+- Interop cache tablosu fresh install ve `upgrade1020000Step1()` sırasında otomatik oluşturulur; uninstall sırasında kaldırılır.
+- Süresi dolan interop cache kayıtları probabilistik temizlik ve mevcut günlük usage cron'u ile temizlenir.
+- Gereksiz `warext-ai-interop` public route/controller tamamen kaldırıldı; ortak provider servisi yalnız sunucu içinde çağrılır.
+- ACP'ye ortak AI katmanı, ortak yazım maksimum karakteri ve moderasyon sonucu tekrar kullanım süresi ayarları eklendi.
+- Frontend cache anahtarları `?wai=1020000` sürümüne yükseltildi.
+- V1.2 server-only interop, dedicated cache schema, task-aware provider, no-hard-dependency ve frontend version regresyonları CI'a eklendi.
+- Manuel SQL gerekmez.
+
 ## v1.0.8 Stable
 
 - `Minimum analiz karakteri` alt sınırı 100'den 0'a indirildi; yönetici 0-50000 arasında istediği değeri kullanabilir.
