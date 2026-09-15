@@ -20,6 +20,7 @@ addon = json.loads((ADDON / 'addon.json').read_text(encoding='utf-8'))
 require(addon['version_string'] == '1.2.0', 'addon version must be 1.2.0')
 require(addon['version_id'] == 1020000, 'addon version_id must be 1020000')
 require('Warext/TurkishSpellCheck' not in json.dumps(addon, ensure_ascii=False), 'hard dependency on spell checker is forbidden')
+require('sunucu içinde' in addon.get('description', ''), 'metadata must describe server-only interop')
 
 routes = ET.parse(DATA / 'routes.xml').getroot()
 route_prefixes = {r.attrib.get('route_prefix') for r in routes.findall('route')}
