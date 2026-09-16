@@ -78,4 +78,10 @@ max=10000000</edit_format_params><sub_options></sub_options><relation group_id="
 max=3650</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="660"/></option>
   <option option_id="warextAiHistoryBatchSize" edit_format="spinbox" data_type="integer" advanced="1"><default_value>50</default_value><edit_format_params>min=10
 max=250</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="670"/></option>
+
+  <option option_id="warextAiInteropEnabled" edit_format="onoff" data_type="boolean" advanced="0"><default_value>1</default_value><edit_format_params></edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="700"/></option>
+  <option option_id="warextAiInteropWritingMaxChars" edit_format="spinbox" data_type="integer" advanced="0"><default_value>8000</default_value><edit_format_params>min=500
+max=50000</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="710"/></option>
+  <option option_id="warextAiInteropCacheSeconds" edit_format="spinbox" data_type="integer" advanced="1"><default_value>120</default_value><edit_format_params>min=0
+max=900</edit_format_params><sub_options></sub_options><relation group_id="warextAi" display_order="720"/></option>
 </options>

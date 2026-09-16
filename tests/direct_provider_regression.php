@@ -16,6 +16,11 @@ use Warext\AIContentInspector\Provider\AnthropicProvider;
 class TestOpenAIProvider extends OpenAIProvider
 {
     public function payload(string $message): array { return $this->buildPayload($message); }
+    public function writingPayload(string $message): array
+    {
+        $this->requestContext = $this->normalizeRequestContext(['tasks' => ['writing']]);
+        return $this->buildPayload($message);
+    }
     public function clean(string $message): string { return $this->sanitizeAuthoredText($message); }
     public function parse(string $content): array { return $this->parseJson($content); }
 }
@@ -50,6 +55,12 @@ $openaiPayload = $openai->payload('Deneme');
 assert_true(($openaiPayload['model'] ?? '') === 'gpt-test', 'OpenAI model korunmalı');
 assert_true(($openaiPayload['input'] ?? '') === 'Deneme', 'OpenAI Responses input doğru olmalı');
 assert_true(isset($openaiPayload['instructions']), 'OpenAI sistem talimatı bulunmalı');
+assert_true(($openaiPayload['max_output_tokens'] ?? 0) === 280, 'Normal moderasyon çağrısı küçük çıktı bütçesini korumalı');
+$openaiWriting = $openai->writingPayload('Deneme');
+assert_true(($openaiWriting['max_output_tokens'] ?? 0) === 1200, 'Writing-only çağrı yazım çıktı bütçesini kullanmalı');
+assert_true(str_contains((string)($openaiWriting['instructions'] ?? ''), 'Türkçe yazım denetimi'), 'Writing-only talimat yazım görevini içermeli');
+assert_true(!str_contains((string)($openaiWriting['instructions'] ?? ''), 'forum moderasyon destek analizörüsün'), 'Writing-only çağrı moderasyon promptunu taşımamalı');
+assert_true(!str_contains((string)($openaiWriting['instructions'] ?? ''), 'corrected_text'), 'Writing-only prompt tam metin çıktısı istememeli');
 
 $gemini = new TestGeminiProvider('demo-key', 'gemini-test', 8);
 $geminiPayload = $gemini->payload('Deneme');

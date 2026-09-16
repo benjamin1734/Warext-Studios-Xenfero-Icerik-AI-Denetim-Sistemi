@@ -66,7 +66,7 @@ class AnthropicProvider extends AbstractJsonProvider
                 'role' => 'user',
                 'content' => $message
             ]],
-            'max_tokens' => 280
+            'max_tokens' => $this->outputTokenLimit()
         ];
     }
 }

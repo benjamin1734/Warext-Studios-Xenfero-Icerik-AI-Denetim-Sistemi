@@ -3,6 +3,8 @@ name: Warext AI Content Inspector Validate
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -28,6 +30,9 @@ jobs:
 
       - name: OpenAI-compatible provider regresyonları
         run: php tests/openai_compatible_provider_regression.php
+
+      - name: V1.2 ortak AI interop regresyonu
+        run: python3 tests/interop_v120_regression.py
 
       - name: XenForo 2.3 JSON controller regresyonu
         run: python3 tests/json_controller_regression.py

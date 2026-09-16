@@ -64,7 +64,7 @@ class GeminiProvider extends AbstractJsonProvider
             ]],
             'generationConfig' => [
                 'responseMimeType' => 'application/json',
-                'maxOutputTokens' => 280
+                'maxOutputTokens' => $this->outputTokenLimit()
             ]
         ];
     }

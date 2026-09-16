@@ -52,12 +52,12 @@ class Setup extends AbstractSetup
 
         $this->createReviewLogTable();
         $this->createUsageTable();
+        $this->createInteropCacheTable();
         $this->ensureOptionGroup();
     }
 
     public function installStep2(): void
     {
-        // Master-data importundan önce/sonra güvenli şekilde tekrar doğrula.
         $this->ensureOptionGroup();
     }
 
@@ -78,7 +78,6 @@ class Setup extends AbstractSetup
             $table->addColumn('profile_metrics', 'mediumblob')->nullable()->after('writing_metrics');
             $table->addKey(['review_state', 'risk_score'], 'review_risk');
         });
-
         $this->createReviewLogTable();
     }
 
@@ -133,20 +132,18 @@ class Setup extends AbstractSetup
 
     public function upgrade1000350Step1(): void
     {
-        // v1.0.4 ve öncesinde hatalı option_groups.xml şeması nedeniyle eksik kalabilen
-        // grup kaydını yükseltme sırasında tekrar doğrula. Seçeneklerin kendileri düzeltilmiş
-        // XenForo master-data dosyasından yükseltme importu sırasında yeniden içeri alınır.
         $this->ensureOptionGroup();
     }
 
     public function upgrade1000390Step1(): void
     {
-        // Önceki sürümlerde AI yetkileri tanımlanıyor ancak Administrative / Moderating
-        // gruplarına varsayılan olarak atanmadığı için yetkili kullanıcı menüyü göremeyebiliyordu.
-        // Yalnız eksik permission entry'leri eklenir; yöneticinin mevcut özel deny/allow
-        // tercihleri INSERT IGNORE sayesinde korunur.
         $this->ensureDefaultStaffPermissions();
         $this->queuePermissionRebuild();
+    }
+
+    public function upgrade1020000Step1(): void
+    {
+        $this->createInteropCacheTable();
     }
 
     protected function ensureOptionGroup(): void
@@ -165,17 +162,8 @@ class Setup extends AbstractSetup
         $moderatorGroup = \XF\Entity\User::GROUP_MOD;
 
         $defaults = [
-            $adminGroup => [
-                'warextAiViewSimple',
-                'warextAiViewDetailed',
-                'warextAiReview',
-                'warextAiManage'
-            ],
-            $moderatorGroup => [
-                'warextAiViewSimple',
-                'warextAiViewDetailed',
-                'warextAiReview'
-            ]
+            $adminGroup => ['warextAiViewSimple', 'warextAiViewDetailed', 'warextAiReview', 'warextAiManage'],
+            $moderatorGroup => ['warextAiViewSimple', 'warextAiViewDetailed', 'warextAiReview']
         ];
 
         foreach ($defaults as $groupId => $permissionIds)
@@ -247,8 +235,22 @@ class Setup extends AbstractSetup
         });
     }
 
+    protected function createInteropCacheTable(): void
+    {
+        $this->schemaManager()->createTable('xf_warext_ai_interop_cache', function (Create $table)
+        {
+            $table->checkExists(true);
+            $table->addColumn('cache_key', 'varchar', 64);
+            $table->addColumn('payload', 'mediumblob');
+            $table->addColumn('expires_date', 'int')->unsigned()->setDefault(0);
+            $table->addPrimaryKey('cache_key');
+            $table->addKey('expires_date');
+        });
+    }
+
     public function uninstallStep1(): void
     {
+        $this->schemaManager()->dropTable('xf_warext_ai_interop_cache');
         $this->schemaManager()->dropTable('xf_warext_ai_usage');
         $this->schemaManager()->dropTable('xf_warext_ai_review_log');
         $this->schemaManager()->dropTable('xf_warext_ai_analysis');
