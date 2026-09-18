@@ -1,4 +1,6 @@
-# Warext Studios | XenForo İçerik AI Denetim Sistemi
+# Warext Studios | XenForo AI Content Inspector
+
+## Türkçe
 
 XenForo 2.3+ için geliştirilen bu eklenti, forum içeriklerinin yapay zekâ ile üretilmiş veya yapay zekâ yardımıyla düzenlenmiş olma ihtimalini tek bir işarete dayanarak değil; metin yapısı, editör davranışı, opsiyonel Writing Checker verisi, kullanıcının önceki yazım profili, içerik benzerliği ve isteğe bağlı harici model ikinci görüşünü birlikte değerlendirerek raporlar.
 
@@ -237,3 +239,257 @@ GitHub Actions doğrulama hattı şu alanları kontrol eder:
 - Uyumlu Warext Türkçe Yazım Denetimi: **V1.1.0+**
 - XenForo: **2.3.0+**
 - Manuel SQL: **gerekmez**
+
+## Destek
+
+Sorularınız, hata bildirimleriniz, kurulum desteği ve Warext Studios XenForo eklentileriyle ilgili yardım için destek Discord sunucumuza katılabilirsiniz:
+
+**Discord:** https://discord.gg/tgsV5XMcFS
+
+---
+
+## English
+
+This add-on for XenForo 2.3+ evaluates whether forum content may have been generated or edited with AI by combining multiple signals instead of relying on a single indicator. It considers text structure, editor behavior, optional Writing Checker data, the user's previous writing profile, content similarity, and an optional external-model second opinion.
+
+> The system does not apply automatic penalties and does not present its output as definitive AI detection. Risk and confidence scores are signals intended to support moderation decisions.
+
+## Current version
+
+**1.2.0**
+
+V1.2.0 adds a shared AI provider layer with Warext Turkish Writing Checker V1.1.0+ without creating a hard dependency. When both add-ons are installed, the selected provider, model, budget, and usage tracking can be shared from one central configuration. The shared layer operates only through server-side PHP services; no separate AI Content Inspector interop/provider endpoint is exposed to the browser.
+
+## Core operation
+
+Warext Local Engine is always the base analysis layer. External AI providers are completely optional. Local analysis continues to work even when the external API is disabled, not configured, over quota/budget, or temporarily unavailable.
+
+External verification does not run synchronously while a message is being saved. The local result is stored first, and XenForo may then queue a safe verification job when needed. If the content changes before that job runs, a result tied to the old content hash cannot overwrite the newer message.
+
+## Shared AI layer with Turkish Writing Checker V1.1.0+
+
+When both Warext add-ons are installed, Writing Checker detects the `InteropGateway` service capabilities on the server side. There is no required add-on dependency; either add-on continues working independently if the other one is removed.
+
+The shared service supports two task types:
+
+- `writing` — Turkish writing analysis only.
+- `moderation + writing` — moderation and writing results in the same provider request.
+
+The live editor's partial caret-centered text window requests **writing only**. Partial text is never cached or reused as though it were a moderation result for the full message. When the complete authored message is available, moderation + writing can be produced by the same provider call.
+
+For combined full-message requests, moderation results may be stored briefly in `xf_warext_ai_interop_cache`, keyed by provider + model + normalized content hash. If `ExternalVerifier` finds the same result when the message is submitted, a second external API request can be skipped. High-frequency shared results are stored in this TTL table instead of XenForo global `SimpleCache`; expired records are removed through probabilistic cleanup and a daily cron task.
+
+## Local analysis layers
+
+The system does not score content from a single "AI sign". Main layers used together include:
+
+- sentence and paragraph length regularity,
+- vocabulary diversity,
+- connector and templated-language density,
+- structured formatting such as lists and headings,
+- repeated sentence openings,
+- manually typed, pasted, and deleted characters plus editing duration,
+- optional Warext Writing Checker correction metrics,
+- deviation from the user's previous analyzed writing profile,
+- fingerprint similarity with recent content from the same forum.
+
+User-unowned text inside QUOTE, CODE, PHP, HTML, ICODE, and PLAIN blocks is excluded from analysis and from content sent to an external model.
+
+## Result classes
+
+Local signals and, when available, external signals produce a risk/confidence report. Main result classes are:
+
+- `human_likely`
+- `low_ai_signal`
+- `ai_assistance_possible`
+- `ai_heavy_possible`
+- `high_risk`
+
+These are not violation decisions. A moderator can separately review the result and set it to `pending`, `cleared`, `suspicious`, or `confirmed`.
+
+## Permission system
+
+The add-on uses four separate XenForo permissions:
+
+- `warextAiViewSimple` — view the simplified report above posts and access the inspection center.
+- `warextAiViewDetailed` — view text, behavior, Writing Checker, profile, similarity, and external-verification details.
+- `warextAiReview` — review results, change status, and add notes.
+- `warextAiManage` — access management features such as API usage, provider health, budgets, and historical scanning.
+
+## Reporting
+
+Authorized users can see a compact report directly inside analyzed threads. Risk, confidence, classification, and moderation status are summarized.
+
+At thread level, the add-on shows the number of analyzed messages, average/highest risk, the number of 70+ risk messages, and the distribution of review statuses. The detailed list of highest-risk messages is queried only for users with `warextAiViewDetailed`.
+
+The detailed report separates:
+
+- local text metrics,
+- editor behavior metrics,
+- Writing Checker metrics,
+- user writing profile,
+- content similarity and matched messages,
+- external provider second opinion,
+- token usage and cost source,
+- localized signal explanations,
+- moderation review history.
+
+A permission-controlled moderation center is available under `/warext-ai/`, with filters for minimum risk, forum, user, and review status.
+
+## External provider system
+
+The **External AI verification provider** option in ACP supports:
+
+- OpenRouter — recommended cloud layer
+- OpenAI / GPT
+- Google Gemini
+- DeepSeek
+- Anthropic Claude
+- xAI / Grok
+- Mistral AI
+- Qwen / Alibaba Model Studio
+- Ollama — local OpenAI-compatible service
+- Custom OpenAI-Compatible API
+- No external provider — Warext Local Engine only
+
+OpenRouter supports a model fallback chain, ZDR routing, data-collection opt-out, price/latency/throughput ordering, and optional response caching.
+
+All external provider paths, including OpenRouter, follow the V1.2.0 shared-task contract. Moderation-only calls retain a small output budget; when writing analysis is requested, the response budget expands enough to return writing issues. Writing responses do not request unnecessary copies of fully corrected text; only issue/correction ranges are returned.
+
+For direct providers, minimum local risk, maximum provider weight, maximum characters sent, and timeout are shared options. No unnecessary external job is created when a provider is not configured.
+
+Custom OpenAI-compatible base URLs accept only HTTP/HTTPS and reject embedded usernames/passwords. API keys are never stored in analysis records or exposed in user-facing reports.
+
+## API usage, budget, and cost
+
+The `xf_warext_ai_usage` table stores, whenever available:
+
+- provider and model,
+- related message,
+- prompt/input tokens,
+- completion/output tokens,
+- total tokens,
+- cost,
+- cost source,
+- success/failure state,
+- failure reason,
+- date.
+
+Cost sources are separated into three types:
+
+- `actual` — the provider reported an actual cost.
+- `estimated` — the provider did not report cost; it was calculated from token counts and the current input/output prices configured in ACP.
+- `unknown` — a reliable cost could not be determined.
+
+Estimated prices are not hard-coded. Administrators enter the current per-million input/output token prices for the model they use. Actual provider-reported cost always takes priority. If prompt tokens exist without an input price, or completion tokens exist without an output price, the system does not produce a partial estimate and leaves the cost as `unknown`.
+
+ACP also manages:
+
+- maximum external AI requests per day,
+- maximum external AI requests per month,
+- maximum daily USD budget,
+- maximum monthly USD budget,
+- usage-log retention period,
+- historical scan job batch size,
+- enabled/disabled state of the shared Warext AI layer,
+- shared-writing maximum characters,
+- reuse lifetime for shared moderation results.
+
+Call/budget limits set to `0` are unlimited. When a limit is reached, only external verification stops; local analysis continues.
+
+## Provider health view
+
+Users with `warextAiManage` can view daily/monthly request, token, and cost totals; provider success rate; last-used model; health state; and latest error reason.
+
+Usage records are automatically cleaned by a daily cron according to the configured retention period. The same cron also removes expired shared interop-cache records.
+
+## Historical content scanning
+
+Older messages that have never been analyzed can be scanned in controlled background batches using the `Warext\\AIContentInspector:HistoricalScan` XenForo job.
+
+During scanning:
+
+- a maximum message count can be defined,
+- a last-N-days date limit can be applied,
+- only forums selected in ACP are considered,
+- messages processed per job cycle are limited by `warextAiHistoryBatchSize`,
+- historical editor behavior is not invented; typed/paste/Writing Checker data is marked `historical_unobserved`,
+- messages above a selected risk threshold can optionally receive external verification,
+- daily/monthly request and budget limits also apply to historical scanning,
+- previously analyzed messages are not reprocessed by default.
+
+## User writing profile
+
+When a user has at least three previous analysis records, the system builds a local reference profile from up to the latest 25 suitable samples. Profile deviation affects final risk only in a limited way and never determines AI use or a violation by itself.
+
+## Content similarity
+
+A local 64-bit fingerprint is generated for text and compared with recent analyses from the same forum. High similarity is not treated as AI usage; it is a separate moderation signal for copy/repost context. Similarity results and matches are stored in the `similarity_metrics` field.
+
+## Moderation review log
+
+When a moderator changes a result status, the change is stored in `xf_warext_ai_review_log` with old status, new status, moderator, date, and an optional note. If the message itself changes, the previous decision automatically returns to `pending`.
+
+## Warext Turkish Writing Checker integration
+
+Warext Turkish Writing Checker is **not a required dependency**. When both add-ons are installed, client-side correction metrics can be added to analysis context through the existing integration bridge; V1.2.0 also provides the server-side shared provider service.
+
+If Writing Checker is not installed, AI Content Inspector continues working independently. No third integration package is required.
+
+## Performance and security
+
+V1.2.0 includes these safeguards in particular:
+
+- unchanged content with the same SHA-256 hash is not analyzed again,
+- external verification does not run synchronously during post save,
+- an external job tied to an old content hash cannot update the newer message,
+- partial writing-editor windows are never reused as moderation results,
+- the shared provider layer exposes no separate public browser API endpoint,
+- high-frequency shared results use a dedicated TTL table instead of XenForo global SimpleCache,
+- similarity queries are limited to 250 recent records and use the `forum_id + analyzed_date` index,
+- user profiles are limited to the latest 25 samples,
+- the report batch endpoint processes at most 100 message IDs,
+- thread summary does not create a second batch request,
+- highest-risk-message queries are skipped for users without detailed permission,
+- report JavaScript is loaded only for users with reporting permission,
+- the editor tracker installs no event listener when no real message editor exists,
+- daily/monthly budget checks use a single aggregate SQL query,
+- daily/monthly usage summaries use a single period aggregate query,
+- moderation-center status counters are loaded with a single aggregate query.
+
+## Installation / upgrade
+
+Standard XenForo add-on installation is used. The package includes the `upload/` directory, `addon.json`, XenForo `_data` records, and the package-level `hashes.json` integrity file.
+
+During the V1.2.0 upgrade, `xf_warext_ai_interop_cache` is created automatically by `Setup.php`. **No manual SQL is required.** Existing analysis and usage-table data is preserved.
+
+## Automated validation
+
+The GitHub Actions validation pipeline checks:
+
+- all PHP syntax,
+- all JavaScript syntax,
+- local false-positive regressions,
+- calibration and score fusion,
+- OpenRouter and direct-provider regressions,
+- OpenAI-compatible provider security/regressions,
+- V1.2 server-only shared AI contract,
+- shared cache table/upgrade/uninstall contract,
+- frontend cache-key version matching,
+- XenForo XML/master-data integrity,
+- absence of a hard Writing Checker dependency,
+- asynchronous provider architecture and content-hash protection,
+- actual/estimated cost and historical-scan behavior.
+
+## Version summary
+
+- AI Content Inspector: **V1.2.0**
+- Compatible Warext Turkish Writing Checker: **V1.1.0+**
+- XenForo: **2.3.0+**
+- Manual SQL: **not required**
+
+## Support
+
+For questions, bug reports, installation support, and help with Warext Studios XenForo add-ons, you can join our support Discord server:
+
+**Discord:** https://discord.gg/tgsV5XMcFS
